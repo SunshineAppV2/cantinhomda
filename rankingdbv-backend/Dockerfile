@@ -1,6 +1,6 @@
-FROM node:20-alpine
+FROM node:20-slim
 
-RUN apk add --no-cache openssl compat-openssl11
+RUN apt-get update -y && apt-get install -y openssl ca-certificates && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
