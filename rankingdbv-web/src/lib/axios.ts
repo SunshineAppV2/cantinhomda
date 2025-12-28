@@ -32,10 +32,10 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            // Optional: Redirect to login or dispatch an event
-            // window.location.href = '/login'; 
+            console.warn('Unauthorized access (401). Token might be invalid.');
+            // localStorage.removeItem('token');
+            // localStorage.removeItem('user');
+            // Do not force redirect/reload to avoid loops. Let the UI handle the error.
         }
         return Promise.reject(error);
     }

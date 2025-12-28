@@ -17,7 +17,7 @@ export function Login() {
 
   // Server Config State
   const [showSettings, setShowSettings] = useState(false);
-  const [serverUrl, setServerUrl] = useState(localStorage.getItem('api_url') || `http://${window.location.hostname}:3000`);
+  const [serverUrl, setServerUrl] = useState(localStorage.getItem('api_url') || import.meta.env.VITE_API_URL || 'http://localhost:3000');
 
   const handleSaveServer = () => {
     localStorage.setItem('api_url', serverUrl);

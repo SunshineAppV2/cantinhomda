@@ -5,7 +5,7 @@ import {
     signOut,
     onAuthStateChanged
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { api } from '../lib/axios';
 import { jwtDecode } from 'jwt-decode';
@@ -119,23 +119,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const login = async (email: string, password: string) => {
+        console.log('[Login] Starting login flow for:', email);
+
         // 1. Firebase Login
-        await signInWithEmailAndPassword(auth, email, password);
+        try {
+            console.log('[Login] 1. Executing Firebase signInWithEmailAndPassword...');
+            await signInWithEmailAndPassword(auth, email, password);
+            console.log('[Login] 1. Firebase Login Success');
+        } catch (firebaseErr) {
+            console.error('[Login] 1. Firebase Login Failed:', firebaseErr);
+            throw firebaseErr;
+        }
 
         // 2. Backend Login (Get Access Token for API & Roles)
         try {
+            console.log('[Login] 2. Requesting Backend Token...');
             const res = await api.post('/auth/login', { email, password });
+            console.log('[Login] 2. Backend Response Received');
             const { access_token, user: backendUser } = res.data;
+
             if (access_token) {
                 localStorage.setItem('token', access_token);
-                // We don't need to manually setUser here because onAuthStateChanged 
-                // will fire (or we can force update if needed, but the loop handles it)
-                // However, onAuthStateChanged might fire BEFORE validation if we are not careful.
-                // But since we await firebase login first, the listener triggers.
-                // The listener checks localStorage. 
-                // Race condition: Listener runs before we setItem?
-                // Probably. So let's force a check or setUser here directly.
+                console.log('[Login] 3. Token stored');
 
+                // SYNC FIRESTORE: Ensure Firebase User matches Backend Permissions (Fixes Race Condition)
+                try {
+                    console.log('[Login] 4. Syncing Firestore Role...');
+                    const userRef = doc(db, 'users', auth.currentUser?.uid || backendUser.id);
+                    // Use static setDoc instead of dynamic import
+                    await setDoc(userRef, {
+                        role: backendUser.role,
+                        clubId: backendUser.clubId || null,
+                        unitId: backendUser.unitId || null,
+                        email: backendUser.email
+                    }, { merge: true });
+                    console.log('[Login] 4. Firestore Sync Success');
+                } catch (syncErr) {
+                    // AdBlockers often block Firestore. Log but allow proceeding.
+                    console.error("[Login] 4. Firestore Sync Error (Probable AdBlock/Extension):", syncErr);
+                    // Non-blocking
+                }
+
+                console.log('[Login] 5. Setting User State...');
                 setUser({
                     id: backendUser.id,
                     uid: auth.currentUser?.uid,
@@ -144,13 +169,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     role: backendUser.role,
                     clubId: backendUser.clubId,
                     unitId: backendUser.unitId,
-                    // Add other fields if returned by backend login
                 });
+                console.log('[Login] 6. Login Complete');
             }
         } catch (error) {
             console.error("Backend login failed. Proceeding with limited access/fallback?", error);
-            // If backend fails but firebase succeeds, we are in a weird state.
-            // Best to logout to avoid confusion?
             await signOut(auth);
             throw new Error('Falha na autenticação com o servidor. Verifique se o usuário existe no sistema.');
         }

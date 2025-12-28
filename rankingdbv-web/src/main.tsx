@@ -7,6 +7,16 @@ import App from './App.tsx'
 
 import { GlobalErrorBoundary } from './components/GlobalErrorBoundary'
 
+// Force unregister Service Worker to clear stale cache
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function (registrations) {
+    for (let registration of registrations) {
+      registration.unregister();
+      console.log('Service Worker unregistered to force update.');
+    }
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <GlobalErrorBoundary>

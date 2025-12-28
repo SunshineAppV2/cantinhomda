@@ -22,6 +22,7 @@ import {
     Building2,
     BarChart,
     RefreshCw,
+    Globe, // For Global Admin
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ROLE_TRANSLATIONS } from '../pages/members/types';
@@ -188,6 +189,44 @@ export function DashboardLayout() {
                     ) : (
                         /* --- STANDARD MENU --- */
                         <>
+                            {/* --- ADMINISTRAÇÃO GLOBAL (MASTER) --- */}
+                            {user?.role === 'MASTER' && (
+                                <div className="space-y-1 mb-2">
+                                    <div className="px-4 py-1 pb-2">
+                                        <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Administração Global</p>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Link
+                                            to="/dashboard/clubs"
+                                            className="flex items-center gap-3 px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all text-sm font-bold shadow-sm"
+                                        >
+                                            <Globe className="w-4 h-4" />
+                                            <span>Gerenciar Clubes</span>
+                                        </Link>
+                                        <Link
+                                            to="/dashboard/hierarchy"
+                                            className="flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all text-sm"
+                                        >
+                                            <Building2 className="w-4 h-4" />
+                                            <span>Hierarquia & Regiões</span>
+                                        </Link>
+                                        <Link
+                                            to="/dashboard/master-treasury"
+                                            className="flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all text-sm"
+                                        >
+                                            <DollarSign className="w-4 h-4" />
+                                            <span>Tesouraria Master</span>
+                                        </Link>
+                                        <Link
+                                            to="/dashboard/system-messages"
+                                            className="flex items-center gap-3 px-4 py-2 text-slate-400 hover:text-white hover:bg-slate-800/50 rounded-lg transition-all text-sm"
+                                        >
+                                            <AlertTriangle className="w-4 h-4" />
+                                            <span>Mensagens Sistema</span>
+                                        </Link>
+                                    </div>
+                                </div>
+                            )}
                             {/* --- GERAL --- */}
                             <div className="space-y-1">
                                 <div
