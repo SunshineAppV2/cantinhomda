@@ -70,7 +70,7 @@ export function Register() {
 
     const [searchParams] = useSearchParams();
 
-    // Fetch Clubs
+    // Fetch Clubs - Runs ONCE on mount
     useEffect(() => {
         const fetchClubs = async () => {
             try {
@@ -80,31 +80,38 @@ export function Register() {
                     clubsList.push({ id: doc.id, ...doc.data() } as Club);
                 });
                 setClubs(clubsList);
-
-                // Handle Redirect/Resume
-                const urlEmail = searchParams.get('email');
-                if (urlEmail) {
-                    setEmail(urlEmail);
-                }
-
-                const isResume = searchParams.get('resume');
-                if (isResume) {
-                    toast.info('Complete o nome do seu Clube para ativar sua conta.');
-                    setMode('CREATE');
-                }
-
-                const inviteClubId = searchParams.get('clubId');
-                if (inviteClubId) {
-                    setMode('JOIN');
-                    setClubId(inviteClubId);
-                    toast.success('Convite aplicado! Complete seu cadastro.');
-                }
             } catch (err) {
                 console.error('Error fetching clubs from Firestore:', err);
             }
         };
 
         fetchClubs();
+    }, []);
+
+    // Handle URL Params - Runs when params change
+    useEffect(() => {
+        const urlEmail = searchParams.get('email');
+        if (urlEmail) {
+            setEmail(urlEmail);
+        }
+
+        const isResume = searchParams.get('resume');
+        if (isResume) {
+            toast.info('Complete o nome do seu Clube para ativar sua conta.');
+            setMode('CREATE');
+        }
+
+        const inviteClubId = searchParams.get('clubId');
+        if (inviteClubId) {
+            setMode('JOIN');
+            setClubId(inviteClubId);
+            // toast.success('Convite aplicado! Complete seu cadastro.'); // Remove or keep? Keep, but maybe verify if not already set?
+            // Better to avoid duplicate toasts if re-renders happen. 
+            // Simple check:
+            if (inviteClubId !== clubId) {
+                toast.success('Convite aplicado! Complete seu cadastro.');
+            }
+        }
     }, [searchParams]);
 
     // Fetch Units when Club changes
