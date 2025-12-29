@@ -595,6 +595,33 @@ export class UsersService {
       }
     }
 
+    // 1. Delete from Firebase First
+    if (user.email) {
+      try {
+        console.log(`[FirebaseSync] Deleting user ${user.email}...`);
+        try {
+          // Try by UID (Ideal case)
+          await firebaseAdmin.auth().deleteUser(id);
+          console.log(`[FirebaseSync] User ${id} deleted from Firebase by UID.`);
+        } catch (uidError: any) {
+          if (uidError.code === 'auth/user-not-found') {
+            // Fallback: Try by Email (Legacy/Desync case)
+            const fbUser = await firebaseAdmin.auth().getUserByEmail(user.email);
+            if (fbUser) {
+              await firebaseAdmin.auth().deleteUser(fbUser.uid);
+              console.log(`[FirebaseSync] User ${user.email} deleted from Firebase by Email (UID: ${fbUser.uid}).`);
+            }
+          } else {
+            throw uidError;
+          }
+        }
+      } catch (error) {
+        console.error(`[FirebaseSync] Error deleting user ${user.email} from Firebase:`, error);
+        // We continue to delete from DB to avoid locking the user, 
+        // but log the error. In strict mode, we might want to throw.
+      }
+    }
+
     return this.prisma.user.delete({ where: { id } });
   }
 }
