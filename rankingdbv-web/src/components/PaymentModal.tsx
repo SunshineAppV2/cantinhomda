@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { api } from '../lib/axios';
-import { Loader2, Copy, CheckCircle, X } from 'lucide-react';
+import { Loader2, Copy, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PaymentModalProps {
