@@ -27,6 +27,10 @@ export class UpdateUserDto {
     @IsOptional()
     isActive?: boolean;
 
+    @IsString()
+    @IsOptional()
+    status?: 'ACTIVE' | 'BLOCKED' | 'PENDING';
+
     @IsBoolean()
     @IsOptional()
     mustChangePassword?: boolean;

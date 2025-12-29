@@ -19,6 +19,9 @@ export class AuthService {
 
     // Compara a senha digitada com o hash do banco
     if (user && (await bcrypt.compare(pass, user.password))) {
+      if (user.isActive === false || user.status === 'BLOCKED') {
+        throw new UnauthorizedException('Sua conta está bloqueada ou inativa.');
+      }
       const { password, ...result } = user;
       return result;
     }

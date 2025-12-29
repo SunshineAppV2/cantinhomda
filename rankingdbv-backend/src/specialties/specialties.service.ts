@@ -568,10 +568,30 @@ export class SpecialtiesService {
         });
     }
 
-    update(id: string, data: any) {
+    async update(id: string, data: any) {
+        const { requirements, ...otherData } = data;
+
+        if (requirements) {
+            return this.prisma.specialty.update({
+                where: { id },
+                data: {
+                    ...otherData,
+                    requirements: {
+                        deleteMany: {}, // Delete all existing requirements
+                        create: requirements.map((r: any) => ({
+                            description: r.description,
+                            type: r.type || 'TEXT'
+                        }))
+                    }
+                },
+                include: { requirements: true }
+            });
+        }
+
         return this.prisma.specialty.update({
             where: { id },
-            data
+            data: otherData,
+            include: { requirements: true }
         });
     }
 
