@@ -16,6 +16,12 @@ export class UsersController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post()
+  create(@Body() body: any) {
+    return this.usersService.create(body);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('ranking/top')
   findRanking(@Req() req: any) {
     return this.usersService.findRanking(req?.user);

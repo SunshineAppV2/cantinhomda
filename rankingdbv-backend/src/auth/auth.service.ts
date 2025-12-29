@@ -142,7 +142,7 @@ export class AuthService {
       password: hashedPassword,
       clubId: clubId,
       role: role as any,
-      status: status as any
+      isActive: status === 'ACTIVE'
     });
 
     return this.login(user);

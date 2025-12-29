@@ -634,7 +634,7 @@ export function DashboardLayout() {
                             </div>
                             <div className="hidden sm:block text-left">
                                 <p className="text-sm font-semibold text-slate-700 leading-none">{user?.name || 'Usuário'}</p>
-                                <p className="text-[10px] text-slate-500 font-medium mt-0.5 capitalize">{ROLE_TRANSLATIONS[user?.role || '']?.toLowerCase() || user?.role?.toLowerCase() || 'Membro'}</p>
+                                <p className="text-[10px] text-slate-500 font-medium mt-0.5 capitalize">{ROLE_TRANSLATIONS[user?.role || '']?.toLowerCase() || (user?.role ? user.role.toLowerCase() : 'membro')}</p>
                             </div>
                         </Link>
                     </div>
