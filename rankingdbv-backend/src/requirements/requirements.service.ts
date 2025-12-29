@@ -136,7 +136,7 @@ export class RequirementsService {
         return { count, errors };
     }
 
-    findAll(query: { dbvClass?: any, specialtyId?: string, userId?: string, userClubId?: string }) {
+    async findAll(query: { dbvClass?: any, specialtyId?: string, userId?: string, userClubId?: string }) {
         const where: any = {};
         if (query.dbvClass) where.dbvClass = query.dbvClass;
         if (query.specialtyId) where.specialtyId = query.specialtyId;
