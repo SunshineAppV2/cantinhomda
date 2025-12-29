@@ -310,6 +310,7 @@ export function MasterTreasury() {
                         <input type="text" value={category} onChange={e => setCategory(e.target.value)} required list="cats" className="w-full border rounded px-3 py-2" placeholder="Ex: Licença Anual" />
                         <datalist id="cats">
                             <option value="Licença Anual" />
+                            <option value="Mensalidade" />
                             <option value="Inscrição / Taxa de Adesão" />
                             <option value="Doação" />
                             <option value="Servidor" />

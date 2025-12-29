@@ -26,7 +26,10 @@ export class UsersService {
     return this.prisma.user.findMany({
       where: {
         clubId: null,
-        role: { in: ['OWNER', 'ADMIN', 'REGIONAL', 'MASTER'] } // Removed DIRECTOR as it's not in Prisma Enum
+        // We want to find anyone who might need a club, usually Directors/Owners who got stuck
+        // But let's allow finding normal users too if they need to be promoted
+        // For now, let's stick to likely candidates to avoid noise
+        role: { in: ['OWNER', 'ADMIN', 'REGIONAL', 'MASTER', 'DIRECTOR', 'COUNSELOR', 'INSTRUCTOR', 'PARENT', 'PATHFINDER'] }
       },
       select: {
         id: true,
