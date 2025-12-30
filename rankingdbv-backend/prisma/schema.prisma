@@ -59,35 +59,10 @@ model ReferralCredit {
   @@map("referral_credits")
 }
 
-model Minute {
-  id        String           @id @default(uuid())
-  title     String
-  type      String           @default("REGULAR")
-  content   String
-  date      DateTime         @default(now())
-  clubId    String
-  authorId  String
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  attendees MinuteAttendee[]
-  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  club      Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
 
-  @@map("minutes")
-}
 
-model MinuteAttendee {
-  id       String    @id @default(uuid())
-  minuteId String
-  userId   String
-  status   String    @default("PENDING")
-  signedAt DateTime?
-  minute   Minute    @relation(fields: [minuteId], references: [id], onDelete: Cascade)
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([minuteId, userId])
-  @@map("minute_attendees")
-}
+
 
 model Unit {
   id      String @id @default(uuid())
@@ -171,8 +146,7 @@ model User {
   logs                   ActivityLog[]
   attendances            Attendance[]
   registrations          EventRegistration[]
-  minuteAttendance       MinuteAttendee[]
-  authoredMinutes        Minute[]
+  authoredMinutes        Minute[]            @relation("AuthoredMinutes")
   notifications          Notification[]
   pointsHistory          PointHistory[]
   purchases              Purchase[]
@@ -534,4 +508,34 @@ enum TransactionStatus {
   WAITING_APPROVAL
   COMPLETED
   CANCELED
+}
+
+
+model Minute {
+  id        String     @id @default(uuid())
+  number    Int?       // Sequential number
+  year      Int
+  title     String
+  date      DateTime
+  type      MinuteType @default(ORDINARIA)
+  content   String     @db.Text
+  attendees Json?      // List of attendees
+
+  clubId    String
+  club      Club       @relation(fields: [clubId], references: [id])
+
+  authorId  String
+  author    User       @relation("AuthoredMinutes", fields: [authorId], references: [id])
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("minutes")
+}
+
+enum MinuteType {
+  ORDINARIA
+  EXTRAORDINARIA
+  ATO_ADMINISTRATIVO
+  OUTRO
 }

@@ -61,12 +61,27 @@ export function SecretaryMinuteEditor({ initialData, onClose, onSave }: Secretar
         e.preventDefault();
         setLoading(true);
 
+        const payload: any = { ...formData };
+        if (formData.attendeeIds && formData.attendeeIds.length > 0) {
+            const attendeesPayload = formData.attendeeIds.map(id => {
+                const m = members.find((u: any) => u.id === id);
+                // Preserve existing status if editing
+                const existing = (initialData as any)?.attendees?.find((a: any) => (a.user?.id || a.userId) === id);
+                return {
+                    user: { id: m?.id || id, name: m?.name || '?', role: m?.role || '?' },
+                    status: existing?.status || 'PENDING',
+                    signedAt: existing?.signedAt || null
+                };
+            });
+            (payload as any).attendees = attendeesPayload;
+        }
+
         try {
             if (initialData?.id) {
-                await api.patch(`/secretary/minutes/${initialData.id}`, formData);
+                await api.patch(`/secretary/minutes/${initialData.id}`, payload);
                 toast.success('Ata atualizada com sucesso!');
             } else {
-                await api.post('/secretary/minutes', formData);
+                await api.post('/secretary/minutes', payload);
                 toast.success('Ata criada com sucesso!');
             }
             onSave();
