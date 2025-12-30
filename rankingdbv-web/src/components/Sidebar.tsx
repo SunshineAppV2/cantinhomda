@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -41,23 +41,19 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
     // Close secondary menu when clicking outside (handled by layout overlay usually, but simple state here)
-    // Auto-select menu based on current path
-    useEffect(() => {
-        // Simple heuristic to highlight the correct top-level item on mount/nav
-        const path = location.pathname;
-        if (!activeMenu) { // Only auto-set if nothing is active (prevent overriding user toggle? No, usually we want sync)
-            if (path === '/dashboard') setActiveMenu('dashboard');
-            else if (path.includes('/profile') || path.includes('/family') || path.includes('/requirements') || path.includes('/activities')) setActiveMenu('access');
-            else if (path.includes('/members') || path.includes('/classes') || path.includes('/events') || path.includes('/meetings') || path.includes('/secretary') || path.includes('/approvals')) setActiveMenu('management');
-            else if (path.includes('/financial') || path.includes('/treasury') || path.includes('/master-treasury')) setActiveMenu('financial');
-            else if (path.includes('/reports') || path.includes('/ranking') || path.includes('/signatures')) setActiveMenu('reports');
-            else if (path.includes('/store')) setActiveMenu('store');
-            else if (path.includes('/settings') || path.includes('/admin') || path.includes('/hierarchy')) setActiveMenu('config');
-        }
-    }, [location.pathname]); // Removed activeMenu dependency to avoid loops, but we might want it to NOT auto-open if user closed it. 
-    // Actually, marketup style usually keeps it open if you are in that section.
-    // User asked: "quando for clicado o menu retrai de volta". 
-    // This implies clicking the SUB-ITEM should close the drawer.
+    // Auto-select menu based on current path - REMOVED EFFECT to prevent auto-reopening. 
+    // Now derived active state is used for highlighting, but state is used for drawer.
+
+    const getActiveIdFromPath = (path: string) => {
+        if (path === '/dashboard') return 'dashboard';
+        if (path.includes('/profile') || path.includes('/family') || path.includes('/requirements') || path.includes('/activities')) return 'access';
+        if (path.includes('/members') || path.includes('/classes') || path.includes('/events') || path.includes('/meetings') || path.includes('/secretary') || path.includes('/approvals')) return 'management';
+        if (path.includes('/financial') || path.includes('/treasury') || path.includes('/master-treasury')) return 'financial';
+        if (path.includes('/reports') || path.includes('/ranking') || path.includes('/signatures')) return 'reports';
+        if (path.includes('/store')) return 'store';
+        if (path.includes('/settings') || path.includes('/admin') || path.includes('/hierarchy')) return 'config';
+        return null;
+    };
 
     // Permissions Query (reused logic)
     const { data: clubData } = useQuery({
@@ -224,15 +220,18 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
 
                     <nav className="flex-1 w-full space-y-1 overflow-y-auto scrollbar-none">
                         {menuItems.map(item => {
-                            const isActive = activeMenu === item.id;
+                            // If activeMenu is set, use it. If not, fallback to URL match.
+                            // BUT for the purposes of style, if drawer is open (activeMenu set), only that one is highlighted.
+                            // If drawer closed (activeMenu null), we show current section's highlight.
+                            const isActive = activeMenu === item.id || (!activeMenu && getActiveIdFromPath(location.pathname) === item.id);
                             const Icon = item.icon;
 
                             return (
                                 <div
                                     key={item.id}
                                     onClick={() => {
-                                        // Toggle logic: if already active, close it.
-                                        if (isActive) setActiveMenu(null);
+                                        // Toggle logic: if already active (drawer open), close it.
+                                        if (activeMenu === item.id) setActiveMenu(null);
                                         else setActiveMenu(item.id);
                                     }}
                                     className={`
