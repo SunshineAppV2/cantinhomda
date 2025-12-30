@@ -32,10 +32,4 @@ export class AuthController {
   async register(@Body() createUserDto: any) {
     return this.authService.register(createUserDto);
   }
-
-  @Post('firebase-login')
-  async firebaseLogin(@Body() body: { token: string }) {
-    if (!body.token) throw new UnauthorizedException('Token obrigatório');
-    return this.authService.loginWithFirebase(body.token);
-  }
 }

@@ -88,7 +88,6 @@ export const INITIAL_FORM_DATA = {
     email: '',
     password: '',
     role: 'PATHFINDER',
-    secondaryRoles: [] as string[],
     isActive: true,
     mustChangePassword: false,
     clubId: '',

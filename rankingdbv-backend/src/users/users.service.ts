@@ -16,10 +16,8 @@ export class UsersService {
 
   // Busca usuário pelo Email (usado no login)
   async findOneByEmail(email: string): Promise<User | null> {
-    return this.prisma.user.findFirst({
-      where: {
-        email: { equals: email, mode: 'insensitive' }
-      },
+    return this.prisma.user.findUnique({
+      where: { email },
     });
   }
 

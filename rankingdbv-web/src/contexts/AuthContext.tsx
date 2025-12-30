@@ -16,7 +16,6 @@ interface User {
     name: string;
     email: string;
     role: string;
-    secondaryRoles?: string[];
     clubId?: string;
     dbvClass?: string;
     unit?: { name: string };
@@ -50,13 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
                 // Fetch full data from backend to get the real Name (source of truth)
                 let backendName = firebaseUser.displayName || 'Usuário';
-                let secondaryRoles: string[] = [];
-
                 try {
                     const res = await api.get(`/users/${decoded.userId || decoded.sub}`);
-                    if (res.data) {
-                        if (res.data.name) backendName = res.data.name;
-                        if (res.data.secondaryRoles) secondaryRoles = res.data.secondaryRoles;
+                    if (res.data && res.data.name) {
+                        backendName = res.data.name;
                     }
                 } catch (apiErr) {
                     console.warn("Could not fetch user profile from API, using fallback name:", apiErr);
@@ -68,7 +64,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     email: firebaseUser.email || decoded.email,
                     name: backendName,
                     role: decoded.role,
-                    secondaryRoles: secondaryRoles,
                     clubId: decoded.clubId,
                     unitId: decoded.unitId,
                     mustChangePassword: decoded.mustChangePassword
@@ -149,55 +144,53 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // 2. Backend Login (Get Access Token for API & Roles)
         try {
-            console.log('[Login] 2. Requesting Backend Token (Firebase-First Strategy)...');
-
-            // Get Firebase ID Token
-            const idToken = await auth.currentUser?.getIdToken(true);
-            if (!idToken) throw new Error('Falha ao obter token de identidade.');
-
-            // Call new endpoint
-            const res = await api.post('/auth/firebase-login', { token: idToken });
-
+            console.log('[Login] 2. Requesting Backend Token...');
+            const res = await api.post('/auth/login', { email, password });
             console.log('[Login] 2. Backend Response Received');
             const { access_token, user: backendUser } = res.data;
 
             if (access_token) {
                 localStorage.setItem('token', access_token);
-                // ... (rest is same)
+                console.log('[Login] 3. Token stored');
 
-                // SYNC FIRESTORE
+                // SYNC FIRESTORE: Background task, non-blocking
                 const userRef = doc(db, 'users', auth.currentUser?.uid || backendUser.id);
                 setDoc(userRef, {
                     role: backendUser.role,
                     clubId: backendUser.clubId || null,
                     unitId: backendUser.unitId || null,
                     email: backendUser.email
-                }, { merge: true }).catch(e => console.warn('Firestore Sync error', e));
+                }, { merge: true })
+                    .then(() => console.log('[Login] 4. Firestore Sync Success (Background)'))
+                    .catch(e => console.warn('[Login] 4. Firestore Sync Failed (Non-critical):', e));
 
+                console.log('[Login] 5. Setting User State...');
                 setUser({
                     id: backendUser.id,
                     uid: auth.currentUser?.uid,
                     name: backendUser.name,
                     email: backendUser.email,
                     role: backendUser.role,
-                    secondaryRoles: backendUser.secondaryRoles || [],
                     clubId: backendUser.clubId,
                     unitId: backendUser.unitId,
                     mustChangePassword: backendUser.mustChangePassword
                 });
+                console.log('[Login] 6. Login Complete');
             }
         } catch (error: any) {
             console.error("Backend login failed.", error);
 
-            // If Firebase Login works but Backend fails with 401, it implies User Not Found in Backend *despite* valid token.
-            // This is "Account Incomplete".
+            // Check if user exists in Firebase but NOT in Backend (Limbo state)
             const isUserNotFound = error.response?.status === 401 || error.response?.status === 404;
+
             if (isUserNotFound && auth.currentUser) {
+                // User is in Firebase but not PostgreSQL
+                // We DON'T sign out yet, we give them a chance to "Complete" registration
                 throw new Error('CONTA_INCOMPLETA');
             }
 
             await signOut(auth);
-            throw new Error(error.response?.data?.message || 'Falha na autenticação com o servidor.');
+            throw new Error(error.response?.data?.message || 'Falha na autenticação com o servidor. Verifique seu login.');
         }
     };
 
