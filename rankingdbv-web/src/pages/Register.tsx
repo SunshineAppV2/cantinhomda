@@ -84,28 +84,28 @@ export function Register() {
                     clubsList.push({ id: doc.id, ...doc.data() } as Club);
                 });
                 setClubs(clubsList);
-
-                // Check invite parameter AFTER clubs are loaded to match name
-                const inviteClubId = searchParams.get('clubId');
-                if (inviteClubId) {
-                    const foundClub = clubsList.find(c => c.id === inviteClubId);
-                    if (foundClub) {
-                        setInviteClubName(foundClub.name);
-                        setClubId(inviteClubId);
-                        setMode('JOIN');
-                        // toast.success(`Bem-vindo ao ${foundClub.name}! Complete seu cadastro.`);
-                    }
-                }
             } catch (err) {
                 console.error('Error fetching clubs from Firestore:', err);
             }
         };
 
         fetchClubs();
-    }, []); // Only on mount. If params change later, we might miss it? Usually acceptable for landing.
+    }, []);
 
-    // Handle URL Params - Runs when params change (for other params)
+    // Handle Invite Link & URL Params
     useEffect(() => {
+        // Check for Invite Link
+        const inviteClubId = searchParams.get('clubId');
+        if (inviteClubId && clubs.length > 0) {
+            const foundClub = clubs.find(c => c.id === inviteClubId);
+            if (foundClub) {
+                setInviteClubName(foundClub.name);
+                setClubId(inviteClubId);
+                setMode('JOIN');
+            }
+        }
+
+        // Other Params
         const urlEmail = searchParams.get('email');
         if (urlEmail) {
             setEmail(urlEmail);
@@ -123,7 +123,7 @@ export function Register() {
             setMode('CREATE');
             toast.success('Código de indicação aplicado com sucesso!');
         }
-    }, [searchParams]);
+    }, [searchParams, clubs]);
 
     // Fetch Units when Club changes
     useEffect(() => {
