@@ -22,12 +22,17 @@ export class AuthService {
     try {
       const decoded = await firebaseAdmin.auth().verifyIdToken(token);
       const email = decoded.email;
+      console.log(`[AuthService] loginWithFirebase: Verifying token for email: ${email}`);
+
       if (!email) throw new UnauthorizedException('Email não verificado no Firebase.');
 
       const user = await this.usersService.findOneByEmail(email);
       if (!user) {
+        console.warn(`[AuthService] user not found in DB for email: ${email}`);
         throw new UnauthorizedException('Oops! Sua conta Google está ok, mas não encontramos seu cadastro no sistema do Clube. Contate seu diretor.');
       }
+
+      console.log(`[AuthService] user found: ${user.name} (ID: ${user.id}, Club: ${user.clubId})`);
 
       // Check blocked/active logic (reuse validateUser logic essentially, or manual check)
       if (user.status === 'BLOCKED') throw new UnauthorizedException('Conta bloqueada.');
@@ -36,7 +41,7 @@ export class AuthService {
       return this.login(user);
     } catch (e) {
       console.error('Firebase Login Error:', e);
-      throw new UnauthorizedException('Falha na autenticação via Google/Firebase.');
+      throw new UnauthorizedException(e.message || 'Falha na autenticação via Google/Firebase.');
     }
   }
 
