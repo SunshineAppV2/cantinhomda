@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ClubsService } from '../clubs/clubs.service'; // Import ClubsService
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import { firebaseAdmin } from '../firebase-admin';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +13,32 @@ export class AuthService {
     private clubsService: ClubsService, // Inject it
     private jwtService: JwtService,
   ) { }
+
+
+
+  // ...
+
+  async loginWithFirebase(token: string) {
+    try {
+      const decoded = await firebaseAdmin.auth().verifyIdToken(token);
+      const email = decoded.email;
+      if (!email) throw new UnauthorizedException('Email não verificado no Firebase.');
+
+      const user = await this.usersService.findOneByEmail(email);
+      if (!user) {
+        throw new UnauthorizedException('Oops! Sua conta Google está ok, mas não encontramos seu cadastro no sistema do Clube. Contate seu diretor.');
+      }
+
+      // Check blocked/active logic (reuse validateUser logic essentially, or manual check)
+      if (user.status === 'BLOCKED') throw new UnauthorizedException('Conta bloqueada.');
+      if (user.status === 'PENDING' && user.role !== 'OWNER') throw new UnauthorizedException('Cadastro em análise.');
+
+      return this.login(user);
+    } catch (e) {
+      console.error('Firebase Login Error:', e);
+      throw new UnauthorizedException('Falha na autenticação via Google/Firebase.');
+    }
+  }
 
   // 1. Valida se usuário existe e senha bate
   async validateUser(email: string, pass: string): Promise<any> {
