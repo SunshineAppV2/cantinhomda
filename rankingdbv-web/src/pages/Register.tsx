@@ -506,41 +506,40 @@ export function Register() {
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">União</label>
                                     <div className="relative">
-                                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                        <input
-                                            type="text"
+                                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
+                                        <select
                                             required
-                                            list="unions-list"
                                             value={union}
                                             onChange={e => {
                                                 setUnion(e.target.value);
-                                                setMission(''); // Reset mission when union changes
+                                                setMission('');
                                             }}
-                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                                            placeholder="Ex: União Central Brasileira (UCB)"
-                                        />
-                                        <datalist id="unions-list">
-                                            {availableUnions.map((opt, i) => <option key={i} value={opt} />)}
-                                        </datalist>
+                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white appearance-none"
+                                        >
+                                            <option value="">Selecione a União</option>
+                                            {availableUnions.map((u) => (
+                                                <option key={u} value={u}>{u}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700 mb-1">Missão/Associação</label>
                                     <div className="relative">
-                                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                        <input
-                                            type="text"
+                                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
+                                        <select
                                             required
-                                            list="missions-list"
                                             value={mission}
                                             onChange={e => setMission(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                                            placeholder="Ex: Paulistana"
-                                        />
-                                        <datalist id="missions-list">
-                                            {availableMissions.map((opt, i) => <option key={i} value={opt} />)}
-                                        </datalist>
+                                            disabled={!union}
+                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white appearance-none disabled:bg-slate-100 disabled:text-slate-400"
+                                        >
+                                            <option value="">Selecione a Missão/Associação</option>
+                                            {availableMissions.map((m) => (
+                                                <option key={m} value={m}>{m}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
 
