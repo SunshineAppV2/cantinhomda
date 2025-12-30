@@ -69,7 +69,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
 
     const hasAccess = (moduleKey: string) => {
         if (!user) return false;
-        if (['OWNER', 'ADMIN', 'MASTER'].includes(user.role)) return true;
+        if (['OWNER', 'ADMIN', 'MASTER', 'DIRECTOR'].includes(user.role)) return true;
         const perms = clubData?.settings?.permissions || {
             SECRETARY: ['SECRETARY', 'MEMBERS', 'ATTENDANCE', 'EVENTS'],
             TREASURER: ['TREASURY'],

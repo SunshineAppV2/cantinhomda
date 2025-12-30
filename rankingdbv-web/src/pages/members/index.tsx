@@ -11,6 +11,7 @@ import { MemberDetailsModal } from '../../components/MemberDetailsModal';
 import { MemberForm } from './components/MemberForm';
 import { MembersTable } from './components/MembersTable';
 import { PendingApprovalsList, PendingDeliveriesList } from './components/PendingList';
+import { UserApprovalsList } from './components/UserApprovalsList';
 import type { Member, Unit } from './types';
 
 // Error Boundary Component
@@ -307,6 +308,7 @@ function MembersContent() {
                 </div>
             )}
 
+            <UserApprovalsList />
             <PendingApprovalsList ref={pendingApprovalsRef} />
             <PendingDeliveriesList />
 

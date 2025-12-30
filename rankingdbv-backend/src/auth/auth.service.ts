@@ -152,6 +152,7 @@ export class AuthService {
       password: createUserDto.password, // Pass RAW password to service (it will hash it)
       clubId: clubId,
       role: role as any,
+      status: status, // NEW: Explicitly pass status
       isActive: status === 'ACTIVE'
     });
 

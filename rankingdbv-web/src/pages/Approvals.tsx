@@ -35,7 +35,8 @@ export function Approvals() {
                 if (isMaster) {
                     return u.role === 'OWNER'; // Master validates new Clubs/Owners
                 } else {
-                    return u.role !== 'OWNER'; // Admins validate Members
+                    // Club admins/directors see everyone else
+                    return u.role !== 'OWNER';
                 }
             });
 
