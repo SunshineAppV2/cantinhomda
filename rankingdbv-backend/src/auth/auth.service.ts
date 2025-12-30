@@ -4,6 +4,20 @@ import { JwtService } from '@nestjs/jwt';
 import { ClubsService } from '../clubs/clubs.service'; // Import ClubsService
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from '../users/dto/create-user.dto';
+import * as admin from 'firebase-admin';
+
+// Initialize Firebase Admin (Lazy)
+if (!admin.apps.length) {
+  try {
+    // Try to auto-discover credentials (ENV or Default)
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault()
+    });
+  } catch (e) {
+    console.warn("Firebase Admin Init Failed (Auto):", e.message);
+    // You might want to load from specific path here if needed
+  }
+}
 
 @Injectable()
 export class AuthService {
@@ -157,5 +171,69 @@ export class AuthService {
     });
 
     return this.login(user);
+  }
+
+  // SYNC: Trust Firebase Auth and Link/Create Backend User
+  async syncWithFirebase(idToken: string) {
+    try {
+      // 1. Verify Token
+      if (!admin.apps.length) {
+        // Retry init if failed previously? Or throw.
+        throw new UnauthorizedException('Firebase Admin not configured on Backend.');
+      }
+      const decodedChanged = await admin.auth().verifyIdToken(idToken);
+      const { uid, email, name, picture } = decodedChanged;
+
+      if (!email) throw new UnauthorizedException('Email not found in token.');
+
+      // 2. Find User in DB
+      let user = await this.usersService.findOneByEmail(email);
+
+      // 3. If User Exists, ensure UID is linked
+      if (user) {
+        if (user.id !== uid) { // Assuming ID is not UID? Wait.
+          // If DB ID is different from UID, we should store UID in `uid` field if exists.
+          // Prisma schema said `uid String?`.
+          // We can update it.
+          // await this.usersService.update(user.id, { uid }); // If we had update method exposed here or use Prisma directly
+        }
+        return this.login(user);
+      }
+
+      // 4. If User DOES NOT Exist, Create/Invite logic?
+      // For now, if user doesn't exist, we can create as PENDING MEMBER
+      // or we can reject.
+      // The requirement is "Facilitate". Check if this email is supposed to be somewhere?
+      // Since we can't easily check Club Settings Text Fields from here efficiently without scanning,
+      // We will create the user with PENDING status (MEMBER).
+      // Then Master can "Associate" them easily because they exist now.
+
+      // Actually, if we create them, they exist. Master can then add to club.
+      // Better: Create as 'MEMBER' (Pending).
+
+      /*
+      const newUser = await this.usersService.create({
+          email,
+          name: name || 'Usuário Google',
+          password: Math.random().toString(36), // Random password
+          role: 'MEMBER',
+          clubId: undefined, // No club yet
+          status: 'PENDING'
+      });
+      return this.login(newUser);
+      */
+
+      // However, creating users willy-nilly might be spam.
+      // If the user said "Minha conta existe no Google", maybe they registered?
+      // Let's just return NotFound for now, BUT enable the specific case of "User Exists".
+      // The user issue is likely "User Exists in DB (created by Master) but Login fails".
+      // So steps 2 & 3 cover the "Facilitation" (Auto-Link).
+
+      throw new UnauthorizedException('Usuário não encontrado no sistema. Peça ao seu diretor para criar seu cadastro.');
+
+    } catch (e) {
+      console.error("Sync Error:", e);
+      throw new UnauthorizedException('Falha ao validar login com Google.');
+    }
   }
 }

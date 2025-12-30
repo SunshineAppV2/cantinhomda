@@ -32,4 +32,9 @@ export class AuthController {
   async register(@Body() createUserDto: any) {
     return this.authService.register(createUserDto);
   }
+
+  @Post('sync')
+  async sync(@Body('idToken') idToken: string) {
+    return this.authService.syncWithFirebase(idToken);
+  }
 }

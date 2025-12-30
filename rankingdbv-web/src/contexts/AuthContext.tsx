@@ -180,12 +180,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error: any) {
             console.error("Backend login failed.", error);
 
-            // Check if user exists in Firebase but NOT in Backend (Limbo state)
+            // Catch 401/404 specifically
             const isUserNotFound = error.response?.status === 401 || error.response?.status === 404;
 
             if (isUserNotFound && auth.currentUser) {
-                // User is in Firebase but not PostgreSQL
-                // We DON'T sign out yet, we give them a chance to "Complete" registration
+                // Try SYNC (Auto-Link)
+                try {
+                    console.log('[Login] 2b. Attempting Firebase Sync...');
+                    const idToken = await auth.currentUser.getIdToken();
+                    const syncRes = await api.post('/auth/sync', { idToken });
+
+                    if (syncRes.data?.access_token) {
+                        console.log('[Login] 2b. Sync Success!');
+                        const { access_token, user: backendUser } = syncRes.data;
+                        localStorage.setItem('token', access_token);
+
+                        setUser({
+                            id: backendUser.id,
+                            uid: auth.currentUser.uid,
+                            name: backendUser.name,
+                            email: backendUser.email,
+                            role: backendUser.role,
+                            clubId: backendUser.clubId,
+                            unitId: backendUser.unitId,
+                            mustChangePassword: backendUser.mustChangePassword
+                        });
+                        return; // Successfully recovered!
+                    }
+                } catch (syncErr) {
+                    console.warn("Sync failed:", syncErr);
+                    // Fallthrough to original error
+                }
+
+                // If sync failed or didn't return token (User truly doesn't exist)
                 throw new Error('CONTA_INCOMPLETA');
             }
 
