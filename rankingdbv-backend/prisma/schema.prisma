@@ -12,6 +12,7 @@ model Club {
   id                 String              @id @default(uuid())
   name               String
   slug               String?             @unique
+  phoneNumber        String?
   logoUrl            String?
   planTier           PlanTier            @default(TRIAL)
   status             ClubStatus          @default(ACTIVE)

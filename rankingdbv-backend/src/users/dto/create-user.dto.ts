@@ -47,7 +47,7 @@ export class CreateUserDto {
     @IsString() @IsOptional() birthDate?: string;
     @IsString() @IsOptional() maritalStatus?: string;
     @IsString() @IsOptional() phone?: string;
-    @IsString() @IsOptional() mobile?: string;
+    @IsString() mobile: string; // Mandatory for new registrations
     @IsBoolean() @IsOptional() isBaptized?: boolean;
     @IsString() @IsOptional() rg?: string;
     @IsString() @IsOptional() issuingOrg?: string;
