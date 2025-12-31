@@ -32,12 +32,14 @@ export class ReportsController {
 
         // Regional Coordinator: Force Association & Region
         if (user.role === 'COORDINATOR_REGIONAL') {
+            if (!user.association || !user.region) throw new ForbiddenException('Perfil incompleto para Coordenador Regional');
             finalAssociation = user.association;
             finalRegion = user.region;
             // Can filter by district if they want, but restricted to their region implied by logic
         }
         // District Coordinator: Force Association, Region, AND District
         else if (user.role === 'COORDINATOR_DISTRICT') {
+            if (!user.association || !user.region || !user.district) throw new ForbiddenException('Perfil incompleto para Coordenador Distrital');
             finalAssociation = user.association;
             finalRegion = user.region;
             finalDistrict = user.district;
