@@ -220,6 +220,12 @@ export function HierarchySelector({ value, onChange, readOnly = false }: Hierarc
                         <Combobox.Input
                             className="w-full pl-3 pr-10 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
                             onChange={(event) => setQueryRegion(event.target.value)}
+                            onBlur={() => {
+                                // Auto-select typed value on blur if valid and different
+                                if (queryRegion && queryRegion !== value.region) {
+                                    handleChange('region', queryRegion);
+                                }
+                            }}
                             displayValue={(val: string) => val}
                             placeholder={value.association ? "R1, Região 1..." : "Selecione a Associação primeiro"}
                         />
@@ -281,6 +287,12 @@ export function HierarchySelector({ value, onChange, readOnly = false }: Hierarc
                         <Combobox.Input
                             className="w-full pl-3 pr-10 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none text-slate-900 disabled:bg-slate-100 disabled:text-slate-400"
                             onChange={(event) => setQueryDistrict(event.target.value)}
+                            onBlur={() => {
+                                // Auto-select typed value on blur if valid and different
+                                if (queryDistrict && queryDistrict !== value.district) {
+                                    handleChange('district', queryDistrict);
+                                }
+                            }}
                             displayValue={(val: string) => val}
                             placeholder={value.region ? "Distrito Central..." : "Selecione a Região primeiro"}
                         />
