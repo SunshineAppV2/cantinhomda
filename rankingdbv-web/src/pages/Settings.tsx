@@ -311,23 +311,13 @@ function MasterPaymentsConfig() {
     );
 }
 
+// Note: useNavigate must be imported at line 2.
+// Assuming useNavigate is handled in the main component or passed down.
+// Since DirectorSubscription is a child, I'll use window.location or Link if available. 
+// Actually, I can use useNavigate hook inside DirectorSubscription if I import it at top of file.
+
 function DirectorSubscription({ club }: { club: any }) {
-    const { data: settings } = useQuery({
-        queryKey: ['public-settings'],
-        queryFn: async () => {
-            const res = await api.get('/payments/public-settings');
-            return res.data;
-        }
-    });
-
-    if (!settings?.mercadopago_enabled) return null;
-
-    const plans = [
-        { name: 'Mensal', price: '39,90', id: settings.mercadopago_plan_ids?.find((p: any) => p.key === 'plano_mensal')?.id },
-        { name: 'Trimestral', price: '109,90', id: settings.mercadopago_plan_ids?.find((p: any) => p.key === 'plano_trimestral')?.id },
-        { name: 'Anual', price: '399,90', id: settings.mercadopago_plan_ids?.find((p: any) => p.key === 'plano_anual')?.id },
-    ];
-
+    // Navigate logic or Link
     return (
         <div className="md:col-span-2 bg-slate-900 text-white p-6 rounded-xl shadow-xl overflow-hidden relative">
             <div className="relative z-10">
@@ -339,7 +329,10 @@ function DirectorSubscription({ club }: { club: any }) {
                 <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
                     <div>
                         <h3 className="text-2xl font-bold mb-1">Mantenha seu clube ativo</h3>
-                        <p className="text-slate-400 text-sm max-w-md">Escolha um dos planos abaixo para liberar todas as funcionalidades e garantir o acesso da sua diretoria.</p>
+                        <p className="text-slate-400 text-sm max-w-md">
+                            Agora nosso plano é flexível baseada na quantidade de membros ativos.
+                            Visualize sua faixa atual e regularize sua assinatura.
+                        </p>
                         <div className="mt-2 flex items-center gap-2">
                             <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[10px] font-bold border border-blue-500/30">
                                 STATUS: {club?.subscriptionStatus || 'TRIAL'}
@@ -347,24 +340,13 @@ function DirectorSubscription({ club }: { club: any }) {
                         </div>
                     </div>
 
-                    <div className="flex gap-3">
-                        {plans.map(plan => (
-                            <button
-                                key={plan.name}
-                                onClick={() => {
-                                    if (plan.id) {
-                                        window.open(`https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=${plan.id}`, '_blank');
-                                    } else {
-                                        toast.error('ID do plano não configurado.');
-                                    }
-                                }}
-                                className="bg-white text-slate-900 px-4 py-3 rounded-xl flex flex-col items-center hover:scale-105 transition-transform shadow-lg min-w-[120px]"
-                            >
-                                <span className="text-[10px] font-bold uppercase text-slate-500">{plan.name}</span>
-                                <span className="text-lg font-black text-blue-600">R$ {plan.price}</span>
-                            </button>
-                        ))}
-                    </div>
+                    <button
+                        onClick={() => window.location.href = '/dashboard/subscription'}
+                        className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl flex items-center gap-2 font-bold shadow-lg transition-all transform hover:scale-105"
+                    >
+                        <CreditCard className="w-5 h-5" />
+                        Gerenciar Assinatura
+                    </button>
                 </div>
             </div>
 

@@ -8,15 +8,17 @@ export class ReportsService {
     async getRegionalStats(filters: {
         association?: string;
         region?: string;
+        district?: string;
         startDate?: string;
         endDate?: string;
     }) {
-        const { association, region, startDate, endDate } = filters;
+        const { association, region, district, startDate, endDate } = filters;
 
         // 1. Build Club Filter
         const clubFilter: any = {};
         if (association) clubFilter.association = association;
         if (region) clubFilter.region = region;
+        if (district) clubFilter.district = district;
 
         // Helper to get club IDs for further filtering
         const clubs = await this.prisma.club.findMany({
