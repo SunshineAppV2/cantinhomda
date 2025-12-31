@@ -41,6 +41,7 @@ import { MasterRequirements } from './pages/admin/MasterRequirements';
 import { MasterSpecialties } from './pages/admin/MasterSpecialties';
 import { RegionalRanking } from './pages/RegionalRanking';
 import { CoordinatorApprovals } from './pages/CoordinatorApprovals';
+import { RegionalDashboard } from './pages/reports/RegionalDashboard';
 
 import { SocketProvider } from './contexts/SocketContext';
 
@@ -114,6 +115,7 @@ function App() {
                 {/* Coordinator Routes */}
                 <Route element={<ProtectedRoute allowedRoles={['MASTER', 'OWNER', 'COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA']} />}>
                   <Route path="regional-ranking" element={<RegionalRanking />} />
+                  <Route path="regional-dashboard" element={<RegionalDashboard />} />
                 </Route>
 
                 <Route element={<ProtectedRoute allowedRoles={['MASTER', 'COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA']} />}>

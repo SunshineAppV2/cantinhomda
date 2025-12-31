@@ -63,7 +63,8 @@ export class ClubsService implements OnModuleInit {
                 mission: createClubDto.mission,
                 union: createClubDto.union,
                 referralCode: this.generateReferralCode(),
-                referrerClubId: createClubDto.referrerClubId
+                referrerClubId: createClubDto.referrerClubId,
+                phoneNumber: createClubDto.phoneNumber // Add phone number support
             },
         });
     }

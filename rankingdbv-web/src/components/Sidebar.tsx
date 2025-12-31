@@ -190,8 +190,8 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
         if (isCoordinator) {
             reportsSubItems.push({ id: 'regional-ranking-alt', label: 'Ranking Regional', icon: Award, path: '/dashboard/regional-ranking' });
         }
-        if (hasAccess('TREASURY') || ['OWNER', 'ADMIN'].includes(user?.role || '')) {
-            reportsSubItems.push({ id: 'reports', label: 'Relatórios & Métricas', icon: BarChart, path: '/dashboard/reports' });
+        if (isCoordinator || hasAccess('TREASURY') || ['OWNER', 'ADMIN'].includes(user?.role || '')) {
+            reportsSubItems.push({ id: 'reports', label: 'Relatórios & Métricas', icon: BarChart, path: '/dashboard/regional-dashboard' }); // Redirect to new dash
         }
         items.push({
             id: 'reports',

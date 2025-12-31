@@ -139,7 +139,8 @@ export class AuthService {
         region: createUserDto.region,
         mission: createUserDto.mission,
         union: createUserDto.union,
-        referrerClubId: referrerClubId
+        referrerClubId: referrerClubId,
+        phoneNumber: createUserDto.mobile // Pass mobile as club phone number
       });
 
       clubId = newClub.id;

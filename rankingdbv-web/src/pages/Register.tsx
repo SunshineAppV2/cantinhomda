@@ -52,6 +52,7 @@ export function Register() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [mobile, setMobile] = useState(''); // WhatsApp/Mobile
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
 
@@ -169,6 +170,11 @@ export function Register() {
             setMode('CREATE');
             toast.success('Código de indicação aplicado com sucesso!');
         }
+
+        // Auto-fill mobile if present (unlikely but good for consistency)
+        const urlMobile = searchParams.get('mobile');
+        if (urlMobile) setMobile(urlMobile);
+
     }, [searchParams, clubs]);
 
     // Fetch Units when Club changes
@@ -207,9 +213,11 @@ export function Register() {
                 if (!role) throw new Error('Selecione sua função.');
             } else {
                 if (!clubName) throw new Error('Digite o nome do seu Clube.');
+                if (!clubName) throw new Error('Digite o nome do seu Clube.');
                 if (!region || !mission || !union) throw new Error('Preencha os dados hierárquicos.');
             }
 
+            if (!mobile) throw new Error('O WhatsApp (Celular) é obrigatório.');
             if (!termsAccepted) throw new Error('Você precisa aceitar os Termos de Uso.');
 
             let user;
@@ -273,6 +281,7 @@ export function Register() {
                 uid: user.uid,
                 name,
                 email,
+                mobile, // Save to Firestore profile
                 role: finalRole,
                 clubId: finalClubId,
                 unitId: (mode === 'JOIN' && unitId) ? unitId : null,
@@ -297,7 +306,8 @@ export function Register() {
                     region: (mode === 'CREATE') ? region : undefined,
                     mission: (mode === 'CREATE') ? mission : undefined,
                     union: (mode === 'CREATE') ? union : undefined,
-                    referralCode: (mode === 'CREATE') ? referralCode : undefined
+                    referralCode: (mode === 'CREATE') ? referralCode : undefined,
+                    mobile // Send to backend
                 };
 
                 const { api } = await import('../lib/axios');
@@ -412,6 +422,26 @@ export function Register() {
                                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                             </button>
                         </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">WhatsApp (Celular)</label>
+                        <div className="relative">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                            </div>
+                            <input
+                                type="tel"
+                                required
+                                value={mobile}
+                                onChange={e => {
+                                    setMobile(e.target.value);
+                                }}
+                                className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                                placeholder="55 (DDD) 9xxxx-xxxx"
+                            />
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1">Obrigatório para contato da coordenação</p>
                     </div>
 
                     {/* SEPARATOR */}
@@ -621,12 +651,12 @@ export function Register() {
                         Fazer Login
                     </Link>
                 </div>
-            </div>
+            </div >
             <TermsModal
                 isOpen={showTerms}
                 onClose={() => setShowTerms(false)}
                 onAccept={() => setTermsAccepted(true)}
             />
-        </div>
+        </div >
     );
 }
