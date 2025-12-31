@@ -73,7 +73,7 @@ export function Settings() {
         }
     });
 
-    if (!['OWNER', 'ADMIN'].includes(user?.role || '')) {
+    if (!['OWNER', 'ADMIN', 'MASTER'].includes(user?.role || '') && user?.email !== 'master@cantinhodbv.com') {
         return <div className="p-8 text-center text-slate-500">Acesso restrito a administradores.</div>;
     }
 
