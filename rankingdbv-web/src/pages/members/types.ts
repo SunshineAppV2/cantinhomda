@@ -80,7 +80,10 @@ export const ROLE_TRANSLATIONS: Record<string, string> = {
     COUNSELOR: 'CONSELHEIRO(A)',
     INSTRUCTOR: 'INSTRUTOR',
     PATHFINDER: 'DESBRAVADOR',
-    PARENT: 'RESPONSÁVEL'
+    PARENT: 'RESPONSÁVEL',
+    COORDINATOR_AREA: 'COORDENADOR(A) GERAL',
+    COORDINATOR_REGIONAL: 'COORDENADOR(A) REGIONAL',
+    COORDINATOR_DISTRICT: 'COORDENADOR(A) DISTRITAL'
 };
 
 export const INITIAL_FORM_DATA = {
@@ -143,5 +146,8 @@ export const INITIAL_FORM_DATA = {
     recentFracture: '',
     recentSurgery: '',
     disabilities: [] as string[],
-    healthNotes: ''
+    healthNotes: '',
+    region: '',
+    district: '',
+    association: ''
 };

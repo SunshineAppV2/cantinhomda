@@ -150,19 +150,58 @@ export function MemberForm({ isOpen, onClose, onSubmit, initialData, units, club
                                 className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                             >
                                 {Object.entries(ROLE_TRANSLATIONS).map(([key, label]) => {
-                                    // Special label for Master users to distinguish roles
+                                    // Special logic for Master users
+                                    const isMaster = user?.role === 'MASTER' || user?.email === 'master@cantinhodbv.com';
+
+                                    if (!isMaster) {
+                                        // Non-master users cannot see coordinator roles
+                                        if (['COORDINATOR_AREA', 'COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT'].includes(key)) return null;
+                                    }
+
                                     let displayLabel = label;
-                                    if (user?.email === 'master@cantinhodbv.com') {
+                                    if (isMaster) {
                                         if (key === 'OWNER') displayLabel = 'DIRETOR (Acesso Master ao Clube)';
                                         if (key === 'DIRECTOR') displayLabel = 'DIRETOR(A) ASSOCIADO(A)';
                                     } else {
-                                        // Hide industrial roles for non-master if needed, but for now just show
-                                        if (key === 'DIRECTOR' && formData.role !== 'DIRECTOR') return null; // Deduplicate
+                                        // Hide industrial roles for non-master if needed
+                                        if (key === 'DIRECTOR' && formData.role !== 'DIRECTOR') return null;
                                     }
                                     return <option key={key} value={key}>{displayLabel}</option>;
                                 })}
                             </select>
                         </div>
+
+                        {['COORDINATOR_AREA', 'COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT'].includes(formData.role) && (
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-indigo-50 rounded-lg animate-in slide-in-from-top-1 duration-200">
+                                <div>
+                                    <label className="block text-xs font-bold text-indigo-700 mb-1">Associação (Geral)</label>
+                                    <input
+                                        value={formData.association || ''}
+                                        onChange={e => setFormData({ ...formData, association: e.target.value })}
+                                        className="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        placeholder="Ex: USB"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-indigo-700 mb-1">Região</label>
+                                    <input
+                                        value={formData.region || ''}
+                                        onChange={e => setFormData({ ...formData, region: e.target.value })}
+                                        className="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        placeholder="Ex: 5ª Região"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-indigo-700 mb-1">Distrito</label>
+                                    <input
+                                        value={formData.district || ''}
+                                        onChange={e => setFormData({ ...formData, district: e.target.value })}
+                                        className="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        placeholder="Ex: Central"
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         {formData.role === 'PARENT' && (
                             <div className="border p-3 rounded bg-blue-50 my-2">
