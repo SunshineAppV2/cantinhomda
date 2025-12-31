@@ -57,6 +57,16 @@ export class ClubsController {
         return this.clubsService.getHierarchyOptions();
     }
 
+    @Get('regions')
+    async getRegions(@Query('association') association: string) {
+        return this.clubsService.getRegions(association);
+    }
+
+    @Get('districts')
+    async getDistricts(@Query('region') region: string) {
+        return this.clubsService.getDistricts(region);
+    }
+
     @Get('public')
     findAllPublic() {
         return this.clubsService.findAll();

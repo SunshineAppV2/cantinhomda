@@ -27,6 +27,8 @@ interface User {
     region?: string;
     district?: string;
     association?: string;
+    union?: string;
+    mission?: string;
 }
 
 interface AuthContextType {
@@ -34,6 +36,8 @@ interface AuthContextType {
     loading: boolean;
     login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
+    signOut: () => Promise<void>; // Alias for logout
+    refreshUser: () => Promise<void>; // Re-fetch user data
     isAuthenticated: boolean;
     setUser: (user: User | null) => void;
 }
@@ -51,12 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // Decode token to get basic info
                 const decoded: any = jwtDecode(token);
 
-                // Fetch full data from backend to get the real Name (source of truth)
-                let backendName = firebaseUser.displayName || 'Usuário';
+                // Fetch full data from backend to get the real Name and Hierarchy
+                let backendData: any = {};
                 try {
                     const res = await api.get(`/users/${decoded.userId || decoded.sub}`);
-                    if (res.data && res.data.name) {
-                        backendName = res.data.name;
+                    if (res.data) {
+                        backendData = res.data;
                     }
                 } catch (apiErr) {
                     console.warn("Could not fetch user profile from API, using fallback name:", apiErr);
@@ -66,16 +70,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     id: decoded.userId || decoded.sub,
                     uid: firebaseUser.uid,
                     email: firebaseUser.email || decoded.email,
-                    name: backendName,
+                    name: backendData.name || firebaseUser.displayName || 'Usuário',
                     role: decoded.role,
                     clubId: decoded.clubId,
                     unitId: decoded.unitId,
-                    mustChangePassword: decoded.mustChangePassword
+                    mustChangePassword: decoded.mustChangePassword,
+                    // Hierarchy Data
+                    union: backendData.union,
+                    association: backendData.association,
+                    mission: backendData.mission, // Alias
+                    region: backendData.region,
+                    district: backendData.district
                 });
             } catch (e) {
                 console.error("Invalid token:", e);
+                // ... (error handling same as before)
                 safeLocalStorage.removeItem('token');
-                // Fallback to minimal user (MEMBER)
                 setUser({
                     id: firebaseUser.uid,
                     email: firebaseUser.email || '',
@@ -84,8 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 } as User);
             }
         } else {
-            // Fallback if no backend token but firebase exists (Legacy/Transition)
-            // Try to fetch from Firestore as fallback
+            // ... (no token fallback same as before)
             try {
                 const userDocRef = doc(db, 'users', firebaseUser.uid);
                 const userDoc = await getDoc(userDocRef);
@@ -100,6 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                         ...userData
                     } as User);
                 } else {
+                    // ...
                     setUser({
                         id: firebaseUser.uid,
                         email: firebaseUser.email || '',
@@ -231,12 +241,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
     };
 
+    const refreshUser = async () => {
+        if (auth.currentUser) {
+            await checkBackendToken(auth.currentUser);
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
             loading,
             login,
             logout,
+            signOut: logout,
+            refreshUser,
             isAuthenticated: !!user,
             setUser
         }}>

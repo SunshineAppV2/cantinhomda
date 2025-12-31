@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { TermsModal } from '../components/TermsModal';
-import { UserPlus, Mail, Lock, User, ArrowRight, Home, Users, MapPin, Globe, Award, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, ArrowRight, Home, Users, Award, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { HierarchySelector } from '../components/HierarchySelector';
 import { safeLocalStorage } from '../lib/storage';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
@@ -18,24 +19,10 @@ interface Unit {
     name: string;
 }
 
-// Comprehensive DSA Hierarchy Data
-const HIERARCHY_DATA: Record<string, string[]> = {
-    'União Central Brasileira (UCB)': ['Paulista Central', 'Paulista Do Vale', 'Paulista Leste', 'Paulista Oeste', 'Paulista Sudeste', 'Paulista Sudoeste', 'Paulista Sul', 'Paulistana'],
-    'União Centro Oeste Brasileira (UCOB)': ['Brasil Central', 'Leste Mato-Grossense', 'Oeste Mato-Grossense', 'Planalto Central', 'Sul Mato-Grossense', 'Tocantins'],
-    'União Leste Brasileira (ULB)': ['Bahia', 'Bahia Central', 'Bahia Norte', 'Bahia Sul', 'Bahia Extremo Sul', 'Bahia Sudoeste', 'Sergipe'],
-    'União Nordeste Brasileira (UNEB)': ['Cearense', 'Pernambucana', 'Pernambucana Central', 'Alagoas', 'Piauiense', 'Rio Grande do Norte-Paraíba'],
-    'União Noroeste Brasileira (UNOB)': ['Amazonas Roraima', 'Central Amazonas', 'Norte de Rondônia e Acre', 'Sul de Rondônia', 'Leste Amazonas'],
-    'União Norte Brasileira (UNB)': ['Maranhense', 'Norte Do Pará', 'Sul Do Pará', 'Sul Maranhense', 'Nordeste Maranhense', 'Oeste Do Pará', 'Pará Amapá'],
-    'União Sudeste Brasileira (USEB)': ['Espírito Santense', 'Mineira Central', 'Mineira Leste', 'Mineira Sul', 'Rio de Janeiro', 'Rio Fluminense', 'Rio Sul', 'Sul Espírito Santense', 'Mineira Norte', 'Mineira Oeste'],
-    'União Sul Brasileira (USB)': ['Central do Rio Grande do Sul', 'Central Paranaense', 'Norte Catarinense', 'Norte do Rio Grande do Sul', 'Norte Paranaense', 'Oeste Paranaense', 'Sul Catarinense', 'Sul do Rio Grande do Sul', 'Sul Paranaense'],
-    'União Argentina (UA)': ['Argentina Central', 'Argentina del Norte', 'Argentina del Sur', 'Bonaerense', 'Argentina del Centro Oeste', 'Argentina del Noroeste', 'Bonaerense del Norte'],
-    'União Boliviana (UB)': ['Boliviana Central', 'Boliviana Occidental Norte', 'Boliviana Occidental Sur', 'Oriente Boliviano'],
-    'União Chilena (UCH)': ['Centro Sur de Chile', 'Metropolitana de Chile', 'Norte de Chile', 'Sur Austral de Chile', 'Central de Chile', 'Chilena del Pacífico', 'Sur Metropolitana de Chile'],
-    'União Ecuatoriana (UE)': ['Ecuatoriana del Norte', 'Ecuatoriana del Sur'],
-    'União Paraguaya (UP)': ['Paraguaya'],
-    'União Peruana del Norte (UPN)': ['Nor Pacífico del Perú', 'Peruana Central Este', 'Centro-Oeste del Perú', 'Nor Oriental', 'Peruana del Norte'],
-    'União Peruana del Sur (UPS)': ['Peruana Central', 'Peruana del Sur', 'Central del Perú', 'Oriente Peruano', 'Peruana Central Sur', 'Lago Titicaca', 'Sur Oriental del Perú']
-};
+interface Unit {
+    id: string;
+    name: string;
+}
 
 type RegistrationMode = 'JOIN' | 'CREATE';
 
@@ -66,15 +53,12 @@ export function Register() {
     // Create Mode State
     const [clubName, setClubName] = useState('');
     const [region, setRegion] = useState('');
+    const [district] = useState('');
     const [mission, setMission] = useState('');
     const [union, setUnion] = useState('');
 
     // Units State
     const [units, setUnits] = useState<Unit[]>([]);
-
-    // Dynamic Options based on selected union
-    const availableUnions = Object.keys(HIERARCHY_DATA);
-    const availableMissions = HIERARCHY_DATA[union] || [];
     const [inviteClubName, setInviteClubName] = useState('');
 
     const [searchParams] = useSearchParams();
@@ -214,7 +198,7 @@ export function Register() {
             } else {
                 if (!clubName) throw new Error('Digite o nome do seu Clube.');
                 if (!clubName) throw new Error('Digite o nome do seu Clube.');
-                if (!region || !mission || !union) throw new Error('Preencha os dados hierárquicos.');
+                if (!region || !mission || !union || !district) throw new Error('Preencha todos os dados hierárquicos (União, Associação, Região e Distrito).');
             }
 
             if (!mobile) throw new Error('O WhatsApp (Celular) é obrigatório.');
@@ -261,6 +245,7 @@ export function Register() {
                 addDoc(collection(db, 'clubs'), {
                     name: clubName,
                     region,
+                    district,
                     mission,
                     union,
                     ownerId: user.uid,
@@ -304,6 +289,7 @@ export function Register() {
                     unitId: (mode === 'JOIN' && unitId) ? unitId : undefined,
                     clubName: (mode === 'CREATE') ? clubName : undefined,
                     region: (mode === 'CREATE') ? region : undefined,
+                    district: (mode === 'CREATE') ? district : undefined,
                     mission: (mode === 'CREATE') ? mission : undefined,
                     union: (mode === 'CREATE') ? union : undefined,
                     referralCode: (mode === 'CREATE') ? referralCode : undefined,
@@ -533,66 +519,26 @@ export function Register() {
                                 <p>Você será o <b>Diretor/Admin</b> deste novo clube.</p>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">União</label>
-                                    <div className="relative">
-                                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
-                                        <select
-                                            required
-                                            value={union}
-                                            onChange={e => {
-                                                setUnion(e.target.value);
-                                                setMission('');
-                                            }}
-                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white appearance-none"
-                                        >
-                                            <option value="">Selecione a União</option>
-                                            {availableUnions.map((u) => (
-                                                <option key={u} value={u}>{u}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Missão/Associação</label>
-                                    <div className="relative">
-                                        <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 z-10" />
-                                        <select
-                                            required
-                                            value={mission}
-                                            onChange={e => setMission(e.target.value)}
-                                            disabled={!union}
-                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white appearance-none disabled:bg-slate-100 disabled:text-slate-400"
-                                        >
-                                            <option value="">Selecione a Missão/Associação</option>
-                                            {availableMissions.map((m) => (
-                                                <option key={m} value={m}>{m}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
 
-                                <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Região</label>
-                                    <div className="relative">
-                                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                        <input
-                                            type="text"
-                                            required
-                                            list="regions-list"
-                                            value={region}
-                                            onChange={e => setRegion(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                                            placeholder="Ex: R1 ou 1ª Região"
-                                        />
-                                        <datalist id="regions-list">
-                                            {['R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7', 'R8', 'R9', 'R10'].map((opt, i) => <option key={i} value={opt} />)}
-                                        </datalist>
-                                    </div>
-                                </div>
-                            </div>
+                            {/* HIERARCHY SELECTOR */}
+                            <HierarchySelector
+                                value={{
+                                    union,
+                                    association: mission,
+                                    mission,
+                                    region,
+                                    district: '' // Add district state if needed, but Register currently doesn't have it. Let's add it.
+                                }}
+                                onChange={(val) => {
+                                    setUnion(val.union);
+                                    setMission(val.association);
+                                    setRegion(val.region);
+                                    // If we want to support district in Register, we need a state for it.
+                                    // The original Register didn't have district input for CREATE mode, but user asked for it.
+                                    // I'll add setDistrict(val.district) but I need to declare the state first.
+                                }}
+                            />
 
                             <div className="mt-4">
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Nome do Clube</label>

@@ -5,6 +5,7 @@ import { Download, Shield, Database, Save, Server, CreditCard, Activity, Users }
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { AccessControlEditor } from '../components/AccessControlEditor';
+import { HierarchySelector } from '../components/HierarchySelector';
 
 export function Settings() {
     const { user } = useAuth();
@@ -14,6 +15,13 @@ export function Settings() {
     // Club Edit State
     const [clubName, setClubName] = useState('');
     const [logoUrl, setLogoUrl] = useState('');
+    const [hierarchy, setHierarchy] = useState({
+        union: '',
+        association: '',
+        mission: '',
+        region: '',
+        district: ''
+    });
 
     const { data: clubData, isLoading: clubLoading } = useQuery({
         queryKey: ['club-settings', user?.clubId],
@@ -29,6 +37,13 @@ export function Settings() {
         if (clubData) {
             setClubName(clubData.name || '');
             setLogoUrl(clubData.logoUrl || '');
+            setHierarchy({
+                union: clubData.union || '',
+                association: clubData.association || clubData.mission || '',
+                mission: clubData.mission || clubData.association || '',
+                region: clubData.region || '',
+                district: clubData.district || ''
+            });
         }
     }, [clubData]);
 
@@ -151,7 +166,20 @@ export function Settings() {
                     ) : (
                         <form onSubmit={(e) => {
                             e.preventDefault();
-                            if (clubData && user?.clubId) updateClubMutation.mutate({ id: user.clubId, data: { name: clubName, logoUrl } });
+                            if (clubData && user?.clubId) {
+                                updateClubMutation.mutate({
+                                    id: user.clubId,
+                                    data: {
+                                        name: clubName,
+                                        logoUrl,
+                                        union: hierarchy.union,
+                                        association: hierarchy.association,
+                                        mission: hierarchy.association,
+                                        region: hierarchy.region,
+                                        district: hierarchy.district
+                                    }
+                                });
+                            }
                         }} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nome do Clube</label>
@@ -163,6 +191,15 @@ export function Settings() {
                                     placeholder="Nome do Clube"
                                 />
                             </div>
+
+                            <div className="pt-2">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Hierarquia</label>
+                                <HierarchySelector
+                                    value={hierarchy}
+                                    onChange={setHierarchy}
+                                />
+                            </div>
+
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">URL do Logo</label>
                                 <input

@@ -44,6 +44,7 @@ import { RegionalDashboard } from './pages/reports/RegionalDashboard';
 import { SubscriptionPage } from './pages/SubscriptionPage';
 import { CoordinatorApprovals } from './pages/CoordinatorApprovals';
 
+import { CompleteProfile } from './pages/CompleteProfile';
 import { SocketProvider } from './contexts/SocketContext';
 
 import { Toaster } from 'sonner';
@@ -62,6 +63,7 @@ function App() {
 
             <Route element={<ProtectedRoute />}>
               <Route path="/change-password" element={<ChangePassword />} />
+              <Route path="/complete-profile" element={<CompleteProfile />} />
               <Route path="/dashboard" element={<DashboardLayout />}>
                 <Route index element={<Dashboard />} />
                 <Route path="ranking" element={<Ranking />} />

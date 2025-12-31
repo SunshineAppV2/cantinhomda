@@ -224,6 +224,41 @@ export class ClubsService implements OnModuleInit {
         });
     }
 
+    async getRegions(association: string) {
+        if (!association) return [];
+        const clubs = await this.prisma.club.findMany({
+            where: { association },
+            select: { region: true },
+            distinct: ['region'],
+            orderBy: { region: 'asc' }
+        });
+        return clubs.map(c => c.region).filter(Boolean);
+    }
+
+    async getDistricts(region: string) {
+        if (!region) return [];
+        const clubs = await this.prisma.club.findMany({
+            where: { region },
+            select: { district: true },
+            distinct: ['district'],
+            orderBy: { district: 'asc' }
+        });
+        return clubs.map(c => c.district).filter(Boolean);
+    }
+
+    async search(query: string) {
+        if (!query) return [];
+        return this.prisma.club.findMany({
+            where: {
+                OR: [
+                    { name: { contains: query, mode: 'insensitive' } },
+                    // { region: { contains: query, mode: 'insensitive' } }, // Optional
+                ]
+            },
+            take: 20
+        });
+    }
+
     async getHierarchyOptions() {
         // 1. Fetch distinct values from DB
         const [regions, missions, unions] = await Promise.all([

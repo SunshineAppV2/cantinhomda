@@ -19,6 +19,20 @@ export function ProtectedRoute({ allowedRoles }: { allowedRoles?: string[] }) {
         return <Navigate to="/change-password" replace />;
     }
 
+    // Force Profile Completion for Coordinators
+    const isCoordinator = ['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT'].includes(user?.role || '');
+    if (isCoordinator && location.pathname !== '/complete-profile') {
+        // Check strict compliance
+        const hasUnion = !!user?.union;
+        const hasAssociation = !!(user?.association || user?.mission);
+        const hasRegion = !!user?.region;
+        const hasDistrict = user?.role === 'COORDINATOR_DISTRICT' ? !!user?.district : true;
+
+        if (!hasUnion || !hasAssociation || !hasRegion || !hasDistrict) {
+            return <Navigate to="/complete-profile" replace />;
+        }
+    }
+
     if (allowedRoles && user && !allowedRoles.includes(user.role)) {
         return <Navigate to="/dashboard" replace />;
     }
