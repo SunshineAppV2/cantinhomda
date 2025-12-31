@@ -1,12 +1,11 @@
-
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { MercadoPagoConfig, PreApprovalPlan } from 'mercadopago';
 
 @Injectable()
-export class PaymentsService {
+export class PaymentsService implements OnApplicationBootstrap {
     private readonly logger = new Logger(PaymentsService.name);
     private readonly mpClient: MercadoPagoConfig;
 
@@ -23,6 +22,23 @@ export class PaymentsService {
         this.mpClient = new MercadoPagoConfig({
             accessToken: 'APP_USR-1556887722137553-100213-a10130c72f03d76fc0a84e8b5ef2954e-91513558'
         });
+    }
+
+    async onApplicationBootstrap() {
+        this.logger.log('Checking Payment Plans Configuration...');
+        const plans = await this.getPlanIds();
+        if (!plans || plans.length === 0) {
+            this.logger.warn('No payment plans found. Auto-initializing Mercado Pago plans...');
+            await this.setupAllPlans();
+        } else {
+            this.logger.log('Payment plans already configured.');
+        }
+
+        // Ensure Mercado Pago is enabled by default if plans exist
+        const settings = await this.getPublicSettings();
+        if (settings.mercadopago_enabled === undefined) {
+            await this.updateSystemSettings('mercadopago_enabled', true);
+        }
     }
 
     // --- MERCADO PAGO SUBSCRIPTIONS ---
