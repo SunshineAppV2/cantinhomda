@@ -28,14 +28,21 @@ export function RegionalDashboard() {
     const [selectedRegion, setSelectedRegion] = useState('');
 
     const canSelectAssociation = ['MASTER', 'UNION'].includes(user?.role || '');
+    const canSelectRegion = ['MASTER', 'UNION', 'COORDINATOR_AREA'].includes(user?.role || '');
 
     useEffect(() => {
-        // Pre-fill filter if user is Regional Coordinator
-        if (user?.role === 'COORDINATOR_REGIONAL') {
-            // Ideally user profile has these fields.
-            // For now assume user might select or we auto-fetch based on profile.
-            // Assuming User has 'association' and 'region' fields.
-            // setSelectedRegion(user.region);
+        if (!user) return;
+
+        // Auto-fill and Lock filters based on Role
+        if (user.role === 'COORDINATOR_REGIONAL') {
+            setSelectedAssociation(user.association || '');
+            setSelectedRegion(user.region || '');
+        } else if (user.role === 'COORDINATOR_DISTRICT') {
+            setSelectedAssociation(user.association || '');
+            setSelectedRegion(user.region || '');
+            // If we had a district filter, we would set it here too
+        } else if (user.role === 'COORDINATOR_AREA') {
+            setSelectedAssociation(user.association || '');
         }
     }, [user]);
 
@@ -132,7 +139,8 @@ export function RegionalDashboard() {
                         placeholder="Ex: R1"
                         value={selectedRegion}
                         onChange={e => setSelectedRegion(e.target.value)}
-                        className="w-full p-2 border rounded-lg outline-none"
+                        disabled={!canSelectRegion}
+                        className={`w-full p-2 border rounded-lg outline-none ${!canSelectRegion ? 'bg-slate-50 text-slate-500' : ''}`}
                     />
                 </div>
 
