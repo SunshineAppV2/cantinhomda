@@ -32,7 +32,9 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
         name: '',
         union: '',
         mission: '',
-        region: ''
+        region: '',
+        district: '',
+        association: ''
     });
 
     const [members, setMembers] = useState<User[]>([]);
@@ -52,7 +54,9 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
                 name: club.name || '',
                 union: club.union || '',
                 mission: club.mission || '',
-                region: club.region || ''
+                region: club.region || '',
+                district: (club as any).district || '',
+                association: (club as any).association || ''
             });
             fetchMembers();
         }
@@ -158,7 +162,7 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">União</label>
                             <input
@@ -169,7 +173,19 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Missão/Assoc.</label>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Associação (Geral)</label>
+                            <input
+                                type="text"
+                                value={formData.association}
+                                onChange={e => setFormData({ ...formData, association: e.target.value })}
+                                className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Missão/Assoc. Local</label>
                             <input
                                 type="text"
                                 value={formData.mission}
@@ -183,6 +199,15 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
                                 type="text"
                                 value={formData.region}
                                 onChange={e => setFormData({ ...formData, region: e.target.value })}
+                                className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Distrito</label>
+                            <input
+                                type="text"
+                                value={formData.district}
+                                onChange={e => setFormData({ ...formData, district: e.target.value })}
                                 className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
                             />
                         </div>

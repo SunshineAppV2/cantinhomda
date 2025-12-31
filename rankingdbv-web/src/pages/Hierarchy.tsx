@@ -43,7 +43,7 @@ export function Hierarchy() {
     const [editingSubscription, setEditingSubscription] = useState<any | null>(null);
     const [editingClubData, setEditingClubData] = useState<any | null>(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
-    const [newClub, setNewClub] = useState({ name: '', union: '', mission: '', region: '' });
+    const [newClub, setNewClub] = useState({ name: '', union: '', mission: '', region: '', district: '', association: '' });
     const [createLoading, setCreateLoading] = useState(false);
     const [editingNode, setEditingNode] = useState<{ level: 'union' | 'mission' | 'region', oldName: string, newName: string } | null>(null);
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -81,7 +81,10 @@ export function Hierarchy() {
         // 1. Text Search
         const matchesSearch = club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             club.union?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            club.mission?.toLowerCase().includes(searchTerm.toLowerCase());
+            club.mission?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            club.region?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            club.district?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            club.association?.toLowerCase().includes(searchTerm.toLowerCase());
 
         if (!matchesSearch) return false;
 
@@ -132,7 +135,7 @@ export function Hierarchy() {
             await api.post('/clubs', newClub);
             toast.success('Criado!');
             setIsCreateOpen(false);
-            setNewClub({ name: '', union: '', mission: '', region: '' });
+            setNewClub({ name: '', union: '', mission: '', region: '', district: '', association: '' });
             refetchTree();
             refetchClubs();
         } catch (e) { toast.error('Erro ao criar.'); }
@@ -337,7 +340,7 @@ export function Hierarchy() {
                                                         <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                                                             <Globe className="w-3 h-3" /> {club.union}
                                                             <span className="text-slate-300">•</span>
-                                                            <MapPin className="w-3 h-3" /> {club.mission} / {club.region}
+                                                            <MapPin className="w-3 h-3" /> {club.mission} / {club.region} {club.district ? `/ ${club.district}` : ''}
                                                         </div>
                                                     </td>
                                                     <td className="p-4">
@@ -540,8 +543,10 @@ export function Hierarchy() {
                         <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Plus className="w-5 h-5" /> Novo Clube</h3>
                         <div className="space-y-4">
                             <input value={newClub.union} onChange={e => setNewClub({ ...newClub, union: e.target.value })} placeholder="União" className="w-full px-3 py-2 border rounded" />
-                            <input value={newClub.mission} onChange={e => setNewClub({ ...newClub, mission: e.target.value })} placeholder="Missão" className="w-full px-3 py-2 border rounded" />
+                            <input value={newClub.association} onChange={e => setNewClub({ ...newClub, association: e.target.value })} placeholder="Associação (Geral)" className="w-full px-3 py-2 border rounded" />
+                            <input value={newClub.mission} onChange={e => setNewClub({ ...newClub, mission: e.target.value })} placeholder="Missão/Assoc. Local" className="w-full px-3 py-2 border rounded" />
                             <input value={newClub.region} onChange={e => setNewClub({ ...newClub, region: e.target.value })} placeholder="Região" className="w-full px-3 py-2 border rounded" />
+                            <input value={newClub.district} onChange={e => setNewClub({ ...newClub, district: e.target.value })} placeholder="Distrito" className="w-full px-3 py-2 border rounded" />
                             <input value={newClub.name} onChange={e => setNewClub({ ...newClub, name: e.target.value })} placeholder="Nome do Clube" className="w-full px-3 py-2 border rounded" />
                         </div>
                         <div className="flex justify-end gap-2 mt-6">
