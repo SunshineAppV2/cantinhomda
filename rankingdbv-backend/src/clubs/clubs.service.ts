@@ -299,7 +299,7 @@ export class ClubsService implements OnModuleInit {
         });
     }
 
-    async update(id: string, data: { name?: string; logoUrl?: string; settings?: any; union?: string; mission?: string; region?: string; district?: string; association?: string }) {
+    async update(id: string, data: { name?: string; logoUrl?: string; settings?: any; union?: string; mission?: string; region?: string; district?: string; association?: string; phoneNumber?: string }) {
         return this.prisma.club.update({
             where: { id },
             data: {
@@ -311,6 +311,7 @@ export class ClubsService implements OnModuleInit {
                 ...(data.region && { region: data.region }),
                 ...(data.district && { district: data.district }),
                 ...(data.association && { association: data.association }),
+                ...(data.phoneNumber && { phoneNumber: data.phoneNumber }),
             }
         });
     }
