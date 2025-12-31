@@ -58,6 +58,8 @@ export class ClubsService implements OnModuleInit {
                 name: createClubDto.name,
                 slug,
                 region: createClubDto.region,
+                district: createClubDto.district,
+                association: createClubDto.association,
                 mission: createClubDto.mission,
                 union: createClubDto.union,
                 referralCode: this.generateReferralCode(),
@@ -257,7 +259,7 @@ export class ClubsService implements OnModuleInit {
 
     async getHierarchyTree() {
         const clubs = await this.prisma.club.findMany({
-            select: { id: true, name: true, region: true, mission: true, union: true },
+            select: { id: true, name: true, region: true, district: true, mission: true, union: true },
             orderBy: { name: 'asc' }
         });
 
@@ -267,12 +269,14 @@ export class ClubsService implements OnModuleInit {
             const u = club.union || 'Sem União';
             const m = club.mission || 'Sem Missão';
             const r = club.region || 'Sem Região';
+            const d = club.district || 'Sem Distrito';
 
             if (!tree[u]) tree[u] = {};
             if (!tree[u][m]) tree[u][m] = {};
-            if (!tree[u][m][r]) tree[u][m][r] = [];
+            if (!tree[u][m][r]) tree[u][m][r] = {};
+            if (!tree[u][m][r][d]) tree[u][m][r][d] = [];
 
-            tree[u][m][r].push({ id: club.id, name: club.name });
+            tree[u][m][r][d].push({ id: club.id, name: club.name });
         }
 
         return tree;
@@ -287,7 +291,7 @@ export class ClubsService implements OnModuleInit {
         });
     }
 
-    async update(id: string, data: { name?: string; logoUrl?: string; settings?: any; union?: string; mission?: string; region?: string }) {
+    async update(id: string, data: { name?: string; logoUrl?: string; settings?: any; union?: string; mission?: string; region?: string; district?: string; association?: string }) {
         return this.prisma.club.update({
             where: { id },
             data: {
@@ -297,6 +301,8 @@ export class ClubsService implements OnModuleInit {
                 ...(data.union && { union: data.union }),
                 ...(data.mission && { mission: data.mission }),
                 ...(data.region && { region: data.region }),
+                ...(data.district && { district: data.district }),
+                ...(data.association && { association: data.association }),
             }
         });
     }

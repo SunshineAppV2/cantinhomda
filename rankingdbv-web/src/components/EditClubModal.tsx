@@ -158,7 +158,7 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">União</label>
                             <input
@@ -311,7 +311,7 @@ function UserEditField({ name, password, mustChangePassword, setName, setPasswor
 
     return (
         <form onSubmit={handleSubmit} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3 transition-all animate-in fade-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 transition-all animate-in fade-in slide-in-from-top-2">
                 <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Nome do Membro</label>
                     <input

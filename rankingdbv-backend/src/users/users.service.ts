@@ -29,7 +29,7 @@ export class UsersService {
         // We want to find anyone who might need a club, usually Directors/Owners who got stuck
         // But let's allow finding normal users too if they need to be promoted
         // For now, let's stick to likely candidates to avoid noise
-        role: { in: ['OWNER', 'ADMIN', 'REGIONAL', 'MASTER', 'DIRECTOR', 'COUNSELOR', 'INSTRUCTOR', 'PARENT', 'PATHFINDER'] }
+        role: { in: ['OWNER', 'ADMIN', 'COORDINATOR_REGIONAL', 'MASTER', 'DIRECTOR', 'COUNSELOR', 'INSTRUCTOR', 'PARENT', 'PATHFINDER'] }
       },
       select: {
         id: true,
@@ -71,6 +71,12 @@ export class UsersService {
         where.dbvClass = currentUser.dbvClass;
       }
       if (currentUser.clubId) where.clubId = currentUser.clubId;
+    } else if (currentUser && currentUser.role === 'COORDINATOR_DISTRICT') {
+      where.club = { district: currentUser.district || '' };
+    } else if (currentUser && currentUser.role === 'COORDINATOR_REGIONAL') {
+      where.club = { region: currentUser.region || '' };
+    } else if (currentUser && currentUser.role === 'COORDINATOR_AREA') {
+      where.club = { association: currentUser.association || '' };
     } else if (currentUser?.clubId) {
       where.clubId = currentUser.clubId;
     }
@@ -253,6 +259,22 @@ export class UsersService {
         throw new UnauthorizedException('Acesso negado: Aluno não atribuído.');
       }
 
+      // Regional/District Coordinators
+      if (currentUser.role === 'COORDINATOR_DISTRICT') {
+        if (user.club?.district !== currentUser.district) throw new UnauthorizedException('Acesso negado: Perfil fora do seu distrito.');
+        return user;
+      }
+
+      if (currentUser.role === 'COORDINATOR_REGIONAL') {
+        if (user.club?.region !== currentUser.region) throw new UnauthorizedException('Acesso negado: Perfil fora da sua região.');
+        return user;
+      }
+
+      if (currentUser.role === 'COORDINATOR_AREA') {
+        if (user.club?.association !== currentUser.association) throw new UnauthorizedException('Acesso negado: Perfil fora da sua associação.');
+        return user;
+      }
+
       // Parent
       if (currentUser.role === 'PARENT') {
         if (user.parentId !== currentUser.userId) throw new UnauthorizedException('Acesso negado: Não é seu filho.');
@@ -427,7 +449,7 @@ export class UsersService {
       dataToUpdate.pointsHistory = pointsHistory;
     }
 
-    if (dataToUpdate.role === 'OWNER' || dataToUpdate.role === 'REGIONAL') {
+    if (dataToUpdate.role === 'OWNER' || dataToUpdate.role === 'COORDINATOR_REGIONAL' || dataToUpdate.role === 'COORDINATOR_AREA' || dataToUpdate.role === 'COORDINATOR_DISTRICT') {
       // Allow if Master
       const isMaster = currentUser?.email === 'master@cantinhodbv.com';
       if (!isMaster) {
@@ -436,7 +458,7 @@ export class UsersService {
         if (userToUpdate && userToUpdate.role === dataToUpdate.role) {
           // Allow keeping the same role
         } else {
-          // Prevent escalation to OWNER/REGIONAL
+          // Prevent escalation to OWNER/COORDINATORS
           dataToUpdate.role = 'PATHFINDER';
         }
       }

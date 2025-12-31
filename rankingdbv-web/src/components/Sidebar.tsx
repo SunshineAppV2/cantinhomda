@@ -50,6 +50,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
         if (path.includes('/members') || path.includes('/classes') || path.includes('/events') || path.includes('/meetings') || path.includes('/secretary') || path.includes('/approvals')) return 'management';
         if (path.includes('/financial') || path.includes('/treasury') || path.includes('/master-treasury')) return 'financial';
         if (path.includes('/reports') || path.includes('/ranking') || path.includes('/signatures')) return 'reports';
+        if (path.includes('/regional-ranking') || path.includes('/coordinator-approvals')) return 'coordinator';
         if (path.includes('/store')) return 'store';
         if (path.includes('/settings') || path.includes('/admin') || path.includes('/hierarchy')) return 'config';
         return null;
@@ -138,6 +139,25 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
             });
         }
 
+        // 3.5 COORDENAÇÃO (Coordinator Section)
+        const isCoordinator = ['MASTER', 'OWNER', 'COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA'].includes(user?.role || '');
+        if (isCoordinator) {
+            const coordinatorSubItems: MenuItem[] = [
+                { id: 'regional-ranking', label: 'Ranking Regional', icon: Award, path: '/dashboard/regional-ranking' }
+            ];
+
+            if (user?.role !== 'OWNER') {
+                coordinatorSubItems.push({ id: 'coordinator-approvals', label: 'Intervenções', icon: Shield, path: '/dashboard/coordinator-approvals' });
+            }
+
+            items.push({
+                id: 'coordinator',
+                label: 'COORDENAÇÃO',
+                icon: Shield,
+                subItems: coordinatorSubItems
+            });
+        }
+
         // 4. FINANCEIRO
         const financialSubItems: MenuItem[] = [];
         financialSubItems.push({ id: 'my-finance', label: 'Minhas Finanças', icon: DollarSign, path: '/dashboard/financial' });
@@ -155,6 +175,9 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
         const reportsSubItems: MenuItem[] = [
             { id: 'ranking', label: 'Ranking Geral', icon: Award, path: '/dashboard/ranking' }
         ];
+        if (isCoordinator) {
+            reportsSubItems.push({ id: 'regional-ranking-alt', label: 'Ranking Regional', icon: Award, path: '/dashboard/regional-ranking' });
+        }
         if (hasAccess('TREASURY') || ['OWNER', 'ADMIN'].includes(user?.role || '')) {
             reportsSubItems.push({ id: 'reports', label: 'Relatórios & Métricas', icon: BarChart, path: '/dashboard/reports' });
         }

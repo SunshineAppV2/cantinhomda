@@ -9,6 +9,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 import { api } from '../lib/axios';
 import { jwtDecode } from 'jwt-decode';
+import { safeLocalStorage } from '../lib/storage';
 
 interface User {
     id: string; // Backend ID
@@ -23,6 +24,9 @@ interface User {
     specialties?: any[];
     points?: number;
     mustChangePassword?: boolean;
+    region?: string;
+    district?: string;
+    association?: string;
 }
 
 interface AuthContextType {
@@ -41,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     const checkBackendToken = async (firebaseUser: any) => {
-        const token = localStorage.getItem('token');
+        const token = safeLocalStorage.getItem('token');
         if (token) {
             try {
                 // Decode token to get basic info
@@ -70,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 });
             } catch (e) {
                 console.error("Invalid token:", e);
-                localStorage.removeItem('token');
+                safeLocalStorage.removeItem('token');
                 // Fallback to minimal user (MEMBER)
                 setUser({
                     id: firebaseUser.uid,
@@ -120,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (firebaseUser) {
                 await checkBackendToken(firebaseUser);
             } else {
-                localStorage.removeItem('token'); // Clear token on logout
+                safeLocalStorage.removeItem('token'); // Clear token on logout
                 setUser(null);
                 setLoading(false);
             }
@@ -150,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const { access_token, user: backendUser } = res.data;
 
             if (access_token) {
-                localStorage.setItem('token', access_token);
+                safeLocalStorage.setItem('token', access_token);
                 console.log('[Login] 3. Token stored');
 
                 // SYNC FIRESTORE: Background task, non-blocking
@@ -193,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     if (syncRes.data?.access_token) {
                         console.log('[Login] 2b. Sync Success!');
                         const { access_token, user: backendUser } = syncRes.data;
-                        localStorage.setItem('token', access_token);
+                        safeLocalStorage.setItem('token', access_token);
 
                         setUser({
                             id: backendUser.id,
@@ -223,7 +227,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = async () => {
         await signOut(auth);
-        localStorage.removeItem('token');
+        safeLocalStorage.removeItem('token');
         setUser(null);
     };
 

@@ -25,6 +25,7 @@ export function Hierarchy() {
     const { user } = useAuth();
     const [viewMode, setViewMode] = useState<'table' | 'tree'>('table');
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState<'ALL' | 'ACTIVE' | 'SOON' | 'EXPIRED' | 'NO_DATE'>('ALL');
 
     // --- QUERY: TREE DATA ---
     const { data: tree = {}, refetch: refetchTree } = useQuery({
@@ -76,11 +77,32 @@ export function Hierarchy() {
     };
 
     // Filter Logic for Table
-    const filteredClubs = allClubs.filter((club: any) =>
-        club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        club.union?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        club.mission?.toLowerCase().includes(searchTerm.toLowerCase())
-    ).sort((a: any, b: any) => {
+    const filteredClubs = allClubs.filter((club: any) => {
+        // 1. Text Search
+        const matchesSearch = club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            club.union?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            club.mission?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        if (!matchesSearch) return false;
+
+        // 2. Status Filter
+        const daysTo = club.nextBillingDate ? differenceInDays(new Date(club.nextBillingDate), new Date()) : 999;
+        const isExpired = club.subscriptionStatus === 'EXPIRED' || (club.nextBillingDate && daysTo < 0);
+        const isWarning = !isExpired && daysTo <= 30 && club.nextBillingDate;
+
+
+        if (filterStatus === 'ALL') return true;
+
+
+        // User requested: VENCE EM BREVE / ATIVO / SEM DATA / ETC.
+        // Let's be strict:
+        if (filterStatus === 'ACTIVE') return !isExpired && club.nextBillingDate;
+        if (filterStatus === 'SOON') return isWarning;
+        if (filterStatus === 'EXPIRED') return isExpired;
+        if (filterStatus === 'NO_DATE') return !club.nextBillingDate;
+
+        return true;
+    }).sort((a: any, b: any) => {
         // Sort by expiration date (closest to today first)
         // Null dates go last
         if (!a.nextBillingDate) return 1;
@@ -154,7 +176,7 @@ export function Hierarchy() {
     }
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
+        <div className="p-3 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6">
 
             {/* --- HEADER & STATS --- */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -205,39 +227,78 @@ export function Hierarchy() {
             </div>
 
             {/* --- CONTROLS --- */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                {/* Search */}
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input
-                        type="text"
-                        placeholder="Buscar clube, união ou missão..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                    />
+            <div className="flex flex-col gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    {/* Search */}
+                    <div className="relative w-full md:w-96">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Buscar clube, união ou missão..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        />
+                    </div>
+
+                    {/* View Toggle */}
+                    <div className="flex bg-slate-100 p-1 rounded-lg">
+                        <button
+                            onClick={() => setViewMode('table')}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            <List className="w-4 h-4" /> Lista Detalhada
+                        </button>
+                        <button
+                            onClick={() => setViewMode('tree')}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'tree' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                            <LayoutGrid className="w-4 h-4" /> Estrutura
+                        </button>
+                    </div>
                 </div>
 
-                {/* View Toggle */}
-                <div className="flex bg-slate-100 p-1 rounded-lg">
-                    <button
-                        onClick={() => setViewMode('table')}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        <List className="w-4 h-4" /> Lista Detalhada
-                    </button>
-                    <button
-                        onClick={() => setViewMode('tree')}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'tree' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                        <LayoutGrid className="w-4 h-4" /> Estrutura
-                    </button>
-                </div>
+                {/* Status Filters (Pills) */}
+                {viewMode === 'table' && (
+                    <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                        <button
+                            onClick={() => setFilterStatus('ALL')}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors border ${filterStatus === 'ALL' ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
+                        >
+                            Todos
+                        </button>
+                        <button
+                            onClick={() => setFilterStatus('SOON')}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors border ${filterStatus === 'SOON' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' : 'bg-white text-slate-600 border-slate-200 hover:border-yellow-200'}`}
+                        >
+                            Vence em Breve
+                        </button>
+                        <button
+                            onClick={() => setFilterStatus('ACTIVE')}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors border ${filterStatus === 'ACTIVE' ? 'bg-green-100 text-green-700 border-green-300' : 'bg-white text-slate-600 border-slate-200 hover:border-green-200'}`}
+                        >
+                            Ativos
+                        </button>
+                        <button
+                            onClick={() => setFilterStatus('EXPIRED')}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors border ${filterStatus === 'EXPIRED' ? 'bg-red-100 text-red-700 border-red-300' : 'bg-white text-slate-600 border-slate-200 hover:border-red-200'}`}
+                        >
+                            Vencidos
+                        </button>
+                        <button
+                            onClick={() => setFilterStatus('NO_DATE')}
+                            className={`px-3 py-1 rounded-full text-xs font-bold transition-colors border ${filterStatus === 'NO_DATE' ? 'bg-slate-100 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'}`}
+                        >
+                            Sem Data/Vitalício
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* --- CONTENT --- */}
-            {viewMode === 'table' ? (
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <>
+                {/* DESKTOP TABLE */}
+                <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
@@ -257,15 +318,15 @@ export function Hierarchy() {
                                     <tr><td colSpan={6} className="p-8 text-center text-slate-500">Nenhum clube encontrado.</td></tr>
                                 ) : (
                                     filteredClubs.map((club: any) => {
-                                        // Calc status color
+                                        // Calc status color logic duplicated? Better extract if complex.
+                                        // Reusing logic inline for now as it's simple.
                                         const daysTo = club.nextBillingDate ? differenceInDays(new Date(club.nextBillingDate), new Date()) : 999;
                                         const isExpired = club.subscriptionStatus === 'EXPIRED' || (club.nextBillingDate && daysTo < 0);
-                                        const isWarning = !isExpired && daysTo <= 30;
+                                        const isWarning = !isExpired && daysTo <= 30 && club.nextBillingDate;
 
                                         const statusColorClass = isExpired ? 'bg-red-100 text-red-700 border-red-200'
                                             : isWarning ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
                                                 : 'bg-green-100 text-green-700 border-green-200';
-
                                         const statusText = isExpired ? 'VENCIDO' : isWarning ? 'VENCE EM BREVE' : 'ATIVO';
 
                                         return (
@@ -279,7 +340,7 @@ export function Hierarchy() {
                                                     </div>
                                                 </td>
                                                 <td className="p-4">
-                                                    <span className={`px-2 py-0.5 rounded textxs font-bold border ${statusColorClass} text-[10px]`}>
+                                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${statusColorClass}`}>
                                                         {statusText}
                                                     </span>
                                                 </td>
@@ -307,40 +368,10 @@ export function Hierarchy() {
                                                 </td>
                                                 <td className="p-4 text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <button
-                                                            onClick={() => openPaymentModal(club)}
-                                                            className="text-green-600 hover:text-green-800 font-medium text-xs border border-green-200 hover:border-green-400 bg-green-50 px-3 py-1.5 rounded transition-all flex items-center gap-1"
-                                                            title="Enviar Cobrança"
-                                                        >
-                                                            <DollarSign className="w-3 h-3" /> Cobrar
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setEditingSubscription(club)}
-                                                            className="text-blue-600 hover:text-blue-800 font-medium text-xs border border-blue-200 hover:border-blue-400 bg-blue-50 px-3 py-1.5 rounded transition-all"
-                                                        >
-                                                            Assinatura
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setEditingClubData(club)}
-                                                            className="p-1.5 text-slate-400 hover:text-amber-600 border border-transparent hover:border-amber-100 rounded"
-                                                            title="Trocar Diretor"
-                                                        >
-                                                            <UserCog className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setEditingClubData(club)}
-                                                            className="p-1.5 text-slate-400 hover:text-blue-600 border border-transparent hover:border-blue-100 rounded"
-                                                            title="Editar Clube"
-                                                        >
-                                                            <Pencil className="w-4 h-4" />
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteClub(club.id, club.name)}
-                                                            className="p-1.5 text-slate-400 hover:text-red-600 border border-transparent hover:border-red-100 rounded"
-                                                            title="Excluir Clube"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
+                                                        <button onClick={() => openPaymentModal(club)} className="text-green-600 border border-green-200 bg-green-50 px-2 py-1 rounded hover:bg-green-100" title="Cobrar"><DollarSign className="w-4 h-4" /></button>
+                                                        <button onClick={() => setEditingSubscription(club)} className="text-blue-600 border border-blue-200 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100" title="Assinatura"><Settings className="w-4 h-4" /></button>
+                                                        <button onClick={() => setEditingClubData(club)} className="text-slate-400 hover:text-amber-600 p-1.5" title="Editar"><Pencil className="w-4 h-4" /></button>
+                                                        <button onClick={() => handleDeleteClub(club.id, club.name)} className="text-slate-400 hover:text-red-600 p-1.5" title="Excluir"><Trash2 className="w-4 h-4" /></button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -351,86 +382,154 @@ export function Hierarchy() {
                         </table>
                     </div>
                 </div>
-            ) : (
-                /* TREE VIEW (Existing Logic) */
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-                    {/* Reuse exact same tree rendering logic... */}
-                    {Object.entries(tree as TreeData).map(([union, missions]) => (
-                        <div key={union} className="border-l-2 border-blue-200 pl-4 group/union">
-                            <div className="flex items-center justify-between hover:bg-slate-50 p-2 rounded">
-                                <div className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => toggle(union)}>
-                                    {expanded[union] ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-                                    <Globe className="w-5 h-5 text-blue-600" />
-                                    <span className="font-bold text-lg text-slate-800">{union}</span>
-                                </div>
-                                <div className="flex gap-1 opacity-0 group-hover/union:opacity-100 transition-opacity">
-                                    <button onClick={() => setEditingNode({ level: 'union', oldName: union, newName: union })} className="p-1 text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
-                                    <button onClick={() => handleDeleteNode('union', union)} className="p-1 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                                </div>
-                            </div>
 
-                            {expanded[union] && (
-                                <div className="mt-2 ml-4 space-y-2">
-                                    {Object.entries(missions).map(([mission, regions]) => (
-                                        <div key={mission} className="border-l-2 border-green-200 pl-4 group/mission">
-                                            <div className="flex items-center justify-between hover:bg-slate-50 p-2 rounded">
-                                                <div className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => toggle(`${union}-${mission}`)}>
-                                                    {expanded[`${union}-${mission}`] ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-                                                    <MapPin className="w-5 h-5 text-green-600" />
-                                                    <span className="font-semibold text-slate-700">{mission}</span>
-                                                </div>
-                                                <div className="flex gap-1 opacity-0 group-hover/mission:opacity-100 transition-opacity">
-                                                    <button onClick={() => setEditingNode({ level: 'mission', oldName: mission, newName: mission })} className="p-1 text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
-                                                    <button onClick={() => handleDeleteNode('mission', mission)} className="p-1 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                                                </div>
+                {/* MOBILE CARDS */}
+                <div className="md:hidden space-y-3">
+                    {loadingClubs ? (
+                        <p className="text-center text-slate-500 py-4">Carregando...</p>
+                    ) : filteredClubs.length === 0 ? (
+                        <p className="text-center text-slate-500 py-4">Nenhum clube encontrado.</p>
+                    ) : (
+                        filteredClubs.map((club: any) => {
+                            const daysTo = club.nextBillingDate ? differenceInDays(new Date(club.nextBillingDate), new Date()) : 999;
+                            const isExpired = club.subscriptionStatus === 'EXPIRED' || (club.nextBillingDate && daysTo < 0);
+                            const isWarning = !isExpired && daysTo <= 30 && club.nextBillingDate;
+                            const statusColorClass = isExpired ? 'bg-red-100 text-red-700 border-red-200'
+                                : isWarning ? 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                    : 'bg-green-100 text-green-700 border-green-200';
+                            const statusText = isExpired ? 'VENCIDO' : isWarning ? 'VENCE EM BREVE' : 'ATIVO';
+
+                            return (
+                                <div key={club.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 relative">
+                                    {/* Header: Name + Badge */}
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div>
+                                            <h3 className="font-bold text-slate-800 text-base">{club.name}</h3>
+                                            <div className="text-xs text-slate-500 mt-1 flex flex-wrap gap-x-2">
+                                                <span className="flex items-center gap-1"><Globe className="w-3 h-3" /> {club.union}</span>
+                                                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {club.mission}</span>
                                             </div>
-
-                                            {expanded[`${union}-${mission}`] && (
-                                                <div className="mt-2 ml-4 space-y-2">
-                                                    {Object.entries(regions).map(([region, clubs]) => (
-                                                        <div key={region} className="border-l-2 border-orange-200 pl-4 group/region">
-                                                            <div className="flex items-center justify-between hover:bg-slate-50 p-2 rounded">
-                                                                <div className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => toggle(`${union}-${mission}-${region}`)}>
-                                                                    {expanded[`${union}-${mission}-${region}`] ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
-                                                                    <div className="w-4 h-4 rounded-full border-2 border-orange-400"></div>
-                                                                    <span className="font-medium text-slate-600">{region}</span>
-                                                                    <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{clubs.length} clubes</span>
-                                                                </div>
-                                                                <div className="flex gap-1 opacity-0 group-hover/region:opacity-100 transition-opacity">
-                                                                    <button onClick={() => setEditingNode({ level: 'region', oldName: region, newName: region })} className="p-1 text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
-                                                                    <button onClick={() => handleDeleteNode('region', region)} className="p-1 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
-                                                                </div>
-                                                            </div>
-                                                            {expanded[`${union}-${mission}-${region}`] && (
-                                                                <div className="mt-2 ml-8 grid gap-2">
-                                                                    {clubs.map(club => (
-                                                                        <div key={club.id} className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded border border-slate-100 group">
-                                                                            <div className="flex items-center gap-2">
-                                                                                <Building2 className="w-4 h-4 text-slate-400" />
-                                                                                <span className="text-sm text-slate-700">{club.name}</span>
-                                                                            </div>
-                                                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                                <button onClick={() => setEditingSubscription(club as any)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Assinatura"><Settings className="w-4 h-4" /></button>
-                                                                                <button onClick={() => setEditingClubData(club as any)} className="p-1 text-slate-400 hover:text-amber-600 transition-colors" title="Trocar Diretor"><UserCog className="w-4 h-4" /></button>
-                                                                                <button onClick={() => setEditingClubData(club as any)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Editar Clube"><Pencil className="w-4 h-4" /></button>
-                                                                                <button onClick={() => handleDeleteClub(club.id, club.name)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Excluir Clube"><Trash2 className="w-4 h-4" /></button>
-                                                                            </div>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
                                         </div>
-                                    ))}
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${statusColorClass} shrink-0`}>
+                                            {statusText}
+                                        </span>
+                                    </div>
+
+                                    {/* Stats Row */}
+                                    <div className="flex items-center justify-between text-sm py-2 border-t border-b border-slate-50">
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] text-slate-400 uppercase font-bold">Vencimento</span>
+                                            <span className={`font-medium ${isWarning ? 'text-yellow-600' : 'text-slate-700'}`}>
+                                                {club.nextBillingDate ? format(new Date(club.nextBillingDate), 'dd/MM/yyyy') : 'Vitalício'}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-col text-right">
+                                            <span className="text-[10px] text-slate-400 uppercase font-bold">Membros</span>
+                                            <span className="font-medium text-slate-700">{club.activeMembers || 0} / {club.memberLimit || '∞'}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* Actions Row (Big Buttons) */}
+                                    <div className="grid grid-cols-4 gap-2 pt-1">
+                                        <button onClick={() => openPaymentModal(club)} className="col-span-2 flex items-center justify-center gap-1 bg-green-50 text-green-700 border border-green-200 p-2 rounded-lg font-bold text-xs hover:bg-green-100">
+                                            <DollarSign className="w-4 h-4" /> Cobrar
+                                        </button>
+                                        <button onClick={() => setEditingSubscription(club)} className="col-span-2 flex items-center justify-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 p-2 rounded-lg font-bold text-xs hover:bg-blue-100">
+                                            <Settings className="w-4 h-4" /> Assinatura
+                                        </button>
+                                        <button onClick={() => setEditingClubData(club)} className="col-span-2 flex items-center justify-center gap-1 bg-slate-50 text-slate-600 border border-slate-200 p-2 rounded-lg font-bold text-xs hover:bg-slate-100">
+                                            <Pencil className="w-4 h-4" /> Editar
+                                        </button>
+                                        <button onClick={() => handleDeleteClub(club.id, club.name)} className="col-span-2 flex items-center justify-center gap-1 bg-red-50 text-red-600 border border-red-200 p-2 rounded-lg font-bold text-xs hover:bg-red-100">
+                                            <Trash2 className="w-4 h-4" /> Excluir
+                                        </button>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                    ))}
-                    {Object.keys(tree).length === 0 && <p className="text-slate-500 italic">Nenhum clube encontrado.</p>}
+                            );
+                        })
+                    )}
                 </div>
+            </>
+            ) : (
+            /* TREE VIEW (Existing Logic) */
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
+                {/* Reuse exact same tree rendering logic... */}
+                {Object.entries(tree as TreeData).map(([union, missions]) => (
+                    <div key={union} className="border-l-2 border-blue-200 pl-4 group/union">
+                        <div className="flex items-center justify-between hover:bg-slate-50 p-2 rounded">
+                            <div className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => toggle(union)}>
+                                {expanded[union] ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+                                <Globe className="w-5 h-5 text-blue-600" />
+                                <span className="font-bold text-lg text-slate-800">{union}</span>
+                            </div>
+                            <div className="flex gap-1 opacity-0 group-hover/union:opacity-100 transition-opacity">
+                                <button onClick={() => setEditingNode({ level: 'union', oldName: union, newName: union })} className="p-1 text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                                <button onClick={() => handleDeleteNode('union', union)} className="p-1 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                        </div>
+
+                        {expanded[union] && (
+                            <div className="mt-2 ml-4 space-y-2">
+                                {Object.entries(missions).map(([mission, regions]) => (
+                                    <div key={mission} className="border-l-2 border-green-200 pl-4 group/mission">
+                                        <div className="flex items-center justify-between hover:bg-slate-50 p-2 rounded">
+                                            <div className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => toggle(`${union}-${mission}`)}>
+                                                {expanded[`${union}-${mission}`] ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+                                                <MapPin className="w-5 h-5 text-green-600" />
+                                                <span className="font-semibold text-slate-700">{mission}</span>
+                                            </div>
+                                            <div className="flex gap-1 opacity-0 group-hover/mission:opacity-100 transition-opacity">
+                                                <button onClick={() => setEditingNode({ level: 'mission', oldName: mission, newName: mission })} className="p-1 text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                                                <button onClick={() => handleDeleteNode('mission', mission)} className="p-1 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                                            </div>
+                                        </div>
+
+                                        {expanded[`${union}-${mission}`] && (
+                                            <div className="mt-2 ml-4 space-y-2">
+                                                {Object.entries(regions).map(([region, clubs]) => (
+                                                    <div key={region} className="border-l-2 border-orange-200 pl-4 group/region">
+                                                        <div className="flex items-center justify-between hover:bg-slate-50 p-2 rounded">
+                                                            <div className="flex items-center gap-2 cursor-pointer flex-1" onClick={() => toggle(`${union}-${mission}-${region}`)}>
+                                                                {expanded[`${union}-${mission}-${region}`] ? <ChevronDown className="w-4 h-4 text-slate-400" /> : <ChevronRight className="w-4 h-4 text-slate-400" />}
+                                                                <div className="w-4 h-4 rounded-full border-2 border-orange-400"></div>
+                                                                <span className="font-medium text-slate-600">{region}</span>
+                                                                <span className="text-xs bg-slate-100 px-2 py-0.5 rounded text-slate-500">{clubs.length} clubes</span>
+                                                            </div>
+                                                            <div className="flex gap-1 opacity-0 group-hover/region:opacity-100 transition-opacity">
+                                                                <button onClick={() => setEditingNode({ level: 'region', oldName: region, newName: region })} className="p-1 text-slate-400 hover:text-blue-600"><Pencil className="w-4 h-4" /></button>
+                                                                <button onClick={() => handleDeleteNode('region', region)} className="p-1 text-slate-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                                                            </div>
+                                                        </div>
+                                                        {expanded[`${union}-${mission}-${region}`] && (
+                                                            <div className="mt-2 ml-8 grid gap-2">
+                                                                {clubs.map(club => (
+                                                                    <div key={club.id} className="flex items-center justify-between gap-2 p-2 bg-slate-50 rounded border border-slate-100 group">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Building2 className="w-4 h-4 text-slate-400" />
+                                                                            <span className="text-sm text-slate-700">{club.name}</span>
+                                                                        </div>
+                                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                            <button onClick={() => setEditingSubscription(club as any)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Assinatura"><Settings className="w-4 h-4" /></button>
+                                                                            <button onClick={() => setEditingClubData(club as any)} className="p-1 text-slate-400 hover:text-amber-600 transition-colors" title="Trocar Diretor"><UserCog className="w-4 h-4" /></button>
+                                                                            <button onClick={() => setEditingClubData(club as any)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Editar Clube"><Pencil className="w-4 h-4" /></button>
+                                                                            <button onClick={() => handleDeleteClub(club.id, club.name)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Excluir Clube"><Trash2 className="w-4 h-4" /></button>
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                ))}
+                {Object.keys(tree).length === 0 && <p className="text-slate-500 italic">Nenhum clube encontrado.</p>}
+            </div>
             )}
 
             {/* MODALS RZUSE */}

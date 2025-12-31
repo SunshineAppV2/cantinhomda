@@ -39,6 +39,8 @@ import { ClubAssignment } from './pages/admin/ClubAssignment';
 import { AdminAchievements } from './pages/admin/Achievements';
 import { MasterRequirements } from './pages/admin/MasterRequirements';
 import { MasterSpecialties } from './pages/admin/MasterSpecialties';
+import { RegionalRanking } from './pages/RegionalRanking';
+import { CoordinatorApprovals } from './pages/CoordinatorApprovals';
 
 import { SocketProvider } from './contexts/SocketContext';
 
@@ -107,6 +109,15 @@ function App() {
                   <Route path="settings" element={<Settings />} />
                   <Route path="hierarchy" element={<Hierarchy />} />
                   <Route path="system-messages" element={<SystemMessages />} />
+                </Route>
+
+                {/* Coordinator Routes */}
+                <Route element={<ProtectedRoute allowedRoles={['MASTER', 'OWNER', 'COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA']} />}>
+                  <Route path="regional-ranking" element={<RegionalRanking />} />
+                </Route>
+
+                <Route element={<ProtectedRoute allowedRoles={['MASTER', 'COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA']} />}>
+                  <Route path="coordinator-approvals" element={<CoordinatorApprovals />} />
                 </Route>
 
                 {/* Master Only Routes */}

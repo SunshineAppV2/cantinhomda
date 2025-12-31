@@ -24,6 +24,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { AchievementsModule } from './achievements/achievements.module';
 import { MasterTreasuryModule } from './master-treasury/master-treasury.module';
 import { PaymentsModule } from './payments/payments.module';
+import { RankingRegionalModule } from './ranking-regional/ranking-regional.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { PaymentsModule } from './payments/payments.module';
     MasterTreasuryModule,
     PaymentsModule,
     AchievementsModule,
+    RankingRegionalModule,
   ],
   controllers: [AppController],
   providers: [AppService],

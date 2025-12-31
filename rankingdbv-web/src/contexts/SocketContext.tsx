@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
+import { safeLocalStorage } from '../lib/storage';
 
 interface SocketContextType {
     socket: Socket | null;
@@ -10,7 +11,7 @@ interface SocketContextType {
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 const getSocketUrl = () => {
-    return import.meta.env.VITE_API_URL || localStorage.getItem('api_url') || 'http://localhost:3000';
+    return import.meta.env.VITE_API_URL || safeLocalStorage.getItem('api_url') || 'http://localhost:3000';
 };
 
 export function SocketProvider({ children }: { children: ReactNode }) {
@@ -21,7 +22,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const connectSocket = async () => {
             if (user) {
-                const token = localStorage.getItem('token');
+                const token = safeLocalStorage.getItem('token');
                 if (!token) {
                     console.warn('[Socket] No backend token found, skipping connection');
                     return;

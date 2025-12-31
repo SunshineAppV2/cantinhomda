@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import { Circle, Plus, BookOpen, Award, Search, Trash2, Pencil } from 'lucide-react';
+import { Circle, Plus, BookOpen, Award, Search, Trash2, Pencil, RotateCcw, ShieldCheck } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { RequirementAnswerModal } from '../components/RequirementAnswerModal';
 import { Combobox } from '../components/Combobox';
@@ -20,6 +20,7 @@ interface Requirement {
     type?: 'TEXT' | 'FILE' | 'BOTH' | 'QUESTIONNAIRE';
     questions?: Question[];
     clubId?: string;
+    inheritedFromId?: string;
 }
 
 interface Question {
@@ -231,7 +232,7 @@ export function Requirements() {
         }
     };
 
-    const isAdmin = ['OWNER', 'ADMIN', 'INSTRUCTOR'].includes(user?.role || '');
+    const isAdmin = ['OWNER', 'ADMIN', 'INSTRUCTOR', 'MASTER'].includes(user?.role || '');
 
     const handleReqClick = (req: Requirement) => {
         if (isAdmin) return;
@@ -470,6 +471,12 @@ export function Requirements() {
                                                 <span className={`text-slate-800 ${isCompleted ? 'text-slate-500 line-through' : ''}`}>
                                                     {req.description}
                                                 </span>
+                                                {req.clubId && (
+                                                    <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full uppercase tracking-tighter">
+                                                        <ShieldCheck className="w-2.5 h-2.5" />
+                                                        Personalizado
+                                                    </span>
+                                                )}
                                                 {isPending && (
                                                     <p className={`text-xs mt-1 font-semibold ${hasAnswer ? 'text-yellow-600' : 'text-blue-600'}`}>
                                                         {hasAnswer ? 'Aguardando Aprovação' : 'A Fazer (Atribuído)'}
@@ -479,6 +486,20 @@ export function Requirements() {
                                             </div>
                                             {isAdmin && (
                                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
+                                                    {req.clubId && isAdmin && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (confirm('Deseja excluir esta personalização e voltar ao padrão global?')) {
+                                                                    handleDelete(req.id);
+                                                                }
+                                                            }}
+                                                            className="p-1 text-slate-400 hover:text-amber-600"
+                                                            title="Voltar ao Padrão Global"
+                                                        >
+                                                            <RotateCcw className="w-4 h-4" />
+                                                        </button>
+                                                    )}
                                                     <button
                                                         onClick={(e) => { e.stopPropagation(); openEditModal(req); }}
                                                         className="p-1 text-slate-400 hover:text-blue-600"

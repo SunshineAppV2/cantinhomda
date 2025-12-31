@@ -1,16 +1,17 @@
 import axios from 'axios';
+import { safeLocalStorage } from './storage';
 
 export const api = axios.create({
     // Prioritize Env Var, then LocalStorage, then Hardcoded Localhost (SAFE DEFAULT for now)
     // The previous window.location.hostname logic fails on production domain if backend is local
-    baseURL: import.meta.env.VITE_API_URL || localStorage.getItem('api_url') || 'http://localhost:3000',
+    baseURL: import.meta.env.VITE_API_URL || safeLocalStorage.getItem('api_url') || 'http://localhost:3000',
 });
 
 import { auth } from './firebase';
 
 api.interceptors.request.use(async (config) => {
     // 1. Try Backend Token (JWT)
-    const token = localStorage.getItem('token');
+    const token = safeLocalStorage.getItem('token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     } else {
@@ -33,8 +34,8 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             console.warn('Unauthorized access (401). Token might be invalid.');
-            // localStorage.removeItem('token');
-            // localStorage.removeItem('user');
+            // safeLocalStorage.removeItem('token');
+            // safeLocalStorage.removeItem('user');
             // Do not force redirect/reload to avoid loops. Let the UI handle the error.
         }
         return Promise.reject(error);

@@ -10,6 +10,14 @@ export class CreateClubDto {
 
     @IsString()
     @IsOptional()
+    district?: string;
+
+    @IsString()
+    @IsOptional()
+    association?: string;
+
+    @IsString()
+    @IsOptional()
     mission?: string;
 
     @IsString()

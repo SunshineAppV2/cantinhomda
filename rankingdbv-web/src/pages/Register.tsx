@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { TermsModal } from '../components/TermsModal';
 import { UserPlus, Mail, Lock, User, ArrowRight, Home, Users, MapPin, Globe, Award, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
+import { safeLocalStorage } from '../lib/storage';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
@@ -304,7 +305,7 @@ export function Register() {
 
                 if (res.data && res.data.access_token) {
                     console.log('[Register] Step 5 Success: Backend token received');
-                    localStorage.setItem('token', res.data.access_token);
+                    safeLocalStorage.setItem('token', res.data.access_token);
                 }
 
                 toast.success(mode === 'CREATE' ? `Clube "${clubName}" criado!` : 'Cadastro realizado!');

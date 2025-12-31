@@ -22,6 +22,8 @@ model Club {
   union              String?
   settings           Json?
   region             String?
+  district           String?
+  association        String?
   gracePeriodDays    Int                 @default(5)
   memberLimit        Int                 @default(30)
   nextBillingDate    DateTime?
@@ -139,6 +141,9 @@ model User {
   specificAllergies      String?
   state                  String?
   susNumber              String?
+  region                 String?
+  district               String?
+  association            String?
   isActive               Boolean             @default(true)
   mustChangePassword     Boolean             @default(false)
   schoolShift            String?
@@ -265,6 +270,8 @@ model Requirement {
   area         String?
   type         RequirementType   @default(TEXT)
   clubId       String?
+  region       String?
+  district     String?
   questions    Question[]
   club         Club?             @relation(fields: [clubId], references: [id], onDelete: Cascade)
   specialty    Specialty?        @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
@@ -431,9 +438,11 @@ enum Role {
   PARENT
   PATHFINDER
   COUNSELOR
-  REGIONAL
+  COORDINATOR_REGIONAL
   MASTER
   DIRECTOR
+  COORDINATOR_AREA
+  COORDINATOR_DISTRICT
 }
 
 enum PlanTier {

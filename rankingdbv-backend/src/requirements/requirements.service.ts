@@ -171,56 +171,72 @@ export class RequirementsService {
             }
         });
 
-        // PRIORITIZATION LOGIC:
+        // PRIORITIZATION & PROGRESS INHERITANCE LOGIC:
         // If we have both a Universal and a Club requirement with the same Code/Class/Specialty OR Description,
-        // show the CLUB one.
+        // show the CLUB one, but ensure we keep or merge user progress.
         if (query.userClubId) {
             const clubReqs = rawRequirements.filter(r => r.clubId === query.userClubId);
             const universalReqs = rawRequirements.filter(r => r.clubId === null);
-            const clubMap = new Map();
 
-            // Index Club Reqs by "Key"
+            // Index Universal Reqs by "Key" to quickly find matches for Club Reqs
+            const universalMap = new Map<string, any>();
+            for (const u of universalReqs) {
+                if (u.code) {
+                    const key = `${u.dbvClass || ''}_${u.specialtyId || ''}_${u.code}`;
+                    universalMap.set(key, u);
+                }
+                const descKey = `${u.dbvClass || ''}_${u.specialtyId || ''}_${u.description.trim().toLowerCase()}`;
+                if (!universalMap.has(descKey)) universalMap.set(descKey, u);
+            }
+
+            // Index overridden keys to filter the universal list later
+            const overriddenKeys = new Set<string>();
+
+            // Process Club Reqs and inherit progress if needed
             for (const r of clubReqs) {
-                // Key 1: Class + Code (e.g. AMIGO_I.1)
+                let match = null;
                 if (r.code) {
                     const key = `${r.dbvClass || ''}_${r.specialtyId || ''}_${r.code}`;
-                    clubMap.set(key, true);
+                    match = universalMap.get(key);
+                    if (match) overriddenKeys.add(key);
                 }
-                // Key 2: Description (Exact Match) - Fallback for items without code
-                // Normalize description (trim + lower) to avoid slight mismatches
-                if (r.description) {
-                    const descKey = `${r.dbvClass || ''}_${r.specialtyId || ''}_${r.description.trim().toLowerCase()}`;
-                    clubMap.set(descKey, true);
+
+                const descKey = `${r.dbvClass || ''}_${r.specialtyId || ''}_${r.description.trim().toLowerCase()}`;
+                if (!match) {
+                    match = universalMap.get(descKey);
+                }
+                if (match) overriddenKeys.add(descKey);
+
+                // Inherit progress if Club req has none but Universal has
+                if (match && query.userId) {
+                    const m = match as any;
+                    const clubProg = (r as any).userProgress || [];
+                    const univProg = m.userProgress || [];
+                    if (clubProg.length === 0 && univProg.length > 0) {
+                        // Inherit from Universal
+                        (r as any).userProgress = univProg;
+                        (r as any).inheritedFromId = m.id;
+                    }
                 }
             }
 
-            // Filter Universal Reqs
+            // Filter Universal Reqs (only keep ones that weren't overridden)
             const finalUniversal = universalReqs.filter(u => {
-                let isOverridden = false;
-
-                // Check Code
                 if (u.code) {
                     const key = `${u.dbvClass || ''}_${u.specialtyId || ''}_${u.code}`;
-                    if (clubMap.has(key)) isOverridden = true;
+                    if (overriddenKeys.has(key)) return false;
                 }
-
-                // Check Description
-                if (!isOverridden && u.description) {
-                    const descKey = `${u.dbvClass || ''}_${u.specialtyId || ''}_${u.description.trim().toLowerCase()}`;
-                    if (clubMap.has(descKey)) isOverridden = true;
-                }
-
-                return !isOverridden;
+                const descKey = `${u.dbvClass || ''}_${u.specialtyId || ''}_${u.description.trim().toLowerCase()}`;
+                return !overriddenKeys.has(descKey);
             });
 
             // Combine and Re-Sort
             const combined = [...clubReqs, ...finalUniversal];
-            return combined.sort((a, b) => { // Simple sort by Area > Code
-                if ((a.area || '') < (b.area || '')) return -1;
-                if ((a.area || '') > (b.area || '')) return 1;
-                if ((a.code || '') < (b.code || '')) return -1;
-                if ((a.code || '') > (b.code || '')) return 1;
-                return 0;
+            return combined.sort((a, b) => {
+                // Area > Code > Description
+                if ((a.area || '') !== (b.area || '')) return (a.area || '').localeCompare(b.area || '');
+                if ((a.code || '') !== (b.code || '')) return (a.code || '').localeCompare(b.code || '');
+                return (a.description || '').localeCompare(b.description || '');
             });
         }
 
@@ -485,8 +501,16 @@ export class RequirementsService {
         if (counselor.role === 'COUNSELOR') {
             whereClause.user = { unitId: counselor.unitId };
         } else if (['OWNER', 'ADMIN', 'INSTRUCTOR'].includes(counselor.role)) {
-            // Admins see all pending
-            // no extra filter
+            // Admins see all pending in their club
+            whereClause.user = { clubId: counselor.clubId };
+        } else if (counselor.role === 'COORDINATOR_DISTRICT') {
+            whereClause.user = { club: { district: counselor.district || '' } };
+        } else if (counselor.role === 'COORDINATOR_REGIONAL') {
+            whereClause.user = { club: { region: counselor.region || '' } };
+        } else if (counselor.role === 'COORDINATOR_AREA') {
+            whereClause.user = { club: { association: counselor.association || '' } };
+        } else if (counselor.role === 'MASTER') {
+            // Master sees everything
         } else {
             return [];
         }
