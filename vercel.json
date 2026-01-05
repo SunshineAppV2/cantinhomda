@@ -1,7 +1,13 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/rankingdbv-backend/src/main.ts" },
-    { "source": "/(.*)", "destination": "/rankingdbv-web/$1" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/rankingdbv-backend/api/index.ts"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/rankingdbv-web/$1"
+    }
   ]
 }
