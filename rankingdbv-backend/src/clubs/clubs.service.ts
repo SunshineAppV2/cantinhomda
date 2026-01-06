@@ -179,18 +179,23 @@ export class ClubsService implements OnModuleInit {
 
         if (currentUser) {
             const isMaster = currentUser.email === 'master@cantinhodbv.com' || currentUser.role === 'MASTER';
-            if (!isMaster) {
+            if (!isMaster && ['COORDINATOR_AREA', 'COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT'].includes(currentUser.role)) {
+
+                const association = currentUser.association || currentUser.mission;
+                if (!association) return []; // STRICT: No association, no clubs.
+
+                if (currentUser.role === 'COORDINATOR_REGIONAL' && !currentUser.region) return [];
+                if (currentUser.role === 'COORDINATOR_DISTRICT' && (!currentUser.region || !currentUser.district)) return [];
+
                 // Ensure they always filter by their own Union/Association to prevent scope leakage
                 if (currentUser.union) where.union = currentUser.union;
-                if (currentUser.association || currentUser.mission) {
-                    where.OR = [
-                        { association: currentUser.association || currentUser.mission },
-                        { mission: currentUser.association || currentUser.mission }
-                    ];
-                }
+                where.OR = [
+                    { association: association },
+                    { mission: association }
+                ];
 
-                if (currentUser.role === 'COORDINATOR_DISTRICT') where.district = currentUser.district || '';
-                if (currentUser.role === 'COORDINATOR_REGIONAL') where.region = currentUser.region || '';
+                if (currentUser.role === 'COORDINATOR_DISTRICT') where.district = currentUser.district;
+                if (currentUser.role === 'COORDINATOR_REGIONAL') where.region = currentUser.region;
             }
         }
 

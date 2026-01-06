@@ -20,12 +20,12 @@ export function ProtectedRoute({ allowedRoles }: { allowedRoles?: string[] }) {
     }
 
     // Force Profile Completion for Coordinators
-    const isCoordinator = ['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT'].includes(user?.role || '');
+    const isCoordinator = ['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA'].includes(user?.role || '');
     if (isCoordinator && location.pathname !== '/complete-profile') {
         // Check strict compliance
         const hasUnion = !!user?.union;
         const hasAssociation = !!(user?.association || user?.mission);
-        const hasRegion = !!user?.region;
+        const hasRegion = (user?.role === 'COORDINATOR_REGIONAL' || user?.role === 'COORDINATOR_DISTRICT') ? !!user?.region : true;
         const hasDistrict = user?.role === 'COORDINATOR_DISTRICT' ? !!user?.district : true;
 
         if (!hasUnion || !hasAssociation || !hasRegion || !hasDistrict) {

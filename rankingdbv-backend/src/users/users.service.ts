@@ -72,17 +72,21 @@ export class UsersService {
       }
       if (currentUser.clubId) where.clubId = currentUser.clubId;
     } else if (currentUser && (currentUser.role === 'COORDINATOR_DISTRICT' || currentUser.role === 'COORDINATOR_REGIONAL' || currentUser.role === 'COORDINATOR_AREA')) {
+      const association = currentUser.association || currentUser.mission;
+      if (!association) return []; // STRICT: No association, no users.
+
+      if (currentUser.role === 'COORDINATOR_REGIONAL' && !currentUser.region) return [];
+      if (currentUser.role === 'COORDINATOR_DISTRICT' && (!currentUser.region || !currentUser.district)) return [];
+
       const clubFilter: any = {};
       if (currentUser.union) clubFilter.union = currentUser.union;
-      if (currentUser.association || currentUser.mission) {
-        clubFilter.OR = [
-          { association: currentUser.association || currentUser.mission },
-          { mission: currentUser.association || currentUser.mission }
-        ];
-      }
+      clubFilter.OR = [
+        { association: association },
+        { mission: association }
+      ];
 
-      if (currentUser.role === 'COORDINATOR_DISTRICT') clubFilter.district = currentUser.district || '';
-      if (currentUser.role === 'COORDINATOR_REGIONAL') clubFilter.region = currentUser.region || '';
+      if (currentUser.role === 'COORDINATOR_DISTRICT') clubFilter.district = currentUser.district;
+      if (currentUser.role === 'COORDINATOR_REGIONAL') clubFilter.region = currentUser.region;
 
       where.club = clubFilter;
     } else if (currentUser?.clubId) {

@@ -43,10 +43,26 @@ export class RankingRegionalController {
 
         // Final security check: ensure scope is not too broad for coordinators
         if (['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA'].includes(user.role)) {
+            let isIncomplete = false;
+
             if (!scope.association) {
-                console.warn(`[RankingRegional] Coordinator ${user.email} has no Association/Mission in profile! Filter might be too broad.`);
-                // We should technically block or force a very narrow filter
-                // scope.association = 'NOT_SET'; 
+                console.warn(`[RankingRegional] Coordinator ${user.email} is missing Association/Mission!`);
+                isIncomplete = true;
+            }
+
+            if (user.role === 'COORDINATOR_REGIONAL' && !scope.region) {
+                console.warn(`[RankingRegional] Regional Coordinator ${user.email} is missing Region!`);
+                isIncomplete = true;
+            }
+
+            if (user.role === 'COORDINATOR_DISTRICT' && (!scope.region || !scope.district)) {
+                console.warn(`[RankingRegional] District Coordinator ${user.email} is missing Region or District!`);
+                isIncomplete = true;
+            }
+
+            if (isIncomplete) {
+                console.warn(`[RankingRegional] Profile incomplete for role ${user.role}. Returning empty ranking.`);
+                return []; // Return empty array if profile is incomplete
             }
         }
 
