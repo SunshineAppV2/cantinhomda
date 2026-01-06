@@ -510,6 +510,31 @@ export class ClubsService implements OnModuleInit {
         return result;
     }
 
+    async bulkUpdateBillingDate(clubIds: string[], nextBillingDate: string) {
+        try {
+            const date = new Date(nextBillingDate);
+
+            // Use transaction to ensure all updates succeed or none do
+            const result = await this.prisma.$transaction(
+                clubIds.map(clubId =>
+                    this.prisma.club.update({
+                        where: { id: clubId },
+                        data: { nextBillingDate: date }
+                    })
+                )
+            );
+
+            return {
+                success: true,
+                updatedCount: result.length,
+                clubIds: result.map(club => club.id)
+            };
+        } catch (error) {
+            console.error('Error in bulk update:', error);
+            throw new Error('Erro ao atualizar datas em massa. Verifique os IDs dos clubes.');
+        }
+    }
+
     async sendPaymentInfo(clubId: string, message?: string) {
         const club = await this.prisma.club.findUnique({ where: { id: clubId } });
         if (!club) throw new Error('Clube não encontrado');

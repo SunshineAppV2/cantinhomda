@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronRight, ChevronDown, Building2, MapPin, Globe, Pencil, Trash2, Plus, Settings, AlertTriangle, Search, LayoutGrid, List, DollarSign, Send, UserCog } from 'lucide-react';
+import { ChevronRight, ChevronDown, Building2, MapPin, Globe, Pencil, Trash2, Plus, Settings, AlertTriangle, Search, LayoutGrid, List, DollarSign, Send, UserCog, Calendar, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { ClubSubscriptionModal } from '../components/ClubSubscriptionModal';
 import { EditClubModal } from '../components/EditClubModal';
@@ -53,6 +53,12 @@ export function Hierarchy() {
     const [selectedClubForPayment, setSelectedClubForPayment] = useState<any | null>(null);
     const [paymentMessage, setPaymentMessage] = useState('');
     const [sendingPayment, setSendingPayment] = useState(false);
+
+    // Bulk Selection State
+    const [selectedClubIds, setSelectedClubIds] = useState<Set<string>>(new Set());
+    const [bulkDateModalOpen, setBulkDateModalOpen] = useState(false);
+    const [bulkNewDate, setBulkNewDate] = useState('');
+    const [bulkUpdating, setBulkUpdating] = useState(false);
 
     const DEFAULT_PAYMENT_MSG = `Olá! Sua assinatura do Cantinho DBV está vencendo. Para renovar, faça um PIX para a chave: 68323280282 (Alex Oliveira Seabra) e envie o comprovante.`;
 
@@ -170,6 +176,55 @@ export function Hierarchy() {
             refetchClubs();
         } catch (e: any) {
             toast.error('Erro ao remover clube. Verifique se existem membros vinculados que impedem a exclusão.');
+        }
+    };
+
+    // --- BULK SELECTION HANDLERS ---
+    const handleSelectClub = (clubId: string) => {
+        setSelectedClubIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(clubId)) {
+                newSet.delete(clubId);
+            } else {
+                newSet.add(clubId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleSelectAll = () => {
+        if (selectedClubIds.size === filteredClubs.length) {
+            setSelectedClubIds(new Set());
+        } else {
+            setSelectedClubIds(new Set(filteredClubs.map((c: any) => c.id)));
+        }
+    };
+
+    const clearSelection = () => {
+        setSelectedClubIds(new Set());
+    };
+
+    const handleBulkUpdateDate = async () => {
+        if (!bulkNewDate || selectedClubIds.size === 0) {
+            toast.error('Selecione uma data válida.');
+            return;
+        }
+
+        setBulkUpdating(true);
+        try {
+            await api.patch('/clubs/bulk-update-billing-date', {
+                clubIds: Array.from(selectedClubIds),
+                nextBillingDate: bulkNewDate
+            });
+            toast.success(`${selectedClubIds.size} clube(s) atualizado(s) com sucesso!`);
+            setBulkDateModalOpen(false);
+            setBulkNewDate('');
+            clearSelection();
+            refetchClubs();
+        } catch (error) {
+            toast.error('Erro ao atualizar datas em massa.');
+        } finally {
+            setBulkUpdating(false);
         }
     };
 
@@ -298,6 +353,29 @@ export function Hierarchy() {
                 )}
             </div>
 
+            {/* --- BULK ACTIONS TOOLBAR --- */}
+            {selectedClubIds.size > 0 && (
+                <div className="bg-blue-600 text-white p-4 rounded-xl shadow-lg flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-white/20 px-3 py-1.5 rounded-lg font-bold">
+                            {selectedClubIds.size} selecionado{selectedClubIds.size > 1 ? 's' : ''}
+                        </div>
+                        <button
+                            onClick={clearSelection}
+                            className="text-white/80 hover:text-white flex items-center gap-1 text-sm"
+                        >
+                            <X className="w-4 h-4" /> Limpar
+                        </button>
+                    </div>
+                    <button
+                        onClick={() => setBulkDateModalOpen(true)}
+                        className="bg-white text-blue-600 px-4 py-2 rounded-lg font-bold hover:bg-blue-50 transition-colors flex items-center gap-2"
+                    >
+                        <Calendar className="w-4 h-4" /> Atualizar Data de Vencimento
+                    </button>
+                </div>
+            )}
+
             {/* --- CONTENT --- */}
             {viewMode === 'table' ? (
                 <>
@@ -307,6 +385,14 @@ export function Hierarchy() {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-slate-50 border-b border-slate-200 text-xs text-slate-500 uppercase tracking-wider">
+                                        <th className="p-4 w-12">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedClubIds.size === filteredClubs.length && filteredClubs.length > 0}
+                                                onChange={handleSelectAll}
+                                                className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                            />
+                                        </th>
                                         <th className="p-4 font-bold">Clube / Localização</th>
                                         <th className="p-4 font-bold">Status</th>
                                         <th className="p-4 font-bold">Plano</th>
@@ -317,9 +403,9 @@ export function Hierarchy() {
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 text-sm text-slate-700">
                                     {loadingClubs ? (
-                                        <tr><td colSpan={6} className="p-8 text-center text-slate-500">Carregando dados...</td></tr>
+                                        <tr><td colSpan={7} className="p-8 text-center text-slate-500">Carregando dados...</td></tr>
                                     ) : filteredClubs.length === 0 ? (
-                                        <tr><td colSpan={6} className="p-8 text-center text-slate-500">Nenhum clube encontrado.</td></tr>
+                                        <tr><td colSpan={7} className="p-8 text-center text-slate-500">Nenhum clube encontrado.</td></tr>
                                     ) : (
                                         filteredClubs.map((club: any) => {
                                             // Calc status color logic duplicated? Better extract if complex.
@@ -333,8 +419,18 @@ export function Hierarchy() {
                                                     : 'bg-green-100 text-green-700 border-green-200';
                                             const statusText = isExpired ? 'VENCIDO' : isWarning ? 'VENCE EM BREVE' : 'ATIVO';
 
+                                            const isSelected = selectedClubIds.has(club.id);
+
                                             return (
-                                                <tr key={club.id} className="hover:bg-slate-50 transition-colors group">
+                                                <tr key={club.id} className={`hover:bg-slate-50 transition-colors group ${isSelected ? 'bg-blue-50' : ''}`}>
+                                                    <td className="p-4">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={() => handleSelectClub(club.id)}
+                                                            className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                                        />
+                                                    </td>
                                                     <td className="p-4">
                                                         <div className="font-bold text-slate-800">{club.name}</div>
                                                         <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
@@ -403,8 +499,19 @@ export function Hierarchy() {
                                         : 'bg-green-100 text-green-700 border-green-200';
                                 const statusText = isExpired ? 'VENCIDO' : isWarning ? 'VENCE EM BREVE' : 'ATIVO';
 
+                                const isSelected = selectedClubIds.has(club.id);
+
                                 return (
-                                    <div key={club.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3 relative">
+                                    <div key={club.id} className={`bg-white p-4 rounded-xl border transition-all shadow-sm space-y-3 relative ${isSelected ? 'border-blue-500 ring-1 ring-blue-500 bg-blue-50/30' : 'border-slate-200'}`}>
+                                        {/* Selection Checkbox Mobile */}
+                                        <div className="absolute top-2 left-2 z-10">
+                                            <input
+                                                type="checkbox"
+                                                checked={isSelected}
+                                                onChange={() => handleSelectClub(club.id)}
+                                                className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-sm"
+                                            />
+                                        </div>
                                         {/* Header: Name + Badge */}
                                         <div className="flex justify-between items-start gap-2">
                                             <div>
@@ -617,6 +724,49 @@ export function Hierarchy() {
                                 className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
                             >
                                 {sendingPayment ? 'Enviando...' : <><Send className="w-4 h-4" /> Enviar Cobrança</>}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Bulk Update Date Modal */}
+            {bulkDateModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3 mb-4 text-blue-600">
+                            <Calendar className="w-6 h-6" />
+                            <h3 className="text-xl font-bold">Atualizar em Massa</h3>
+                        </div>
+
+                        <p className="text-sm text-slate-500 mb-6">
+                            Você está atualizando a data de vencimento de <strong>{selectedClubIds.size} clubes</strong> selecionados.
+                        </p>
+
+                        <div className="space-y-4 mb-8">
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Nova Data de Vencimento</label>
+                                <input
+                                    type="date"
+                                    value={bulkNewDate}
+                                    onChange={e => setBulkNewDate(e.target.value)}
+                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm text-slate-700"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={handleBulkUpdateDate}
+                                disabled={bulkUpdating || !bulkNewDate}
+                                className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                            >
+                                {bulkUpdating ? 'Atualizando...' : <><Check className="w-5 h-5" /> Confirmar Alteração</>}
+                            </button>
+                            <button
+                                onClick={() => setBulkDateModalOpen(false)}
+                                className="w-full py-3 text-slate-500 font-medium hover:bg-slate-100 rounded-xl transition-all"
+                            >
+                                Cancelar
                             </button>
                         </div>
                     </div>

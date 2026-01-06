@@ -1,6 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
@@ -9,45 +9,43 @@ datasource db {
 }
 
 model Club {
-  id                 String              @id @default(uuid())
-  name               String
-  slug               String?             @unique
-  phoneNumber        String?
-  logoUrl            String?
-  planTier           PlanTier            @default(TRIAL)
-  status             ClubStatus          @default(ACTIVE)
-  subscriptionId     String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  mission            String?
-  union              String?
-  settings           Json?
-  region             String?
-  district           String?
-  association        String?
-  gracePeriodDays    Int                 @default(5)
-  memberLimit        Int                 @default(30)
-  nextBillingDate    DateTime?
-  subscriptionStatus SubscriptionStatus  @default(TRIAL)
-  activities         Activity[]
-  events             Event[]
-  masterTransactions MasterTransaction[]
-  meetings           Meeting[]
-  minutes            Minute[]
-  products           Product[]
-  requirements       Requirement[]
-  transactions       Transaction[]
-  units              Unit[]
-  users              User[]
+  id                    String              @id @default(uuid())
+  name                  String
+  slug                  String?             @unique
+  logoUrl               String?
+  settings              Json?
+  region                String?
+  mission               String?
+  union                 String?
+  planTier              PlanTier            @default(TRIAL)
+  memberLimit           Int                 @default(30)
+  subscriptionStatus    SubscriptionStatus  @default(TRIAL)
+  nextBillingDate       DateTime?
+  gracePeriodDays       Int                 @default(5)
+  status                ClubStatus          @default(ACTIVE)
+  subscriptionId        String?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
   referralCode          String?             @unique
-  referralCredits       ReferralCredit[]
-
-  // Delayed Reward Logic
+  referralRewardClaimed Boolean             @default(false)
   referrerClubId        String?
+  association           String?
+  district              String?
+  phoneNumber           String?
+  activities            Activity[]
+  auditLogs             AuditLog[]
   referrerClub          Club?               @relation("ClubReferrals", fields: [referrerClubId], references: [id])
   referrals             Club[]              @relation("ClubReferrals")
-  referralRewardClaimed Boolean             @default(false)
-  auditLogs             AuditLog[]
+  events                Event[]
+  masterTransactions    MasterTransaction[]
+  meetings              Meeting[]
+  minutes               Minute[]
+  products              Product[]
+  referralCredits       ReferralCredit[]
+  requirements          Requirement[]
+  transactions          Transaction[]
+  units                 Unit[]
+  users                 User[]
 
   @@map("clubs")
 }
@@ -55,18 +53,13 @@ model Club {
 model ReferralCredit {
   id        String   @id @default(uuid())
   clubId    String
-  club      Club     @relation(fields: [clubId], references: [id])
-  status    String   @default("AVAILABLE") // AVAILABLE, USED, EXPIRED
+  status    String   @default("AVAILABLE")
   expiresAt DateTime
   createdAt DateTime @default(now())
+  club      Club     @relation(fields: [clubId], references: [id])
 
   @@map("referral_credits")
 }
-
-
-
-
-
 
 model Unit {
   id      String @id @default(uuid())
@@ -85,75 +78,76 @@ model User {
   name                   String
   photoUrl               String?
   role                   Role                @default(PATHFINDER)
-  clubId                 String?
-  createdAt              DateTime            @default(now())
-  updatedAt              DateTime            @updatedAt
+  isActive               Boolean             @default(true)
+  status                 UserStatus          @default(ACTIVE)
   points                 Int                 @default(0)
+  lastClassMilestone     Int                 @default(0)
   dbvClass               DBVClass?
+  clubId                 String?
   unitId                 String?
   parentId               String?
-  lastClassMilestone     Int                 @default(0)
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  sex                    String?
+  birthDate              DateTime?
+  maritalStatus          String?
+  phone                  String?
+  mobile                 String?
+  isBaptized             Boolean             @default(false)
+  rg                     String?
+  issuingOrg             String?
+  cpf                    String?
+  shirtSize              String?
   address                String?
   addressNumber          String?
-  birthDate              DateTime?
-  bloodType              String?
+  neighborhood           String?
   cep                    String?
   city                   String?
+  state                  String?
   complement             String?
-  courseName             String?
-  cpf                    String?
-  disabilities           String[]            @default([])
-  diseasesHistory        String[]            @default([])
   educationLevel         String?
   educationStatus        String?
+  knowledgeArea          String?
+  courseName             String?
+  institution            String?
+  schoolShift            String?
+  isHealthProfessional   Boolean             @default(false)
+  healthProfessionalType String?
+  fatherName             String?
+  fatherEmail            String?
+  fatherPhone            String?
+  motherName             String?
+  motherEmail            String?
+  motherPhone            String?
   emergencyName          String?
   emergencyPhone         String?
   emergencyRelation      String?
-  fatherEmail            String?
-  fatherName             String?
-  fatherPhone            String?
-  hasDiabetes            Boolean?            @default(false)
-  hasHeartProblem        Boolean?            @default(false)
-  hasPsychProblem        Boolean?            @default(false)
-  hasRenalProblem        Boolean?            @default(false)
-  healthNotes            String?
+  susNumber              String?
   healthPlan             String?
-  healthProfessionalType String?
+  bloodType              String?
+  rhFactor               String?
+  diseasesHistory        String[]            @default([])
+  hasHeartProblem        Boolean?            @default(false)
   heartProblemDesc       String?
-  institution            String?
-  isBaptized             Boolean             @default(false)
-  isHealthProfessional   Boolean             @default(false)
-  issuingOrg             String?
-  knowledgeArea          String?
-  maritalStatus          String?
-  mobile                 String?
-  motherEmail            String?
-  motherName             String?
-  motherPhone            String?
-  neighborhood           String?
-  phone                  String?
+  hasDiabetes            Boolean?            @default(false)
+  hasRenalProblem        Boolean?            @default(false)
+  hasPsychProblem        Boolean?            @default(false)
+  regularMedications     String?
+  specificAllergies      String?
+  recentTrauma           String?
   recentFracture         String?
   recentSurgery          String?
-  recentTrauma           String?
-  regularMedications     String?
-  rg                     String?
-  rhFactor               String?
-  sex                    String?
-  shirtSize              String?
-  specificAllergies      String?
-  state                  String?
-  susNumber              String?
-  region                 String?
-  district               String?
-  association            String?
-  union                  String?
-  mission                String?
-  isActive               Boolean             @default(true)
+  disabilities           String[]            @default([])
+  healthNotes            String?
   mustChangePassword     Boolean             @default(false)
-  schoolShift            String?
-  status                 UserStatus          @default(ACTIVE)
+  association            String?
+  district               String?
+  region                 String?
+  mission                String?
+  union                  String?
   logs                   ActivityLog[]
   attendances            Attendance[]
+  auditLogs              AuditLog[]
   registrations          EventRegistration[]
   authoredMinutes        Minute[]            @relation("AuthoredMinutes")
   notifications          Notification[]
@@ -167,7 +161,6 @@ model User {
   parent                 User?               @relation("ParentChildren", fields: [parentId], references: [id])
   children               User[]              @relation("ParentChildren")
   unit                   Unit?               @relation(fields: [unitId], references: [id])
-  auditLogs              AuditLog[]
 
   @@map("users")
 }
@@ -177,9 +170,9 @@ model Activity {
   title       String
   description String?
   points      Int
+  type        String        @default("INDIVIDUAL")
   clubId      String
   createdAt   DateTime      @default(now())
-  type        String        @default("INDIVIDUAL")
   club        Club          @relation(fields: [clubId], references: [id], onDelete: Cascade)
   logs        ActivityLog[]
   events      Event[]
@@ -217,10 +210,10 @@ model Meeting {
   date        DateTime
   type        String       @default("REGULAR")
   points      Int          @default(10)
-  clubId      String
-  createdAt   DateTime     @default(now())
-  activityId  String?
   details     String?
+  clubId      String
+  activityId  String?
+  createdAt   DateTime     @default(now())
   attendances Attendance[]
   activity    Activity?    @relation(fields: [activityId], references: [id])
   club        Club         @relation(fields: [clubId], references: [id], onDelete: Cascade)
@@ -254,10 +247,10 @@ model Specialty {
 
 model UserSpecialty {
   id          String              @id @default(uuid())
+  status      UserSpecialtyStatus @default(IN_PROGRESS)
   userId      String
   specialtyId String
   awardedAt   DateTime            @default(now())
-  status      UserSpecialtyStatus @default(IN_PROGRESS)
   specialty   Specialty           @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
   user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -269,14 +262,14 @@ model Requirement {
   id           String            @id @default(uuid())
   code         String?
   description  String
-  dbvClass     DBVClass?
-  specialtyId  String?
-  createdAt    DateTime          @default(now())
   area         String?
   type         RequirementType   @default(TEXT)
+  dbvClass     DBVClass?
+  specialtyId  String?
   clubId       String?
-  region       String?
+  createdAt    DateTime          @default(now())
   district     String?
+  region       String?
   questions    Question[]
   club         Club?             @relation(fields: [clubId], references: [id], onDelete: Cascade)
   specialty    Specialty?        @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
@@ -298,12 +291,12 @@ model Question {
 
 model UserRequirement {
   id            String            @id @default(uuid())
+  status        RequirementStatus @default(PENDING)
+  answerText    String?
+  answerFileUrl String?
   completedAt   DateTime?
   userId        String
   requirementId String
-  answerFileUrl String?
-  answerText    String?
-  status        RequirementStatus @default(PENDING)
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
   requirement   Requirement       @relation(fields: [requirementId], references: [id], onDelete: Cascade)
@@ -320,16 +313,16 @@ model Transaction {
   description   String
   date          DateTime          @default(now())
   category      String
-  clubId        String
-  payerId       String?
-  createdAt     DateTime          @default(now())
+  status        TransactionStatus @default(COMPLETED)
   dueDate       DateTime?
-  paymentMethod String            @default("DINHEIRO")
-  points        Int               @default(0)
   proofUrl      String?
   recurrence    Boolean           @default(false)
-  status        TransactionStatus @default(COMPLETED)
+  points        Int               @default(0)
+  paymentMethod String            @default("DINHEIRO")
+  clubId        String
+  payerId       String?
   memberId      String?
+  createdAt     DateTime          @default(now())
   club          Club              @relation(fields: [clubId], references: [id], onDelete: Cascade)
   member        User?             @relation("TransactionMember", fields: [memberId], references: [id])
   payer         User?             @relation(fields: [payerId], references: [id])
@@ -340,14 +333,14 @@ model Transaction {
 model Event {
   id            String              @id @default(uuid())
   title         String
+  startDate     DateTime
+  endDate       DateTime
   cost          Float               @default(0)
   description   String?
   location      String?
+  activityId    String?
   clubId        String
   createdAt     DateTime            @default(now())
-  endDate       DateTime
-  startDate     DateTime
-  activityId    String?
   registrations EventRegistration[]
   activity      Activity?           @relation(fields: [activityId], references: [id])
   club          Club                @relation(fields: [clubId], references: [id], onDelete: Cascade)
@@ -360,8 +353,8 @@ model EventRegistration {
   status       String   @default("PENDING")
   userId       String
   eventId      String
-  registeredAt DateTime @default(now())
   attended     Boolean  @default(false)
+  registeredAt DateTime @default(now())
   event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -434,6 +427,50 @@ model MasterTransaction {
   sourceClub   Club?           @relation(fields: [sourceClubId], references: [id])
 
   @@map("master_transactions")
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+model Minute {
+  id        String     @id @default(uuid())
+  title     String
+  content   String
+  date      DateTime
+  clubId    String
+  authorId  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  attendees Json?
+  number    Int?
+  year      Int        @default(2025)
+  type      MinuteType @default(ORDINARIA)
+  author    User       @relation("AuthoredMinutes", fields: [authorId], references: [id])
+  club      Club       @relation(fields: [clubId], references: [id])
+
+  @@map("minutes")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  resource   String
+  resourceId String?
+  details    Json?
+  ipAddress  String?
+  authorId   String?
+  clubId     String?
+  createdAt  DateTime @default(now())
+  author     User?    @relation(fields: [authorId], references: [id])
+  club       Club?    @relation(fields: [clubId], references: [id])
+
+  @@map("audit_logs")
 }
 
 enum Role {
@@ -524,59 +561,9 @@ enum TransactionStatus {
   CANCELED
 }
 
-model SystemSetting {
-  id    String @id @default(uuid())
-  key   String @unique
-  value String // JSON string
-  updatedAt DateTime @updatedAt
-
-  @@map("system_settings")
-}
-
-model Minute {
-  id        String     @id @default(uuid())
-  number    Int?       // Sequential number
-  year      Int        @default(2025)
-  title     String
-  date      DateTime
-  type      MinuteType @default(ORDINARIA)
-  content   String     @db.Text
-  attendees Json?      // List of attendees
-
-  clubId    String
-  club      Club       @relation(fields: [clubId], references: [id])
-
-  authorId  String
-  author    User       @relation("AuthoredMinutes", fields: [authorId], references: [id])
-
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  @@map("minutes")
-}
-
 enum MinuteType {
   ORDINARIA
   EXTRAORDINARIA
   ATO_ADMINISTRATIVO
   OUTRO
-}
-
-model AuditLog {
-  id        String   @id @default(uuid())
-  action    String   // CREATE, UPDATE, DELETE, LOGIN, CHANGE_ROLE, ETC
-  resource  String   // User, Club, Transaction, SystemSetting
-  resourceId String?
-  details   Json?    // Stores 'before' and 'after' or specific details
-  ipAddress String?
-  
-  authorId  String?
-  author    User?    @relation(fields: [authorId], references: [id])
-
-  clubId    String?
-  club      Club?    @relation(fields: [clubId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  @@map("audit_logs")
 }

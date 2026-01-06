@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Patch, Body, Param, Query, UseGuards, Request, Req } from '@nestjs/common';
 import { ClubsService } from './clubs.service';
 import { CreateClubDto } from './dto/create-club.dto';
+import { BulkUpdateBillingDateDto } from './dto/bulk-update-subscription.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('clubs')
@@ -103,6 +104,15 @@ export class ClubsController {
             console.error('Error updating subscription:', e);
             throw e;
         }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Patch('bulk-update-billing-date')
+    async bulkUpdateBillingDate(@Body() dto: BulkUpdateBillingDateDto, @Request() req) {
+        if (req.user.email !== 'master@cantinhodbv.com' && req.user.role !== 'MASTER') {
+            throw new Error('Acesso negado. Apenas o Master pode atualizar datas em massa.');
+        }
+        return this.clubsService.bulkUpdateBillingDate(dto.clubIds, dto.nextBillingDate);
     }
 
     @UseGuards(JwtAuthGuard)
