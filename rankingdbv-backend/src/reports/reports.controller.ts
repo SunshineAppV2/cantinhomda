@@ -30,7 +30,7 @@ export class ReportsController {
         let finalRegion = region;
         let finalDistrict = district;
 
-        let finalClubId = undefined; // For single club scope
+        let finalClubId: string | undefined = undefined; // For single club scope
 
         // Regional Coordinator: Force Association & Region
         if (user.role === 'COORDINATOR_REGIONAL') {
@@ -48,7 +48,7 @@ export class ReportsController {
         }
         // Director/Owner/Admin: Force Club ID
         else if (['DIRECTOR', 'OWNER', 'ADMIN'].includes(user.role)) {
-            finalClubId = user.clubId;
+            finalClubId = user.clubId || undefined;
         }
         else if (['MASTER'].includes(user.role)) {
             // No strict enforcement, use query params
