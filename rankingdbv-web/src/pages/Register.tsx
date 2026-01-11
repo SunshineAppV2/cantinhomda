@@ -314,9 +314,17 @@ export function Register() {
                         duration: 8000,
                     });
                     // Clear token just in case
-                    safeLocalStorage.removeItem('token');
-                    // Navigate to login with a special flag/message? Or just home.
-                    navigate('/login');
+                    // Navigate to Success Page with Data
+                    navigate('/registration-success', {
+                        state: {
+                            clubName,
+                            ownerName: name,
+                            region,
+                            mission,
+                            union,
+                            mobile
+                        }
+                    });
                     return;
                 }
 
@@ -345,7 +353,16 @@ export function Register() {
                         description: 'Aguarde a aprovação da diretoria para liberar seu acesso.',
                         duration: 8000
                     });
-                    navigate('/login');
+                    navigate('/registration-success', {
+                        state: {
+                            clubName,
+                            ownerName: name,
+                            region,
+                            mission,
+                            union,
+                            mobile
+                        }
+                    });
                 } else {
                     toast.error("Erro ao sincronizar com o servidor.");
                     throw backendErr;
