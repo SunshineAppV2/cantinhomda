@@ -3,7 +3,7 @@ import { CheckCircle, Phone, ArrowRight } from 'lucide-react';
 
 export function RegistrationSuccess() {
     const location = useLocation();
-    const { clubName, ownerName, union, region, mission, planValue, mobile } = location.state || {};
+    const { clubName, ownerName, union, region, mission } = location.state || {};
 
     // Support Number (Alex Seabra / Master)
     const SUPPORT_NUMBER = "5591983292005";
