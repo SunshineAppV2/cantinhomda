@@ -304,31 +304,56 @@ export class ClubsService implements OnModuleInit {
             this.prisma.club.findMany({
                 select: { region: true },
                 distinct: ['region'],
-                where: { region: { notIn: [null as any, ''] } },
+                where: {
+                    AND: [
+                        { region: { not: null } },
+                        { region: { not: '' } }
+                    ]
+                },
                 orderBy: { region: 'asc' }
             }),
             this.prisma.club.findMany({
                 select: { mission: true },
                 distinct: ['mission'],
-                where: { mission: { notIn: [null as any, ''] } },
+                where: {
+                    AND: [
+                        { mission: { not: null } },
+                        { mission: { not: '' } }
+                    ]
+                },
                 orderBy: { mission: 'asc' }
             }),
             this.prisma.club.findMany({
                 select: { association: true },
                 distinct: ['association'],
-                where: { association: { notIn: [null as any, ''] } },
+                where: {
+                    AND: [
+                        { association: { not: null } },
+                        { association: { not: '' } }
+                    ]
+                },
                 orderBy: { association: 'asc' }
             }),
             this.prisma.club.findMany({
                 select: { district: true },
                 distinct: ['district'],
-                where: { district: { notIn: [null as any, ''] } },
+                where: {
+                    AND: [
+                        { district: { not: null } },
+                        { district: { not: '' } }
+                    ]
+                },
                 orderBy: { district: 'asc' }
             }),
             this.prisma.club.findMany({
                 select: { union: true },
                 distinct: ['union'],
-                where: { union: { notIn: [null as any, ''] } },
+                where: {
+                    AND: [
+                        { union: { not: null } },
+                        { union: { not: '' } }
+                    ]
+                },
                 orderBy: { union: 'asc' }
             })
         ]);
