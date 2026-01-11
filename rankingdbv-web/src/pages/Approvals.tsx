@@ -17,6 +17,7 @@ interface User {
         name: string;
         settings?: {
             billingCycle?: string;
+            memberLimit?: string;
         }
     };
 }
@@ -149,7 +150,10 @@ export function Approvals() {
                                 <button
                                     onClick={() => {
                                         const cleanPhone = user.mobile?.replace(/\D/g, '') || '';
-                                        const msg = encodeURIComponent(`Olá ${user.name}, tudo bem? Aqui é da Administração do Ranking DBV.\n\nRecebemos seu cadastro! Para liberar seu acesso ao plano *${user.club?.settings?.billingCycle || 'MENSAL'}*, segue a chave PIX para pagamento:\n\n*68323280282* (Alex Oliveira Seabra)\n\nPor favor, envie o comprovante por aqui.`);
+                                        const cycle = user.club?.settings?.billingCycle || 'MENSAL';
+                                        const limit = user.club?.settings?.memberLimit || '30';
+
+                                        const msg = encodeURIComponent(`Olá ${user.name}, tudo bem? Aqui é da Administração do Ranking DBV.\n\nRecebemos seu cadastro! Para liberar seu acesso ao plano *${cycle}* (Até ${limit} membros), segue a chave PIX para pagamento:\n\n*68323280282* (Alex Oliveira Seabra)\n\nPor favor, envie o comprovante por aqui.`);
                                         window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, '_blank');
                                     }}
                                     className="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200"

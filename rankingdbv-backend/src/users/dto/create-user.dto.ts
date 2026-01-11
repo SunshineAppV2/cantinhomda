@@ -112,4 +112,6 @@ export class CreateUserDto {
     @IsArray() @IsOptional() childrenIds?: string[];
 
     @IsString() @IsOptional() paymentPeriod?: string;
+
+    @IsString() @IsOptional() clubSize?: string;
 }

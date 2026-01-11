@@ -147,7 +147,8 @@ export class AuthService {
         referrerClubId: referrerClubId,
         phoneNumber: createUserDto.mobile, // Pass mobile as club phone number
         settings: {
-          billingCycle: createUserDto.paymentPeriod // Save Billing Cycle
+          billingCycle: createUserDto.paymentPeriod, // Save Billing Cycle
+          memberLimit: createUserDto.clubSize // Save requested limit
         }
       });
 

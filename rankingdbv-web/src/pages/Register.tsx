@@ -64,6 +64,7 @@ export function Register() {
     // New Fields
     const [cpf, setCpf] = useState('');
     const [paymentPeriod, setPaymentPeriod] = useState('MENSAL');
+    const [clubSize, setClubSize] = useState('30'); // Default to min tier
 
     const [searchParams] = useSearchParams();
 
@@ -299,7 +300,8 @@ export function Register() {
                     referralCode: (mode === 'CREATE') ? referralCode : undefined,
                     mobile, // Send to backend
                     cpf,
-                    paymentPeriod: (mode === 'CREATE') ? paymentPeriod : undefined
+                    paymentPeriod: (mode === 'CREATE') ? paymentPeriod : undefined,
+                    clubSize: (mode === 'CREATE') ? clubSize : undefined
                 };
 
                 const { api } = await import('../lib/axios');
@@ -613,6 +615,24 @@ export function Register() {
                                     {paymentPeriod === 'TRIMESTRAL' && 'Renovação a cada 3 meses.'}
                                     {paymentPeriod === 'ANUAL' && 'Renovação uma vez por ano.'}
                                 </p>
+                            </div>
+
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Quantidade de Membros</label>
+                                <div className="relative">
+                                    <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+                                    <select
+                                        value={clubSize}
+                                        onChange={e => setClubSize(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white"
+                                    >
+                                        <option value="30">Até 30 Membros</option>
+                                        <option value="50">Até 50 Membros</option>
+                                        <option value="80">Até 80 Membros</option>
+                                        <option value="120">Até 120 Membros</option>
+                                        <option value="200">Mais de 120 Membros</option>
+                                    </select>
+                                </div>
                             </div>
                         </>
                     )}
