@@ -618,25 +618,42 @@ export function Register() {
                             </div>
 
                             <div className="mt-4">
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Quantidade de Membros</label>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Quantidade de Acessos (Membros)</label>
                                 <div className="relative">
                                     <Users className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                    <select
+                                    <input
+                                        type="number"
+                                        min="1"
                                         value={clubSize}
                                         onChange={e => setClubSize(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none bg-white"
-                                    >
-                                        <option value="30">Até 30 Membros</option>
-                                        <option value="50">Até 50 Membros</option>
-                                        <option value="80">Até 80 Membros</option>
-                                        <option value="120">Até 120 Membros</option>
-                                        <option value="200">Mais de 120 Membros</option>
-                                    </select>
+                                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                                        placeholder="Ex: 30"
+                                    />
                                 </div>
+
+                                {/* Price Calculator */}
+                                {clubSize && !isNaN(Number(clubSize)) && (
+                                    <div className="mt-2 p-3 bg-green-50 border border-green-100 rounded-lg flex justify-between items-center animate-in fade-in slide-in-from-top-2">
+                                        <span className="text-sm text-green-800">Valor do Plano:</span>
+                                        <div className="text-right">
+                                            <span className="block text-lg font-bold text-green-700">
+                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                                                    Number(clubSize) * 2 * (
+                                                        paymentPeriod === 'TRIMESTRAL' ? 3 :
+                                                            paymentPeriod === 'ANUAL' ? 12 : 1
+                                                    )
+                                                )}
+                                            </span>
+                                            <span className="text-[10px] text-green-600 font-medium">
+                                                ({paymentPeriod === 'MENSAL' ? 'Mensal' : paymentPeriod === 'TRIMESTRAL' ? 'Trimestral' : 'Anual'})
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+                                <p className="text-xs text-slate-500 mt-1">Custo de <b>R$ 2,00</b> por membro/mês.</p>
                             </div>
                         </>
                     )}
-
 
                     <div className="flex items-start gap-3 pt-2">
                         <input
