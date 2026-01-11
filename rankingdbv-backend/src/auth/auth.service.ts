@@ -198,7 +198,8 @@ export class AuthService {
       if (error.code === 'P2002') {
         throw new UnauthorizedException('Dados duplicados (Email ou CPF já cadastrados).');
       }
-      throw new Error('Falha ao registrar usuário no sistema (Backend).');
+      // Expose the actual error for debugging
+      throw new Error(`Falha no registro: ${error.message}`);
     }
   }
 
