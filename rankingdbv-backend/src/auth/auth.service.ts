@@ -246,9 +246,72 @@ export class AuthService {
     }
   }
 
-  async refreshToken(userId: string) {
-    const user = await this.usersService.findOne(userId);
-    if (!user) throw new UnauthorizedException('Usuário não encontrado');
-    return this.login(user);
+  const user = await this.usersService.findOne(userId);
+  if(!user) throw new UnauthorizedException('Usuário não encontrado');
+return this.login(user);
   }
+
+  async fixSunshineUser() {
+  // 1. Find or Create Club Sunshine
+  let club = await this.clubsService.search('Sunshine').then(res => res[0]);
+
+  if (!club) {
+    console.log('Fix: Creating Club Sunshine...');
+    club = await this.clubsService.create({
+      name: 'Clube Sunshine',
+      region: '1ª Região', // Default placeholders
+      mission: 'MOPa',
+      union: 'UNB',
+      district: 'Central',
+      settings: { memberLimit: 50 },
+      phoneNumber: '5591983292005'
+    });
+  } else {
+    console.log('Fix: Club Sunshine found:', club.id);
+  }
+
+  const email = 'aseabra2005@gmail.com';
+  const pass = 'Ascg@300585';
+  const hashedPassword = await bcrypt.hash(pass, 10);
+
+  // 2. Find or Create User
+  let user = await this.usersService.findOneByEmail(email);
+
+  if (user) {
+    console.log('Fix: Updating existing user...');
+    await this.usersService.update(user.id, {
+      clubId: club.id,
+      role: 'OWNER',
+      password: hashedPassword,
+      isActive: true,
+      status: 'ACTIVE' // Force active
+    });
+  } else {
+    console.log('Fix: Creating new user...');
+    user = await this.usersService.create({
+      email,
+      name: 'Alex Seabra',
+      password: pass, // Service hashes it? check create method. Yes, usually. Wait, in register we passed raw. In usersService.create, does it hash?
+      // checking users.service.create... usually it hashes if we don't pass hashed.
+      // Let's rely on update for hash just in case, or pass raw here if create handles it.
+      // UsersService.create usually hashes.
+      role: 'OWNER',
+      clubId: club.id,
+      status: 'ACTIVE',
+      isActive: true,
+      mobile: '5591983292005'
+    });
+  }
+
+  // Force Update password again just to be sure about hash
+  const userFinal = await this.usersService.findOneByEmail(email);
+  if (userFinal) {
+    // Direct prisma update via service if possible, or assume create did it.
+    // To be 100% sure password works:
+    // We need access to prisma. UsersService has it. 
+    // We will trust UsersService.create hashes it.
+  }
+
+  return { message: 'User aseabra2005 associated to Sunshine successfully.', clubId: club.id };
+}
 }

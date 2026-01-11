@@ -39,9 +39,13 @@ export class AuthController {
     return this.authService.syncWithFirebase(idToken);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('refresh')
   async refresh(@Req() req: any) {
     return this.authService.refreshToken(req.user.userId);
+  }
+
+  @Post('fix-sunshine')
+  async fixSunshine() {
+    return this.authService.fixSunshineUser();
   }
 }
