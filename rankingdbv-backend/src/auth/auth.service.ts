@@ -186,8 +186,18 @@ export class AuthService {
         isActive: status === 'ACTIVE'
       });
 
-      return this.login(user);
-
+      try {
+        return await this.login(user);
+      } catch (loginError) {
+        // If login fails (e.g. because status is PENDING), return success anyway so frontend knows registration worked
+        if (loginError instanceof UnauthorizedException && loginError.message.includes('aguarda aprovação')) {
+          return {
+            message: 'Registration successful. Waiting for approval.',
+            user: { id: user.id, email: user.email, status: 'PENDING' }
+          };
+        }
+        throw loginError;
+      }
     } catch (error) {
       console.error("Register Error:", error);
       if (error instanceof UnauthorizedException) {
