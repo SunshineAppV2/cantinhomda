@@ -376,21 +376,6 @@ export function Register() {
                         }
                     });
                 } else {
-                    toast.success('Cadastro Recebido!', {
-                        description: 'Aguarde a aprovação da diretoria para liberar seu acesso.',
-                        duration: 8000
-                    });
-                    navigate('/registration-success', {
-                        state: {
-                            clubName,
-                            ownerName: name,
-                            region,
-                            mission,
-                            union,
-                            mobile
-                        }
-                    });
-                } else {
                     toast.error("Erro ao sincronizar com o servidor.");
                     throw backendErr;
                 }
