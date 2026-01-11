@@ -135,6 +135,8 @@ export class AuthService {
       referrerClubId = resolved || undefined;
     }
 
+    let wasNewClubCreated = false;
+
     // 2. Logic: Create New Club OR Join Existing
     if (!clubId && createUserDto.clubName) {
       // FLOW A: CREATE NEW CLUB
@@ -152,6 +154,7 @@ export class AuthService {
       });
 
       clubId = newClub.id;
+      wasNewClubCreated = true;
       role = 'OWNER'; // Creator is Owner
       status = 'PENDING'; // Wait for Master Approval (Payment)
 
@@ -173,6 +176,10 @@ export class AuthService {
     // First, check if user exists locally to prevent 500 Prisma Error
     const existingUser = await this.usersService.findOneByEmail(createUserDto.email);
     if (existingUser) {
+      if (wasNewClubCreated && clubId) {
+        console.warn(`[Register] Rollback: Deleting club ${clubId} because user email already exists.`);
+        await this.clubsService.delete(clubId).catch(e => console.error("Rollback failed", e));
+      }
       throw new UnauthorizedException('Este e-mail já está cadastrado no sistema.');
     }
 
@@ -187,7 +194,6 @@ export class AuthService {
       });
 
       // ENFORCE PENDING CHECK
-      // Even if login() doesn't check, we must block here to ensure the "Waiting for approval" flow activates.
       if (user.status === 'PENDING') {
         throw new UnauthorizedException('Seu cadastro aguarda aprovação da diretoria.');
       }
@@ -195,11 +201,9 @@ export class AuthService {
       try {
         return await this.login(user);
       } catch (loginError) {
-        // If login fails (e.g. because status is PENDING), return success anyway
         if (loginError instanceof UnauthorizedException && loginError.message.includes('aguarda aprovação')) {
           return {
             message: 'Registration successful. Waiting for approval.',
-            // Return safe user subset
             user: { id: user.id, email: user.email, status: user.status }
           };
         }
@@ -207,6 +211,13 @@ export class AuthService {
       }
     } catch (error) {
       console.error("Register Error:", error);
+
+      // --- COMPENSATION LOGIC (ROLLBACK) ---
+      if (wasNewClubCreated && clubId) {
+        console.warn(`[Register] Rollback: Deleting club ${clubId} due to user creation failure.`);
+        await this.clubsService.delete(clubId).catch(e => console.error("Rollback failed", e));
+      }
+      // -------------------------------------
 
       // Handle Duplicates (Prisma P2002)
       if (error.code === 'P2002') {
@@ -217,9 +228,8 @@ export class AuthService {
         throw error;
       }
 
-      // Generic Error
       const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
-      throw new UnauthorizedException(`Falha no registro (Debug): ${errorMessage}`);
+      throw new UnauthorizedException(`Falha no registro: ${errorMessage}`);
     }
   }
 
