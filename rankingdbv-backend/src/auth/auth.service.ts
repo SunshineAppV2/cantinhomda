@@ -1,4 +1,4 @@
-﻿import { Injectable, UnauthorizedException } from '@nestjs/common';
+﻿import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { ClubsService } from '../clubs/clubs.service'; // Import ClubsService
@@ -176,149 +176,162 @@ export class AuthService {
       throw new UnauthorizedException('Este e-mail já está cadastrado no sistema.');
     }
 
-    try {
-      const user = await this.usersService.create({
-        ...createUserDto,
-        password: createUserDto.password, // Pass RAW password to service (it will hash it)
-        clubId: clubId,
-        role: role as any,
-        status: status, // NEW: Explicitly pass status
-        isActive: status === 'ACTIVE'
-      });
+    const user = await this.usersService.create({
+      ...createUserDto,
+      password: createUserDto.password, // Pass RAW password to service (it will hash it)
+      clubId: clubId,
+      role: role as any,
+      status: status, // NEW: Explicitly pass status
+      isActive: status === 'ACTIVE'
+    });
 
-      try {
-        return await this.login(user);
-      } catch (loginError) {
-        // If login fails (e.g. because status is PENDING), return success anyway so frontend knows registration worked
-        if (loginError instanceof UnauthorizedException && loginError.message.includes('aguarda aprovação')) {
-          return {
-            message: 'Registration successful. Waiting for approval.',
-            user: { id: user.id, email: user.email, status: 'PENDING' }
-          };
-        }
-        throw loginError;
-      }
-    } catch (error) {
-      console.error("Register Error:", error);
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
-      // Expose the actual error for debugging
-      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
-      throw new UnauthorizedException(`Falha no registro (Debug): ${errorMessage}`);
+    // ENFORCE PENDING CHECK
+    // Even if login() doesn't check, we must block here to ensure the "Waiting for approval" flow activates.
+    if (user.status === 'PENDING') {
+      throw new UnauthorizedException('Seu cadastro aguarda aprovação da diretoria.');
     }
+
+    try {
+      return await this.login(user);
+    } catch (loginError) {
+      // If login fails (e.g. because status is PENDING), return success anyway
+      if (loginError instanceof UnauthorizedException && loginError.message.includes('aguarda aprovação')) {
+        return {
+          message: 'Registration successful. Waiting for approval.',
+          // Return safe user subset
+          user: { id: user.id, email: user.email, status: user.status }
+        };
+      }
+      throw loginError;
+    }
+  } catch(error) {
+    console.error("Register Error:", error);
+
+    // Handle Duplicates (Prisma P2002)
+    if (error.code === 'P2002') {
+      throw new ConflictException('Este e-mail ou CPF já está cadastrado.');
+    }
+
+    if (error instanceof UnauthorizedException || error instanceof ConflictException) {
+      throw error;
+    }
+
+    // Generic Error
+    const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+    throw new UnauthorizedException(`Falha no registro (Debug): ${errorMessage}`);
   }
+}
 
   // SYNC: Trust Firebase Auth and Link/Create Backend User
   async syncWithFirebase(idToken: string) {
-    try {
-      // 1. Verify Token
-      if (!admin.apps.length) {
-        throw new UnauthorizedException('Firebase Admin not configured on Backend.');
-      }
-      const decodedToken = await admin.auth().verifyIdToken(idToken);
-      const { uid, email } = decodedToken;
-
-      if (!email) throw new UnauthorizedException('Email not found in token.');
-
-      // 2. Find User in DB
-      let user = await this.usersService.findOneByEmail(email);
-
-      // 3. If User Exists, ensure UID is linked and LOG IN
-      if (user) {
-        // Link UID if missing or different (Auto-Healing)
-        if (user.uid !== uid) {
-          console.log(`[Authsync] Linking UID for user ${email}: ${uid}`);
-          // We need to use prisma directly or add update method to UsersService. 
-          // Assuming usersService.update exists or we access prisma via user service if public, 
-          // but safe bet is to assume AuthService validates. 
-          // Let's rely on login to proceed.Ideally we should update.
-          // Since I can't see UsersService.update signature, I will skip update to avoid break, 
-          // but login will succeed.
-        }
-        return this.login(user);
-      }
-
-      // 4. If User DOES NOT Exist
-      console.log(`[AuthSync] User not found for email: ${email}`);
-      throw new UnauthorizedException('CONTA_NAO_ENCONTRADA_BACKEND'); // specific code for frontend
-
-    } catch (e) {
-      console.error("Sync Error:", e);
-      if (e.message === 'CONTA_NAO_ENCONTRADA_BACKEND') {
-        throw new UnauthorizedException('CONTA_INCOMPLETA'); // Map to existing frontend error handling
-      }
-      throw new UnauthorizedException('Falha ao validar login com Google.');
+  try {
+    // 1. Verify Token
+    if (!admin.apps.length) {
+      throw new UnauthorizedException('Firebase Admin not configured on Backend.');
     }
-  }
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const { uid, email } = decodedToken;
 
-  async refreshToken(userId: string) {
-    const user = await this.usersService.findOne(userId);
-    if (!user) throw new UnauthorizedException('Usuário não encontrado');
-    return this.login(user);
-  }
+    if (!email) throw new UnauthorizedException('Email not found in token.');
 
-  async fixSunshineUser() {
-    // 1. Find or Create Club Sunshine
-    let club = await this.clubsService.search('Sunshine').then(res => res[0]);
-
-    if (!club) {
-      console.log('Fix: Creating Club Sunshine...');
-      club = await this.clubsService.create({
-        name: 'Clube Sunshine',
-        region: '1ª Região', // Default placeholders
-        mission: 'MOPa',
-        union: 'UNB',
-        district: 'Central',
-        settings: { memberLimit: 50 },
-        phoneNumber: '5591983292005'
-      });
-    } else {
-      console.log('Fix: Club Sunshine found:', club.id);
-    }
-
-    const email = 'aseabra2005@gmail.com';
-    const pass = 'Ascg@300585';
-    const hashedPassword = await bcrypt.hash(pass, 10);
-
-    // 2. Find or Create User
+    // 2. Find User in DB
     let user = await this.usersService.findOneByEmail(email);
 
+    // 3. If User Exists, ensure UID is linked and LOG IN
     if (user) {
-      console.log('Fix: Updating existing user...');
-      await this.usersService.update(user.id, {
-        clubId: club.id,
-        role: 'OWNER',
-        password: hashedPassword,
-        isActive: true,
-        status: 'ACTIVE' // Force active
-      });
-    } else {
-      console.log('Fix: Creating new user...');
-      user = await this.usersService.create({
-        email,
-        name: 'Alex Seabra',
-        password: pass, // Service hashes it? check create method. Yes, usually. Wait, in register we passed raw. In usersService.create, does it hash?
-        // checking users.service.create... usually it hashes if we don't pass hashed.
-        // Let's rely on update for hash just in case, or pass raw here if create handles it.
-        // UsersService.create usually hashes.
-        role: 'OWNER',
-        clubId: club.id,
-        status: 'ACTIVE',
-        isActive: true,
-        mobile: '5591983292005'
-      });
+      // Link UID if missing or different (Auto-Healing)
+      if (user.uid !== uid) {
+        console.log(`[Authsync] Linking UID for user ${email}: ${uid}`);
+        // We need to use prisma directly or add update method to UsersService. 
+        // Assuming usersService.update exists or we access prisma via user service if public, 
+        // but safe bet is to assume AuthService validates. 
+        // Let's rely on login to proceed.Ideally we should update.
+        // Since I can't see UsersService.update signature, I will skip update to avoid break, 
+        // but login will succeed.
+      }
+      return this.login(user);
     }
 
-    // Force Update password again just to be sure about hash
-    const userFinal = await this.usersService.findOneByEmail(email);
-    if (userFinal) {
-      // Direct prisma update via service if possible, or assume create did it.
-      // To be 100% sure password works:
-      // We need access to prisma. UsersService has it. 
-      // We will trust UsersService.create hashes it.
-    }
+    // 4. If User DOES NOT Exist
+    console.log(`[AuthSync] User not found for email: ${email}`);
+    throw new UnauthorizedException('CONTA_NAO_ENCONTRADA_BACKEND'); // specific code for frontend
 
-    return { message: 'User aseabra2005 associated to Sunshine successfully.', clubId: club.id };
+  } catch (e) {
+    console.error("Sync Error:", e);
+    if (e.message === 'CONTA_NAO_ENCONTRADA_BACKEND') {
+      throw new UnauthorizedException('CONTA_INCOMPLETA'); // Map to existing frontend error handling
+    }
+    throw new UnauthorizedException('Falha ao validar login com Google.');
   }
+}
+
+  async refreshToken(userId: string) {
+  const user = await this.usersService.findOne(userId);
+  if (!user) throw new UnauthorizedException('Usuário não encontrado');
+  return this.login(user);
+}
+
+  async fixSunshineUser() {
+  // 1. Find or Create Club Sunshine
+  let club = await this.clubsService.search('Sunshine').then(res => res[0]);
+
+  if (!club) {
+    console.log('Fix: Creating Club Sunshine...');
+    club = await this.clubsService.create({
+      name: 'Clube Sunshine',
+      region: '1ª Região', // Default placeholders
+      mission: 'MOPa',
+      union: 'UNB',
+      district: 'Central',
+      settings: { memberLimit: 50 },
+      phoneNumber: '5591983292005'
+    });
+  } else {
+    console.log('Fix: Club Sunshine found:', club.id);
+  }
+
+  const email = 'aseabra2005@gmail.com';
+  const pass = 'Ascg@300585';
+  const hashedPassword = await bcrypt.hash(pass, 10);
+
+  // 2. Find or Create User
+  let user = await this.usersService.findOneByEmail(email);
+
+  if (user) {
+    console.log('Fix: Updating existing user...');
+    await this.usersService.update(user.id, {
+      clubId: club.id,
+      role: 'OWNER',
+      password: hashedPassword,
+      isActive: true,
+      status: 'ACTIVE' // Force active
+    });
+  } else {
+    console.log('Fix: Creating new user...');
+    user = await this.usersService.create({
+      email,
+      name: 'Alex Seabra',
+      password: pass, // Service hashes it? check create method. Yes, usually. Wait, in register we passed raw. In usersService.create, does it hash?
+      // checking users.service.create... usually it hashes if we don't pass hashed.
+      // Let's rely on update for hash just in case, or pass raw here if create handles it.
+      // UsersService.create usually hashes.
+      role: 'OWNER',
+      clubId: club.id,
+      status: 'ACTIVE',
+      isActive: true,
+      mobile: '5591983292005'
+    });
+  }
+
+  // Force Update password again just to be sure about hash
+  const userFinal = await this.usersService.findOneByEmail(email);
+  if (userFinal) {
+    // Direct prisma update via service if possible, or assume create did it.
+    // To be 100% sure password works:
+    // We need access to prisma. UsersService has it. 
+    // We will trust UsersService.create hashes it.
+  }
+
+  return { message: 'User aseabra2005 associated to Sunshine successfully.', clubId: club.id };
+}
 }
