@@ -145,12 +145,15 @@ export class AuthService {
         mission: createUserDto.mission,
         union: createUserDto.union,
         referrerClubId: referrerClubId,
-        phoneNumber: createUserDto.mobile // Pass mobile as club phone number
+        phoneNumber: createUserDto.mobile, // Pass mobile as club phone number
+        settings: {
+          billingCycle: createUserDto.paymentPeriod // Save Billing Cycle
+        }
       });
 
       clubId = newClub.id;
       role = 'OWNER'; // Creator is Owner
-      status = 'ACTIVE'; // Creator is auto-approved
+      status = 'PENDING'; // Wait for Master Approval (Payment)
 
     } else if (clubId) {
       // FLOW B: JOIN EXISTING CLUB

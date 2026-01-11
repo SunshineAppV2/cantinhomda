@@ -64,7 +64,8 @@ export class ClubsService implements OnModuleInit {
                 union: createClubDto.union,
                 referralCode: this.generateReferralCode(),
                 referrerClubId: createClubDto.referrerClubId,
-                phoneNumber: createClubDto.phoneNumber // Add phone number support
+                phoneNumber: createClubDto.phoneNumber, // Add phone number support
+                settings: createClubDto.settings || undefined
             },
         });
     }
@@ -295,23 +296,35 @@ export class ClubsService implements OnModuleInit {
 
     async getHierarchyOptions() {
         // 1. Fetch distinct values from DB
-        const [regions, missions, unions] = await Promise.all([
+        const [regions, missions, associations, districts, unions] = await Promise.all([
             this.prisma.club.findMany({
                 select: { region: true },
                 distinct: ['region'],
-                where: { region: { not: null } },
+                where: { region: { not: null, not: '' } },
                 orderBy: { region: 'asc' }
             }),
             this.prisma.club.findMany({
                 select: { mission: true },
                 distinct: ['mission'],
-                where: { mission: { not: null } },
+                where: { mission: { not: null, not: '' } },
                 orderBy: { mission: 'asc' }
+            }),
+            this.prisma.club.findMany({
+                select: { association: true },
+                distinct: ['association'],
+                where: { association: { not: null, not: '' } },
+                orderBy: { association: 'asc' }
+            }),
+            this.prisma.club.findMany({
+                select: { district: true },
+                distinct: ['district'],
+                where: { district: { not: null, not: '' } },
+                orderBy: { district: 'asc' }
             }),
             this.prisma.club.findMany({
                 select: { union: true },
                 distinct: ['union'],
-                where: { union: { not: null } },
+                where: { union: { not: null, not: '' } },
                 orderBy: { union: 'asc' }
             })
         ]);
@@ -322,14 +335,19 @@ export class ClubsService implements OnModuleInit {
         const dbUnions = unions.map(u => u.union).filter(Boolean);
         const allUnions = Array.from(new Set([...UNIONS_LIST, ...dbUnions])).sort();
 
-        // Missions: DB + Static (Flattened)
+        // Associations/Missions: DB + Static (Hierarchical missions are flattened)
         const dbMissions = missions.map(m => m.mission).filter(Boolean);
+        const dbAssociations = associations.map(a => a.association).filter(Boolean);
         const staticMissions = Object.values(HIERARCHY_DATA).flat();
-        const allMissions = Array.from(new Set([...staticMissions, ...dbMissions])).sort();
+
+        // Final associations list is a merge of all Association and Mission fields
+        const allAssociations = Array.from(new Set([...staticMissions, ...dbMissions, ...dbAssociations])).sort();
 
         return {
             regions: regions.map(d => d.region).filter(Boolean),
-            missions: allMissions,
+            districts: districts.map(d => d.district).filter(Boolean),
+            missions: allAssociations, // Backward compatibility for some old components
+            associations: allAssociations, // New standard name
             unions: allUnions,
             hierarchyTree: HIERARCHY_DATA // Pass the tree for frontend filtering
         };

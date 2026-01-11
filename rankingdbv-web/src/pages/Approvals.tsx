@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import { Check, X, User as UserIcon, ShieldAlert } from 'lucide-react';
+import { Check, X, User as UserIcon, ShieldAlert, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { ROLE_TRANSLATIONS } from './members/types';
 
@@ -12,6 +12,13 @@ interface User {
     role: string;
     status: 'PENDING' | 'ACTIVE' | 'BLOCKED';
     photoUrl?: string;
+    mobile?: string;
+    club?: {
+        name: string;
+        settings?: {
+            billingCycle?: string;
+        }
+    };
 }
 
 export function Approvals() {
@@ -123,7 +130,14 @@ export function Approvals() {
                             </div>
                             <div>
                                 <h3 className="font-bold text-slate-800">{user.name}</h3>
-                                <p className="text-sm text-slate-500">{user.email}</p>
+                                <div className="flex flex-col text-sm text-slate-500">
+                                    <span>{user.email}</span>
+                                    {user.club?.settings?.billingCycle && user.role === 'OWNER' && (
+                                        <span className="font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-md mt-1 w-fit">
+                                            Ciclo: {user.club.settings.billingCycle}
+                                        </span>
+                                    )}
+                                </div>
                                 <span className="inline-block mt-1 px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">
                                     {ROLE_TRANSLATIONS[user.role] || user.role}
                                 </span>
@@ -131,6 +145,20 @@ export function Approvals() {
                         </div>
 
                         <div className="flex items-center gap-3">
+                            {user.role === 'OWNER' && user.mobile && (
+                                <button
+                                    onClick={() => {
+                                        const cleanPhone = user.mobile?.replace(/\D/g, '') || '';
+                                        const msg = encodeURIComponent(`Olá ${user.name}, tudo bem? Aqui é da Administração do Ranking DBV.\n\nRecebemos seu cadastro! Para liberar seu acesso ao plano *${user.club?.settings?.billingCycle || 'MENSAL'}*, segue a chave PIX para pagamento:\n\n*68323280282* (Alex Oliveira Seabra)\n\nPor favor, envie o comprovante por aqui.`);
+                                        window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, '_blank');
+                                    }}
+                                    className="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200"
+                                    title="Enviar Cobrança WhatsApp"
+                                >
+                                    <Send className="w-5 h-5" />
+                                </button>
+                            )}
+
                             <button
                                 onClick={() => handleReject(user.id)}
                                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -143,12 +171,12 @@ export function Approvals() {
                                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 font-medium"
                             >
                                 <Check className="w-4 h-4" />
-                                Aprovar
+                                {user.role === 'OWNER' ? 'Confirmar Pagamento' : 'Aprovar'}
                             </button>
                         </div>
                     </div>
                 ))}
             </div>
-        </div>
+        </div >
     );
 }

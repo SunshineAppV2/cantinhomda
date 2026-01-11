@@ -1,0 +1,23 @@
+// Add this code after line 420 (after const statusText = ...)
+
+const isSelected = selectedClubIds.has(club.id);
+
+// Then modify the <tr> tag on line 423 to include the isSelected class:
+// FROM:
+<tr key={club.id} className="hover:bg-slate-50 transition-colors group">
+
+// TO:
+<tr key={club.id} className={`hover:bg-slate-50 transition-colors group ${isSelected ? 'bg-blue-50' : ''}`}>
+
+// Then add this checkbox cell as the FIRST <td> after the <tr> tag (before the existing <td className="p-4">):
+<td className="p-4">
+    <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={() => handleSelectClub(club.id)}
+        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+    />
+</td>
+
+// ALSO: Add the same changes to the mobile cards section (around line 460-500)
+// Find the mobile card div and add a checkbox at the top

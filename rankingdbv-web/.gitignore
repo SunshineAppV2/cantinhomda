@@ -26,3 +26,5 @@ dist-ssr
 # Capacitor
 /android/app/build
 /android/.gradle
+
+.vercel

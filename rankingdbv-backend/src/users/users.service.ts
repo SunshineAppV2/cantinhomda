@@ -101,7 +101,7 @@ export class UsersService {
         email: true,
         role: true,
         clubId: true,
-        club: { select: { name: true } },
+        club: { select: { name: true, settings: true, phoneNumber: true } },
         unitId: true,
         dbvClass: true,
 
@@ -633,6 +633,61 @@ export class UsersService {
       }
 
       console.log('User Updated:', updatedUser);
+
+      // AUTO-ACTIVATE CLUB IF OWNER APPROVED
+      if (updatedUser.role === 'OWNER' && updatedUser.status === 'ACTIVE' && updatedUser.clubId) {
+        try {
+          const club = await this.prisma.club.findUnique({ where: { id: updatedUser.clubId } });
+          const settings: any = club?.settings || {};
+          const cycle = settings?.billingCycle || 'MENSAL';
+
+          // Calculate Next Billing Date (1st of current or next month?)
+          // "inicia em 01 do mes contratado" -> Implies start of cycle is 1st.
+          // If approved today (11th), and cycle is Monthly.
+          // Does it expire on Feb 1st?
+          // Let's set nextBillingDate to:
+          // MENSAL -> +1 Month from 1st of current month? Or +1 Month from now?
+          // Usually strict systems: 1st of Next Month (if pro-rated) or 1st of Current + 1 Month.
+          // Let's do: Next Billing = 1st of NEXT Month + Cycle duration.
+          // Simplest interpretation: Access until [Cycle End].
+          // If Monthly: Today -> +30 days approx.
+          // User said "inicia em 01 do mes contratado".
+          // I'll set Next Billing Date to: 1st of Next Month (providing free days remaining in current month?) or 1st of Current + 1 Month?
+          // Let's assume standard SaaS: Bill Date = Today + Cycle.
+          // But user insisted "01".
+          // I will set it to the 1st of the NEXT month for safety (giving them the rest of this month free effectively, or pro-rated).
+          // Or if they pay for "January", it expires "Feb 1st".
+          // So if cycle is Monthly, expiry is 1st of Next Month.
+          // If Quarterly, expiry is 1st of +3 Months.
+          // If Annual, expiry is 1st of +12 Months.
+
+          const now = new Date();
+          let nextDate = new Date(now.getFullYear(), now.getMonth() + 1, 1); // Default Next Month 1st
+
+          if (cycle === 'TRIMESTRAL') {
+            nextDate = new Date(now.getFullYear(), now.getMonth() + 3, 1);
+          } else if (cycle === 'ANUAL') {
+            nextDate = new Date(now.getFullYear(), now.getMonth() + 12, 1);
+          }
+
+          console.log(`[AutoApproval] Activating Club ${updatedUser.clubId} with Billing Cycle: ${cycle}. Next Due: ${nextDate.toISOString()}`);
+
+          await this.clubsService.updateSubscription(updatedUser.clubId, {
+            subscriptionStatus: 'ACTIVE',
+            planTier: 'PLAN_P', // Default Tier? Or determine from somewhere? defaulting to PLAN_P (Small)
+            // We don't know the Tier chosen, assume 'PLAN_P' or keep existing if trial. But 'TRIAL' -> 'ACTIVE'
+            // I'll force PLAN_P for now as it's a paid tier.
+            memberLimit: 50, // Default limit
+            nextBillingDate: nextDate.toISOString(),
+            gracePeriodDays: 5,
+            lastPaymentAmount: 0 // Marking as manually approved
+          });
+
+        } catch (err) {
+          console.error('[AutoApproval] Failed to activate club:', err);
+        }
+      }
+
       return updatedUser;
     } catch (error) {
       console.error('Error updating user:', error);

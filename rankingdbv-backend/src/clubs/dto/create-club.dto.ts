@@ -27,4 +27,7 @@ export class CreateClubDto {
     @IsString()
     @IsOptional()
     phoneNumber?: string;
+
+    @IsOptional()
+    settings?: any;
 }

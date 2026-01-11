@@ -110,4 +110,6 @@ export class CreateUserDto {
     @IsString() @IsOptional() healthNotes?: string;
 
     @IsArray() @IsOptional() childrenIds?: string[];
+
+    @IsString() @IsOptional() paymentPeriod?: string;
 }

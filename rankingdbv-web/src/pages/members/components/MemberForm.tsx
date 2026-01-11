@@ -4,6 +4,8 @@ import { Modal } from '../../../components/Modal';
 import { INITIAL_FORM_DATA, ROLE_TRANSLATIONS } from '../types';
 import type { Member, Unit } from '../types';
 import { useAuth } from '../../../contexts/AuthContext';
+import { api } from '../../../lib/axios';
+import { AutocompleteInput } from '../../../components/AutocompleteInput';
 
 interface MemberFormProps {
     isOpen: boolean;
@@ -19,9 +21,19 @@ export function MemberForm({ isOpen, onClose, onSubmit, initialData, units, club
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState('basic');
     const [formData, setFormData] = useState<any>(INITIAL_FORM_DATA);
+    const [hierarchyOptions, setHierarchyOptions] = useState<any>({
+        associations: [],
+        regions: [],
+        districts: []
+    });
 
     useEffect(() => {
         if (isOpen) {
+            // Fetch hierarchy suggestions
+            api.get('/clubs/hierarchy-options')
+                .then(res => setHierarchyOptions(res.data))
+                .catch(err => console.error('Error fetching hierarchy options:', err));
+
             if (initialData) {
                 setFormData({
                     ...INITIAL_FORM_DATA,
@@ -177,33 +189,27 @@ export function MemberForm({ isOpen, onClose, onSubmit, initialData, units, club
 
                         {['COORDINATOR_AREA', 'COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT'].includes(formData.role) && (
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-indigo-50 rounded-lg animate-in slide-in-from-top-1 duration-200">
-                                <div>
-                                    <label className="block text-xs font-bold text-indigo-700 mb-1">Associação (Geral)</label>
-                                    <input
-                                        value={formData.association || ''}
-                                        onChange={e => setFormData({ ...formData, association: e.target.value })}
-                                        className="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        placeholder="Ex: USB"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-indigo-700 mb-1">Região</label>
-                                    <input
-                                        value={formData.region || ''}
-                                        onChange={e => setFormData({ ...formData, region: e.target.value })}
-                                        className="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        placeholder="Ex: 5ª Região"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-indigo-700 mb-1">Distrito</label>
-                                    <input
-                                        value={formData.district || ''}
-                                        onChange={e => setFormData({ ...formData, district: e.target.value })}
-                                        className="w-full p-2 border rounded text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        placeholder="Ex: Central"
-                                    />
-                                </div>
+                                <AutocompleteInput
+                                    label="Associação (Geral)"
+                                    value={formData.association || ''}
+                                    onChange={val => setFormData({ ...formData, association: val })}
+                                    suggestions={hierarchyOptions.associations}
+                                    placeholder="Ex: USB"
+                                />
+                                <AutocompleteInput
+                                    label="Região"
+                                    value={formData.region || ''}
+                                    onChange={val => setFormData({ ...formData, region: val })}
+                                    suggestions={hierarchyOptions.regions}
+                                    placeholder="Ex: 5ª Região"
+                                />
+                                <AutocompleteInput
+                                    label="Distrito"
+                                    value={formData.district || ''}
+                                    onChange={val => setFormData({ ...formData, district: val })}
+                                    suggestions={hierarchyOptions.districts}
+                                    placeholder="Ex: Central"
+                                />
                             </div>
                         )}
 

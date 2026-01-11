@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { TermsModal } from '../components/TermsModal';
-import { UserPlus, Mail, Lock, User, ArrowRight, Home, Users, Award, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, ArrowRight, Home, Users, Award, Eye, EyeOff, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
 import { HierarchySelector } from '../components/HierarchySelector';
 import { safeLocalStorage } from '../lib/storage';
@@ -60,6 +60,10 @@ export function Register() {
     // Units State
     const [units, setUnits] = useState<Unit[]>([]);
     const [inviteClubName, setInviteClubName] = useState('');
+
+    // New Fields
+    const [cpf, setCpf] = useState('');
+    const [paymentPeriod, setPaymentPeriod] = useState('MENSAL');
 
     const [searchParams] = useSearchParams();
 
@@ -293,7 +297,11 @@ export function Register() {
                     mission: (mode === 'CREATE') ? mission : undefined,
                     union: (mode === 'CREATE') ? union : undefined,
                     referralCode: (mode === 'CREATE') ? referralCode : undefined,
-                    mobile // Send to backend
+                    union: (mode === 'CREATE') ? union : undefined,
+                    referralCode: (mode === 'CREATE') ? referralCode : undefined,
+                    mobile, // Send to backend
+                    cpf,
+                    paymentPeriod: (mode === 'CREATE') ? paymentPeriod : undefined
                 };
 
                 const { api } = await import('../lib/axios');
@@ -428,6 +436,30 @@ export function Register() {
                             />
                         </div>
                         <p className="text-[10px] text-slate-500 mt-1">Obrigatório para contato da coordenação</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">CPF (Opcional)</label>
+                        <div className="relative">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold text-xs">
+                                #
+                            </div>
+                            <input
+                                type="text"
+                                value={cpf}
+                                onChange={e => {
+                                    // Simple mask
+                                    let v = e.target.value.replace(/\D/g, '');
+                                    if (v.length > 11) v = v.slice(0, 11);
+                                    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+                                    v = v.replace(/(\d{3})(\d)/, '$1.$2');
+                                    v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                                    setCpf(v);
+                                }}
+                                className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                                placeholder="000.000.000-00"
+                            />
+                        </div>
                     </div>
 
                     {/* SEPARATOR */}
