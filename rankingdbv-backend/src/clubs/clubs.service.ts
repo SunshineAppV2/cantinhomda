@@ -65,7 +65,11 @@ export class ClubsService implements OnModuleInit {
                 referralCode: this.generateReferralCode(),
                 referrerClubId: createClubDto.referrerClubId,
                 phoneNumber: createClubDto.phoneNumber, // Add phone number support
-                settings: createClubDto.settings || undefined
+                settings: createClubDto.settings || undefined,
+                memberLimit: createClubDto.settings?.memberLimit ? Number(createClubDto.settings.memberLimit) : 50, // Default to 50 if missing
+                planTier: 'PLAN_P', // Default to initial plan
+                nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(), // Trial for 1 month?
+                subscriptionStatus: 'PENDING'
             },
         });
     }
