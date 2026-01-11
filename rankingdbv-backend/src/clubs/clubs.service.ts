@@ -304,31 +304,31 @@ export class ClubsService implements OnModuleInit {
             this.prisma.club.findMany({
                 select: { region: true },
                 distinct: ['region'],
-                where: { region: { not: null, not: '' } },
+                where: { region: { notIn: [null as any, ''] } },
                 orderBy: { region: 'asc' }
             }),
             this.prisma.club.findMany({
                 select: { mission: true },
                 distinct: ['mission'],
-                where: { mission: { not: null, not: '' } },
+                where: { mission: { notIn: [null as any, ''] } },
                 orderBy: { mission: 'asc' }
             }),
             this.prisma.club.findMany({
                 select: { association: true },
                 distinct: ['association'],
-                where: { association: { not: null, not: '' } },
+                where: { association: { notIn: [null as any, ''] } },
                 orderBy: { association: 'asc' }
             }),
             this.prisma.club.findMany({
                 select: { district: true },
                 distinct: ['district'],
-                where: { district: { not: null, not: '' } },
+                where: { district: { notIn: [null as any, ''] } },
                 orderBy: { district: 'asc' }
             }),
             this.prisma.club.findMany({
                 select: { union: true },
                 distinct: ['union'],
-                where: { union: { not: null, not: '' } },
+                where: { union: { notIn: [null as any, ''] } },
                 orderBy: { union: 'asc' }
             })
         ]);
