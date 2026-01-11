@@ -203,12 +203,9 @@ export class AuthService {
       if (error instanceof UnauthorizedException) {
         throw error;
       }
-      // Handle constraint errors
-      if (error.code === 'P2002') {
-        throw new UnauthorizedException('Dados duplicados (Email ou CPF já cadastrados).');
-      }
       // Expose the actual error for debugging
-      throw new Error(`Falha no registro: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      throw new UnauthorizedException(`Falha no registro (Debug): ${errorMessage}`);
     }
   }
 

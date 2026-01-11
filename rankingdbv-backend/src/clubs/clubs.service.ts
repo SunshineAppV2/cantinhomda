@@ -66,7 +66,9 @@ export class ClubsService implements OnModuleInit {
                 referrerClubId: createClubDto.referrerClubId,
                 phoneNumber: createClubDto.phoneNumber, // Add phone number support
                 settings: createClubDto.settings || undefined,
-                memberLimit: createClubDto.settings?.memberLimit ? Number(createClubDto.settings.memberLimit) : 50, // Default to 50 if missing
+                memberLimit: createClubDto.settings?.memberLimit && !isNaN(Number(createClubDto.settings.memberLimit))
+                    ? Number(createClubDto.settings.memberLimit)
+                    : 30, // Default to 30 safe limit
                 planTier: 'PLAN_P', // Default to initial plan
                 nextBillingDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString(), // Trial for 1 month?
                 subscriptionStatus: 'TRIAL'
