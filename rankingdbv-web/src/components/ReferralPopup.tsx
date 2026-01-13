@@ -8,7 +8,7 @@ interface ReferralPopupProps {
     onClose: () => void;
 }
 
-export function ReferralPopup({ referralCode, clubName, onClose }: ReferralPopupProps) {
+export function ReferralPopup({ referralCode, onClose }: ReferralPopupProps) {
     const [copied, setCopied] = useState(false);
 
     const referralLink = `${window.location.origin}/register?ref=${referralCode}`;
