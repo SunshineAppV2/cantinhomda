@@ -208,6 +208,50 @@ function DirectorDashboard() {
 
         <div className="space-y-6">
 
+            {/* Referral Banner (Small - for OWNER only) */}
+            {user?.role === 'OWNER' && clubStatus?.referralCode && !localStorage.getItem('referralBannerDismissed') && (
+                <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg p-4 text-white shadow-md relative">
+                    <button
+                        onClick={() => localStorage.setItem('referralBannerDismissed', 'true')}
+                        className="absolute top-2 right-2 text-white/80 hover:text-white"
+                        aria-label="Fechar"
+                    >
+                        ✕
+                    </button>
+                    <div className="flex items-center justify-between gap-4 pr-6">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-white/20 p-2 rounded-lg">
+                                <Users className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <p className="font-bold text-sm">Indique e Ganhe! 🎉</p>
+                                <p className="text-xs text-green-100">
+                                    Compartilhe seu código <span className="font-mono font-bold">{clubStatus.referralCode}</span> e ganhe 20% de desconto
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2 items-center flex-shrink-0">
+                            <button
+                                onClick={handleCopyReferral}
+                                className="bg-white text-green-600 px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-green-50 transition-colors whitespace-nowrap"
+                            >
+                                Copiar Link
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const link = `${window.location.origin}/register?ref=${clubStatus.referralCode}`;
+                                    const msg = encodeURIComponent(`🎉 Venha fazer parte do *Ranking DBV*!\n\nUse meu código de indicação: *${clubStatus.referralCode}*\n\nLink: ${link}`);
+                                    window.open(`https://wa.me/?text=${msg}`, '_blank');
+                                }}
+                                className="bg-[#25D366] text-white px-3 py-1.5 rounded-md text-xs font-semibold hover:bg-[#128C7E] transition-colors whitespace-nowrap"
+                            >
+                                WhatsApp
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Subscription Status for Admins */}
             {['OWNER', 'ADMIN', 'DIRECTOR'].includes(user?.role || '') && <SubscriptionWidget />}
 
