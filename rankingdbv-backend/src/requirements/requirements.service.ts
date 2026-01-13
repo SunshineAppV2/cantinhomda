@@ -144,20 +144,22 @@ export class RequirementsService {
         // Filter by Club (Global + User's Club)
         // If userClubId is provided, we fetch Global AND Club's requirements.
         // If not, we might be fetching only Global or All (depends on context, usually Global only for public).
-        if (query.userClubId) {
+        if (query.userClubId || query.region) {
             where.OR = [
-                { clubId: null, region: null }, // Universal (No Club, No Region)
-                { clubId: query.userClubId }    // Club Specific
+                { clubId: null, region: null }, // Universal
             ];
 
+            if (query.userClubId) {
+                where.OR.push({ clubId: query.userClubId });
+            }
+
             if (query.region) {
-                where.OR.push({ region: query.region }); // Regional Requirements
+                where.OR.push({ region: query.region });
             }
         } else {
-            // If no user context, show only GLOBAL Requirements to be safe?
-            // Or show all if it's a Super Admin listing? 
-            // Let's assume for now: If no clubId provided in query, show ONLY Global.
+            // If no user context, show only GLOBAL Requirements
             where.clubId = null;
+            where.region = null;
         }
 
         const rawRequirements = await this.prisma.requirement.findMany({
