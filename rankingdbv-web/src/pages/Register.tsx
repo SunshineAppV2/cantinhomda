@@ -4,7 +4,6 @@ import { TermsModal } from '../components/TermsModal';
 import { UserPlus, Mail, Lock, User, ArrowRight, Home, Users, Award, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { HierarchySelector } from '../components/HierarchySelector';
-import { safeLocalStorage } from '../lib/storage';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, addDoc, getDocs, query, where } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
