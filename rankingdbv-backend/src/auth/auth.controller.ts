@@ -31,7 +31,7 @@ export class AuthController {
   }
 
   // IMPORTANT: This route does NOT use JwtAuthGuard
-  // We manually validate the Firebase token instead
+  // We manually validate the Firebase token instead (if available)
   @Post('register')
   async register(
     @Headers('authorization') authorization: string,
@@ -41,90 +41,53 @@ export class AuthController {
     console.log('[AuthController] Body received:', JSON.stringify(createUserDto, null, 2));
     console.log('[AuthController] Authorization header present:', !!authorization);
 
-    // If no token provided, allow registration without Firebase validation
-    // (for cases where backend creates users directly)
-    if (!authorization || !authorization.startsWith('Bearer ')) {
-      console.log('[AuthController] No token provided, proceeding without Firebase validation');
-      try {
-        const result = await this.authService.register(createUserDto);
-        console.log('[AuthController] Registration result:', JSON.stringify(result, null, 2));
-        return result;
-      } catch (error: any) {
-        console.error('[AuthController] Registration error:', error.message);
-        throw error;
-      }
-    }
-
-    const token = authorization.split('Bearer ')[1];
-    console.log('[AuthController] Token extracted, length:', token?.length);
-
+    // Try to validate Firebase token if provided, but don't fail if Firebase Admin is not configured
+    // This allows the system to work purely with Postgres if needed
     try {
-      // Validate Firebase token (does NOT require user to exist in Postgres)
-      console.log('[AuthController] Validating Firebase token...');
+      if (authorization && authorization.startsWith('Bearer ')) {
+        const token = authorization.split('Bearer ')[1];
+        console.log('[AuthController] Token extracted, attempting Firebase validation...');
 
-      if (!admin.apps.length) {
-        console.warn('[AuthController] Firebase Admin not initialized, skipping token validation');
-        const result = await this.authService.register(createUserDto);
-        console.log('[AuthController] Registration result (no Firebase):', JSON.stringify(result, null, 2));
-        return result;
-      }
+        // Check if Firebase Admin is initialized
+        if (admin.apps.length > 0) {
+          try {
+            const decodedToken = await admin.auth().verifyIdToken(token);
+            const { uid, email } = decodedToken;
+            console.log(`[AuthController] ✅ Firebase token valid for: ${email} (UID: ${uid})`);
 
-      const decodedToken = await admin.auth().verifyIdToken(token);
-      const { uid, email } = decodedToken;
+            // Pass validated data to service
+            const dataToRegister = {
+              ...createUserDto,
+              uid,
+              email: email || createUserDto.email,
+            };
 
-      console.log(`[AuthController] Firebase token valid for: ${email} (UID: ${uid})`);
-
-      // Pass validated data to service
-      const dataToRegister = {
-        ...createUserDto,
-        uid,
-        email: email || createUserDto.email, // Use token email if available
-      };
-
-      console.log('[AuthController] Calling authService.register with:', JSON.stringify(dataToRegister, null, 2));
-
-      const result = await this.authService.register(dataToRegister);
-      console.log('[AuthController] Registration SUCCESS:', JSON.stringify(result, null, 2));
-      return result;
-
-    } catch (error: any) {
-      console.error('[AuthController] Error in register:', error.message, error.code, error.stack);
-
-      // If token is invalid/expired, still try to register without Firebase link
-      // This gracefully handles edge cases
-      const firebaseErrors = [
-        'auth/id-token-expired',
-        'auth/argument-error',
-        'auth/invalid-id-token',
-        'auth/user-not-found',
-        'auth/id-token-revoked'
-      ];
-
-      if (firebaseErrors.includes(error.code) || error.message?.includes('Firebase')) {
-        console.log('[AuthController] Firebase token issue, proceeding without Firebase validation');
-        try {
-          const result = await this.authService.register(createUserDto);
-          console.log('[AuthController] Registration result (fallback):', JSON.stringify(result, null, 2));
-          return result;
-        } catch (fallbackError: any) {
-          console.error('[AuthController] Fallback registration error:', fallbackError.message);
-          throw fallbackError;
+            const result = await this.authService.register(dataToRegister);
+            console.log('[AuthController] ✅ Registration SUCCESS with Firebase validation');
+            return result;
+          } catch (tokenError: any) {
+            console.warn('[AuthController] Firebase token validation failed:', tokenError.message);
+            // Continue without Firebase validation
+          }
+        } else {
+          console.warn('[AuthController] Firebase Admin not initialized');
         }
       }
+    } catch (fbError: any) {
+      console.warn('[AuthController] Firebase validation error (non-critical):', fbError.message);
+      // Continue without Firebase validation
+    }
 
-      // If it's already a NestJS exception (from authService), re-throw it
-      if (error.response && error.status) {
-        throw error;
-      }
-
-      // If it's a service error (from authService), re-throw it
-      if (error.name === 'ConflictException' || error.name === 'BadRequestException' || error.name === 'ForbiddenException') {
-        throw error;
-      }
-
-      // Last resort: throw as UnauthorizedException only for actual auth failures
-      console.error('[AuthController] Unexpected error during registration:', error);
-      throw new UnauthorizedException('Erro no registro: ' + error.message);
+    // Proceed with registration without Firebase validation
+    // This is the standard path when Firebase Admin is not configured
+    console.log('[AuthController] Proceeding with registration (Postgres-only mode)');
+    try {
+      const result = await this.authService.register(createUserDto);
+      console.log('[AuthController] ✅ Registration SUCCESS (Postgres-only)');
+      return result;
+    } catch (error: any) {
+      console.error('[AuthController] ❌ Registration error:', error.message, error.stack);
+      throw error;
     }
   }
 
