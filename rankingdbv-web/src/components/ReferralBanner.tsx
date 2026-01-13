@@ -29,7 +29,7 @@ export function ReferralBanner() {
     const handleCopyReferral = () => {
         if (clubStatus?.referralCode) {
             const link = `${window.location.origin}/register?ref=${clubStatus.referralCode}`;
-            const inviteText = `🎉 Venha fazer parte do Ranking DBV!\n\nUse meu código de indicação: ${clubStatus.referralCode}\n\nCadastre-se aqui: ${link}`;
+            const inviteText = `🎉 Venha fazer parte do CantinhoDBV.\nSistema que vai mudar o engajamento no seu clube\n\nUse meu código de indicação: ${clubStatus.referralCode}\n\nCadastre-se aqui: ${link}`;
             navigator.clipboard.writeText(inviteText);
             import('sonner').then(({ toast }) => toast.success('Convite copiado!'));
         }
