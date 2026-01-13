@@ -48,6 +48,7 @@ import { CoordinatorApprovals } from './pages/CoordinatorApprovals';
 import { ReferralControl } from './pages/admin/ReferralControl';
 import { UserApprovals } from './pages/admin/UserApprovals';
 import { PaymentManagement } from './pages/admin/PaymentManagement';
+import { RegionalRequirements } from './pages/coordinator/RegionalRequirements';
 
 import { CompleteProfile } from './pages/CompleteProfile';
 // import { SocketProvider } from './contexts/SocketContext';
@@ -130,6 +131,7 @@ function App() {
                 <Route path="regional-ranking" element={<RegionalRanking />} />
                 <Route path="regional-dashboard" element={<RegionalDashboard />} />
                 <Route path="clubs-directory" element={<ClubDirectory />} />
+                <Route path="regional-requirements" element={<RegionalRequirements />} />
               </Route>
 
               <Route element={<ProtectedRoute allowedRoles={['MASTER', 'COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA']} />}>
