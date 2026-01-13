@@ -14,9 +14,10 @@ export class ReportsService {
         endDate?: string;
     }) {
         const { association, region, district, clubId, startDate, endDate } = filters;
+        console.log('[Reports] getRegionalStats Filters:', filters);
 
         // 1. Build Club Filter
-        const clubFilter: any = {};
+        const clubFilter: any = { status: 'ACTIVE' }; // Only ACTIVE clubs
         if (association) clubFilter.association = association;
         if (region) clubFilter.region = region;
         if (district) clubFilter.district = district;
@@ -25,9 +26,11 @@ export class ReportsService {
         // Helper to get club IDs for further filtering
         const clubs = await this.prisma.club.findMany({
             where: clubFilter,
-            select: { id: true }
+            select: { id: true, name: true }
         });
         const clubIds = clubs.map(c => c.id);
+        console.log(`[Reports] Found ${clubs.length} clubs matching filters.`);
+        if (clubs.length > 0) console.log(`[Reports] Sample Club: ${clubs[0].name}`);
 
         if (clubIds.length === 0) {
             return {
@@ -48,10 +51,11 @@ export class ReportsService {
         });
 
         // 3. User Stats (Members, Gender, Age)
+        // Note: Using 'ACTIVE' status. Ensure users are indeed ACTIVE.
         const users = await this.prisma.user.findMany({
             where: {
                 clubId: { in: clubIds },
-                status: 'ACTIVE' // Only active members
+                status: 'ACTIVE'
             },
             select: {
                 id: true,
@@ -60,6 +64,7 @@ export class ReportsService {
                 role: true
             }
         });
+        console.log(`[Reports] Found ${users.length} ACTIVE users.`);
 
         let male = 0;
         let female = 0;
@@ -74,6 +79,7 @@ export class ReportsService {
             else if (user.sex === 'F' || user.sex === 'Feminino') female++;
 
             // Age / Role
+            let isPathfinder = false;
             if (user.birthDate) {
                 const birth = new Date(user.birthDate);
                 let age = today.getFullYear() - birth.getFullYear();
@@ -84,19 +90,30 @@ export class ReportsService {
 
                 if (age >= 10 && age <= 15) {
                     pathfindersCount++;
+                    isPathfinder = true;
                 } else if (age >= 16) {
                     staffCount++;
                 }
-            } else {
-                // Fallback to Role if no birthdate
-                if (user.role === 'PATHFINDER') pathfindersCount++;
+            }
+
+            // Fallback to Role if no birthdate match (or if age calc failed/missed)
+            // But we shouldn't double count if birthdate logic worked.
+            // Let's rely on Role if Birthdate didn't classify as Pathfinder/Staff?
+            // Actually, Role is safer for "Diretoria" vs "Desbravador".
+            // Let's do: Use Role as primary source of truth for "Type"?
+            // Or prioritize Age?
+            // User requested: "Desbravadores (10-15)" and "Diretoria (16+)"
+            // So age is the requested metric.
+            // If no birthdate, checks role.
+            if (!user.birthDate) {
+                if (['PATHFINDER', 'CAPTAIN', 'SCRIBE'].includes(user.role)) pathfindersCount++;
                 else staffCount++;
             }
         });
 
         // 4. Requirements Completed (in Date Range)
         const reqFilter: any = {
-            status: 'APPROVED', // Assuming we count approved/completed
+            status: 'APPROVED',
             user: {
                 clubId: { in: clubIds }
             }
@@ -112,6 +129,7 @@ export class ReportsService {
         const requirementsCompleted = await this.prisma.userRequirement.count({
             where: reqFilter
         });
+        console.log(`[Reports] Requirements Completed: ${requirementsCompleted}`);
 
         return {
             totalMembers: users.length,
