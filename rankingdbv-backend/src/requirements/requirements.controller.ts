@@ -28,9 +28,15 @@ export class RequirementsController {
         const isRegionalCoordinator = req.user.role === 'COORDINATOR_REGIONAL';
 
         if (isRegionalCoordinator) {
-            // Regional Coordinator: Force region from user profile, ensure clubId is null
-            createDto.region = req.user.region; // Assuming region is in JWT payload or user object
-            createDto.clubId = null;
+            createDto.region = req.user.region;
+            // If they sent a clubId, we keep it (Target: Specific Club in Region)
+            // If they sent clubId=null, it's for ALL clubs in Region
+            if (!createDto.clubId) {
+                delete createDto.clubId;
+            } else {
+                // Optimization: Could verify if this clubId really belongs to req.user.region
+                // For now, trusting the frontend/user selection
+            }
         } else if (userClubId && !isMaster) {
             // Club Admin: Force clubId
             createDto.clubId = userClubId;

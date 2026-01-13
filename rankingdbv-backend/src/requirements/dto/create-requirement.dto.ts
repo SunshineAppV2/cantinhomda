@@ -1,5 +1,5 @@
 
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsArray } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsOptional, ValidateNested, IsArray, IsInt, IsDateString } from 'class-validator';
 import { DBVClass, RequirementType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { CreateQuestionDto } from './create-question.dto';
@@ -20,6 +20,22 @@ export class CreateRequirementDto {
     @IsString()
     @IsOptional()
     specialtyId?: string;
+
+    @IsString()
+    @IsOptional()
+    title?: string;
+
+    @IsInt()
+    @IsOptional()
+    points?: number;
+
+    @IsDateString()
+    @IsOptional()
+    startDate?: string;
+
+    @IsDateString()
+    @IsOptional()
+    endDate?: string;
 
     @IsString()
     @IsOptional()
