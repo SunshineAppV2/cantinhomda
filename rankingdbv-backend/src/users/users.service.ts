@@ -1,4 +1,4 @@
-﻿import { Injectable, UnauthorizedException, Inject, forwardRef, NotFoundException } from '@nestjs/common';
+﻿import { Injectable, UnauthorizedException, Inject, forwardRef, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, Prisma } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -307,7 +307,9 @@ export class UsersService {
   async create(createUserDto: any): Promise<User> {
     const { clubId, unitId, dbvClass, birthDate, schoolShift, clubName, mission, union, childrenIds, password, referralCode, ...rest } = createUserDto; // Strip extra fields
 
-    // 1. Check Subscription Limits
+    console.log(`[UsersService.create] Creating user: ${rest.email}`);
+
+    // ===== STEP 1: VALIDATE SUBSCRIPTION LIMITS =====
     if (clubId) {
       const club = await this.prisma.club.findUnique({
         where: { id: clubId },
@@ -337,45 +339,13 @@ export class UsersService {
         // Check Limit if creating a NON-PARENT
         if (rest.role !== 'PARENT') {
           if (paidCount >= limit) {
-            throw new UnauthorizedException(`Limite do plano atingido (${paidCount}/${limit} membros ativos). Faça upgrade para adicionar mais.`);
+            throw new ForbiddenException(`Limite do plano atingido (${paidCount}/${limit} membros ativos). Faça upgrade para adicionar mais.`);
           }
         }
       }
     }
 
-    // --- FIREBASE SYNC START ---
-    if (rest.email && password) {
-      try {
-        console.log(`[FirebaseSync] Creating user ${rest.email}...`);
-        await firebaseAdmin.auth().createUser({
-          email: rest.email,
-          password: password,
-          displayName: rest.name,
-          emailVerified: true
-        });
-        console.log(`[FirebaseSync] User ${rest.email} created.`);
-      } catch (error: any) {
-        if (error.code === 'auth/email-already-exists') {
-          console.warn(`[FirebaseSync] User ${rest.email} already exists. Syncing password...`);
-          try {
-            const fbUser = await firebaseAdmin.auth().getUserByEmail(rest.email);
-            // Update password to match current system registry
-            await firebaseAdmin.auth().updateUser(fbUser.uid, {
-              password: password,
-              displayName: rest.name
-            });
-            console.log(`[FirebaseSync] User ${rest.email} updated.`);
-          } catch (updErr) {
-            console.error(`[FirebaseSync] Failed to update existing user:`, updErr);
-          }
-        } else {
-          console.error(`[FirebaseSync] Failed to create user:`, error);
-          // Non-blocking error? Proceed to DB creation anyway so we don't block system usage.
-        }
-      }
-    }
-    // --- FIREBASE SYNC END ---
-
+    // ===== STEP 2: PREPARE DATA =====
     // Hash password for DB
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -394,7 +364,8 @@ export class UsersService {
       ? childrenIds.map((id: string) => ({ id }))
       : [];
 
-    return this.prisma.user.create({
+    // ===== STEP 3: CREATE USER IN POSTGRES =====
+    const user = await this.prisma.user.create({
       data: {
         ...rest,
         password: hashedPassword, // Use Hashed Password
@@ -406,6 +377,52 @@ export class UsersService {
         children: childrenConnect.length > 0 ? { connect: childrenConnect } : undefined
       },
     });
+
+    console.log(`[UsersService.create] ✅ User created in Postgres: ${user.id} (${user.email})`);
+
+    // ===== STEP 4: SYNC TO FIREBASE (NON-BLOCKING) =====
+    // We do this AFTER Postgres creation so database is the source of truth
+    // If Firebase fails, user can still use the system via Postgres auth
+    if (rest.email && password) {
+      this.syncUserToFirebase(rest.email, password, rest.name).catch(err => {
+        console.error(`[UsersService.create] ⚠️ Firebase sync failed for ${rest.email}:`, err.message);
+        // Non-blocking - user creation succeeded in Postgres
+      });
+    }
+
+    return user;
+  }
+
+  // Helper method for Firebase sync (runs async, non-blocking)
+  private async syncUserToFirebase(email: string, password: string, displayName: string): Promise<void> {
+    try {
+      console.log(`[FirebaseSync] Creating user ${email}...`);
+      await firebaseAdmin.auth().createUser({
+        email: email,
+        password: password,
+        displayName: displayName,
+        emailVerified: true
+      });
+      console.log(`[FirebaseSync] ✅ User ${email} created in Firebase.`);
+    } catch (error: any) {
+      if (error.code === 'auth/email-already-exists') {
+        console.warn(`[FirebaseSync] User ${email} already exists. Updating password...`);
+        try {
+          const fbUser = await firebaseAdmin.auth().getUserByEmail(email);
+          await firebaseAdmin.auth().updateUser(fbUser.uid, {
+            password: password,
+            displayName: displayName
+          });
+          console.log(`[FirebaseSync] ✅ User ${email} updated in Firebase.`);
+        } catch (updErr) {
+          console.error(`[FirebaseSync] ❌ Failed to update existing user:`, updErr);
+          throw updErr;
+        }
+      } else {
+        console.error(`[FirebaseSync] ❌ Failed to create user:`, error);
+        throw error;
+      }
+    }
   }
 
 

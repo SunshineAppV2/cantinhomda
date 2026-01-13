@@ -1,4 +1,4 @@
-﻿import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+﻿import { Injectable, UnauthorizedException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { ClubsService } from '../clubs/clubs.service'; // Import ClubsService
@@ -124,110 +124,143 @@ export class AuthService {
   }
 
   async register(createUserDto: CreateUserDto & { referralCode?: string }) {
-    let clubId = createUserDto.clubId;
-    let role = createUserDto.role || 'PATHFINDER';
-    let status = 'PENDING'; // Default status for joiners
+    console.log('[AuthService.register] Starting registration process...');
+    console.log('[AuthService.register] Mode:', createUserDto.clubName ? 'CREATE_CLUB' : 'JOIN_CLUB');
 
-    // REFERRAL CHECK (DELAYED REWARD)
-    let referrerClubId: string | undefined = undefined;
-    if (createUserDto.referralCode && createUserDto.clubName) { // Only for new clubs
-      const resolved = await this.clubsService.resolveReferralCode(createUserDto.referralCode);
-      referrerClubId = resolved || undefined;
-    }
-
-    let wasNewClubCreated = false;
-
-    // 2. Logic: Create New Club OR Join Existing
-    if (!clubId && createUserDto.clubName) {
-      // FLOW A: CREATE NEW CLUB
-      const newClub = await this.clubsService.create({
-        name: createUserDto.clubName,
-        region: createUserDto.region,
-        mission: createUserDto.mission,
-        union: createUserDto.union,
-        referrerClubId: referrerClubId,
-        phoneNumber: createUserDto.mobile, // Pass mobile as club phone number
-        settings: {
-          billingCycle: createUserDto.paymentPeriod, // Save Billing Cycle
-          memberLimit: createUserDto.clubSize // Save requested limit
-        }
-      });
-
-      clubId = newClub.id;
-      wasNewClubCreated = true;
-      role = 'OWNER'; // Creator is Owner
-      status = 'PENDING'; // Wait for Master Approval (Payment)
-
-    } else if (clubId) {
-      // FLOW B: JOIN EXISTING CLUB
-      // Keep role as requested (or default to PATHFINDER)
-      // Keep status as PENDING (needs approval)
-    } else {
-      // Fallback (should not happen in valid UI flow)
-      throw new Error('Club ID or Club Name must be provided');
-    }
-
-    // 3. Security Check (Prevent arbitrary Owner creation without club)
-    if (role === 'OWNER' && !createUserDto.clubName) {
-      role = 'PATHFINDER';
-    }
-
-    // 4. Create User
-    // First, check if user exists locally to prevent 500 Prisma Error
+    // ===== STEP 1: EARLY VALIDATION =====
+    // Check if user already exists BEFORE creating anything
     const existingUser = await this.usersService.findOneByEmail(createUserDto.email);
     if (existingUser) {
-      if (wasNewClubCreated && clubId) {
-        console.warn(`[Register] Rollback: Deleting club ${clubId} because user email already exists.`);
-        await this.clubsService.delete(clubId).catch(e => console.error("Rollback failed", e));
-      }
-      throw new UnauthorizedException('Este e-mail já está cadastrado no sistema.');
+      console.log(`[AuthService.register] User already exists: ${createUserDto.email}`);
+      throw new ConflictException('Este e-mail já está cadastrado no sistema.');
     }
 
+    // Validate required fields based on mode
+    if (!createUserDto.clubId && !createUserDto.clubName) {
+      throw new BadRequestException('Você deve informar o nome do clube ou selecionar um clube existente.');
+    }
+
+    // ===== STEP 2: DETERMINE USER ROLE AND STATUS =====
+    let clubId = createUserDto.clubId;
+    let role = createUserDto.role || 'PATHFINDER';
+    let status = 'PENDING'; // All new users start as PENDING (need approval)
+    let wasNewClubCreated = false;
+
+    // ===== STEP 3: CREATE CLUB (IF NEEDED) =====
+    if (!clubId && createUserDto.clubName) {
+      console.log('[AuthService.register] Creating new club:', createUserDto.clubName);
+
+      // Validate required club fields
+      if (!createUserDto.region || !createUserDto.mission || !createUserDto.union) {
+        throw new BadRequestException('Dados hierárquicos incompletos (União, Associação, Região são obrigatórios).');
+      }
+
+      // Check referral code if provided
+      let referrerClubId: string | undefined = undefined;
+      if (createUserDto.referralCode) {
+        try {
+          const resolved = await this.clubsService.resolveReferralCode(createUserDto.referralCode);
+          referrerClubId = resolved || undefined;
+          console.log('[AuthService.register] Referral code resolved:', referrerClubId);
+        } catch (err) {
+          console.warn('[AuthService.register] Failed to resolve referral code:', err);
+          // Non-blocking - continue without referral
+        }
+      }
+
+      try {
+        const newClub = await this.clubsService.create({
+          name: createUserDto.clubName,
+          region: createUserDto.region,
+          district: createUserDto.district,
+          mission: createUserDto.mission,
+          union: createUserDto.union,
+          referrerClubId: referrerClubId,
+          phoneNumber: createUserDto.mobile,
+          settings: {
+            billingCycle: createUserDto.paymentPeriod || 'MENSAL',
+            memberLimit: parseInt(String(createUserDto.clubSize || '30'))
+          }
+        });
+
+        clubId = newClub.id;
+        wasNewClubCreated = true;
+        role = 'OWNER'; // Club creator is always OWNER
+        status = 'PENDING'; // Needs Master approval for payment setup
+
+        console.log(`[AuthService.register] Club created successfully: ${clubId}`);
+      } catch (clubError) {
+        console.error('[AuthService.register] Failed to create club:', clubError);
+        const errorMsg = clubError instanceof Error ? clubError.message : 'Erro ao criar clube';
+        throw new BadRequestException(`Falha ao criar clube: ${errorMsg}`);
+      }
+    } else if (clubId) {
+      console.log('[AuthService.register] Joining existing club:', clubId);
+      // Joining existing club - keep role as requested (or PATHFINDER)
+      // Status remains PENDING (needs club admin approval)
+    }
+
+    // ===== STEP 4: CREATE USER =====
     try {
+      console.log(`[AuthService.register] Creating user: ${createUserDto.email}`);
+
       const user = await this.usersService.create({
         ...createUserDto,
         password: createUserDto.password,
-        clubId: clubId,
+        clubId: clubId!,
         role: role as any,
         status: status,
-        isActive: status === 'ACTIVE'
+        isActive: false // Will be set to true when approved
       });
 
-      console.log(`[Register] User created successfully: ${user.email} (Status: ${user.status})`);
+      console.log(`[AuthService.register] ✅ User created successfully: ${user.id} (${user.email})`);
+      console.log(`[AuthService.register] Status: ${user.status}, Role: ${user.role}, Club: ${user.clubId}`);
 
-      // For PENDING users, return success WITHOUT trying to login (which would fail)
-      if (user.status === 'PENDING') {
-        return {
-          success: true,
-          message: 'Cadastro realizado com sucesso! Aguardando aprovação.',
-          user: { id: user.id, email: user.email, status: user.status, clubId: user.clubId }
-        };
-      }
+      // ===== STEP 5: RETURN SUCCESS =====
+      // All new users are PENDING, so return success message (don't try to login)
+      return {
+        success: true,
+        message: 'Cadastro realizado com sucesso! Aguardando aprovação da diretoria.',
+        user: {
+          id: user.id,
+          email: user.email,
+          status: user.status,
+          clubId: user.clubId,
+          role: user.role
+        }
+      };
 
-      // For ACTIVE users, proceed with login
-      return await this.login(user);
+    } catch (userError) {
+      console.error('[AuthService.register] ❌ Failed to create user:', userError);
 
-    } catch (error) {
-      console.error("[Register] Error:", error);
-
-      // --- COMPENSATION LOGIC (ROLLBACK) ---
+      // ===== ROLLBACK: Delete club if we created it =====
       if (wasNewClubCreated && clubId) {
-        console.warn(`[Register] Rollback: Deleting club ${clubId} due to user creation failure.`);
-        await this.clubsService.delete(clubId).catch(e => console.error("Rollback failed", e));
+        console.warn(`[AuthService.register] 🔄 ROLLBACK: Deleting club ${clubId}`);
+        try {
+          await this.clubsService.delete(clubId);
+          console.log(`[AuthService.register] ✅ Rollback successful`);
+        } catch (rollbackError) {
+          console.error(`[AuthService.register] ❌ Rollback failed:`, rollbackError);
+        }
       }
-      // -------------------------------------
 
-      // Handle Duplicates (Prisma P2002)
-      if (error.code === 'P2002') {
+      // ===== HANDLE SPECIFIC ERRORS =====
+      // Prisma duplicate constraint violation
+      if (userError.code === 'P2002') {
         throw new ConflictException('Este e-mail ou CPF já está cadastrado.');
       }
 
-      if (error instanceof UnauthorizedException || error instanceof ConflictException) {
-        throw error;
+      // Re-throw known exceptions (Forbidden, Conflict, etc)
+      if (userError instanceof UnauthorizedException ||
+        userError instanceof ConflictException ||
+        userError instanceof ForbiddenException ||
+        userError instanceof BadRequestException) {
+        throw userError;
       }
 
-      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
-      throw new UnauthorizedException(`Falha no registro: ${errorMessage}`);
+      // Generic error
+      const errorMessage = userError instanceof Error ? userError.message : 'Erro desconhecido';
+      throw new BadRequestException(`Falha no registro: ${errorMessage}`);
     }
   }
 
