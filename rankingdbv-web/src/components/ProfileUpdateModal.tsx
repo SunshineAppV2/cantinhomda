@@ -158,6 +158,7 @@ export function ProfileUpdateModal({ user, club, onUpdate }: ProfileUpdateModalP
                             value={{
                                 union: formData.union,
                                 mission: formData.mission,
+                                association: formData.mission, // Use mission as association
                                 region: formData.region,
                                 district: formData.district
                             }}
@@ -165,7 +166,7 @@ export function ProfileUpdateModal({ user, club, onUpdate }: ProfileUpdateModalP
                                 setFormData({
                                     ...formData,
                                     union: hierarchyData.union || '',
-                                    mission: hierarchyData.mission || '',
+                                    mission: hierarchyData.mission || hierarchyData.association || '',
                                     region: hierarchyData.region || '',
                                     district: hierarchyData.district || ''
                                 });
