@@ -57,8 +57,8 @@ export class ClubsController {
 
     @UseGuards(JwtAuthGuard)
     @Get()
-    findAll() {
-        return this.clubsService.findAll();
+    findAll(@Request() req) {
+        return this.clubsService.findAll(req.user);
     }
 
     @Get('hierarchy-options')

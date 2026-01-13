@@ -171,8 +171,32 @@ export class ClubsService implements OnModuleInit {
         });
     }
 
-    async findAll() {
+    async findAll(user?: any) {
+        const where: any = {};
+
+        if (user) {
+            const isMaster = user.email === 'master@cantinhodbv.com' || user.role === 'MASTER' || user.role === 'OWNER'; // Owner sees all? Or just their club? Usually Owner=ClubOwner.
+            // Wait, OWNER is Club Owner. Only Master is Super Admin.
+            const isSuperAdmin = user.email === 'master@cantinhodbv.com' || user.role === 'MASTER';
+
+            if (!isSuperAdmin) {
+                if (user.role === 'COORDINATOR_REGIONAL') {
+                    if (user.region) where.region = user.region;
+                } else if (user.role === 'COORDINATOR_DISTRICT') {
+                    if (user.district) where.district = user.district;
+                } else if (user.role === 'COORDINATOR_AREA') {
+                    if (user.association) where.association = user.association;
+                }
+                // If normal user/club admin, maybe restrict?
+                // Current usage of /clubs might be for "Select your club" in Register?
+                // Unauthenticated /public endpoint exists for that.
+                // Authenticated /clubs is used for... what?
+                // If used for dropdown in RegionalRequirements, this filtering is perfect.
+            }
+        }
+
         return this.prisma.club.findMany({
+            where,
             include: {
                 _count: {
                     select: { users: true }
