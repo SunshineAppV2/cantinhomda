@@ -37,7 +37,7 @@ export const RegionalRanking: React.FC = () => {
             if (user?.role === 'COORDINATOR_DISTRICT' && user?.district) params.append('district', user.district);
             if (user?.role === 'COORDINATOR_AREA' && user?.association) params.append('association', user.association);
 
-            if (selectedEventId) params.append('regionalEventId', selectedEventId);
+            if (selectedEventId) params.append('eventId', selectedEventId);
 
             const res = await api.get(`/ranking-regional?${params.toString()}`);
             return res.data;

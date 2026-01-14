@@ -72,29 +72,21 @@ export class RankingRegionalService {
                 });
 
                 if (eventRequirements.length > 0) {
-                    const reqIds = eventRequirements.map(r => r.id);
                     possiblePoints = eventRequirements.reduce((sum, r) => sum + (r.points || 0), 0);
 
-                    // Sum points from approved user requirements for this club
-                    // Since "Director responds for Club", we might look for UserRequirements where user.clubId = club.id?
-                    // Or specifically the Director's ID?
-                    // To be safe and cover "Director" or "Any Member", let's sum ALL approved requirements from users in this club.
-                    const approved = await this.prisma.userRequirement.findMany({
+                    // Sum points from approved EVENT RESPONSES for this club
+                    // We use the new EventResponse table
+                    const approvedResponses = await this.prisma.eventResponse.findMany({
                         where: {
-                            requirementId: { in: reqIds },
-                            user: { clubId: club.id },
+                            requirementId: { in: eventRequirements.map(r => r.id) },
+                            clubId: club.id,
                             status: 'APPROVED'
                         },
                         include: { requirement: true }
                     });
 
-                    // Avoid double counting if multiple users do the same task? 
-                    // If it's a "Club Task", only one should do it.
-                    // If multiple do, do we sum?
-                    // For now, simple sum. Max cap could be possiblePoints, but let's just sum.
-                    totalPoints = approved.reduce((sum, ur) => sum + (ur.requirement.points || 0), 0);
+                    totalPoints = approvedResponses.reduce((sum, resp) => sum + (resp.requirement.points || 0), 0);
                 } else {
-                    // No requirements for this event?
                     totalPoints = 0;
                     possiblePoints = 1; // Avoid division by zero
                 }
