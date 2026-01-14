@@ -23,6 +23,19 @@ export class RegionalEventsController {
             createDto.region = user.region;
         } else if (user.role === 'COORDINATOR_AREA') {
             createDto.association = user.association;
+        } else if (user.role === 'DIRECTOR') {
+            const name = (user.name || '').toUpperCase();
+            if (name.includes('REGIONAL') || name.includes('ASSOCIAÇÃO') || name.includes('MISSÃO') || name.includes('UNIÃO') || name.includes('COORDENAÇÃO')) {
+                console.log(`[RegionalEvents] allowing DIRECTOR ${user.email} (Special Account) to create event.`);
+                // For these special accounts, we assume they want to target their Region/Association.
+                // We try to infer from user.region or user.association/mission
+                createDto.region = user.region;
+                createDto.association = user.association || user.mission;
+                // We rely on service logic to handle what happens if both are present or null.
+            } else {
+                console.error(`[RegionalEvents] Access Denied for DIRECTOR: ${user.email}`);
+                throw new ForbiddenException('Diretores de clubes comuns não podem criar eventos regionais.');
+            }
         } else if (user.role !== 'MASTER') {
             console.error(`[RegionalEvents] Access Denied for role: ${user.role}`);
             throw new ForbiddenException('Apenas Coordenadores e Master podem criar eventos regionais. Seu perfil atual não possui permissão.');

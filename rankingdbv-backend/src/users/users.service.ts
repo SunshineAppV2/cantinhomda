@@ -689,6 +689,21 @@ export class UsersService {
       if (rest.district !== undefined) dataToUpdate.district = rest.district;
     }
 
+    // [DEBUG] Force Hierarchy Update Check
+    if (rest.union || rest.association || rest.region) {
+      console.log('[UsersService.update] DETECTED HIERARCHY UPDATE PAYLOAD:',
+        { u: rest.union, a: rest.association, r: rest.region, d: rest.district });
+
+      // Ensure they are set if not already handled
+      if (rest.union) dataToUpdate.union = rest.union;
+      if (rest.association) {
+        dataToUpdate.association = rest.association;
+        dataToUpdate.mission = rest.association;
+      }
+      if (rest.region) dataToUpdate.region = rest.region;
+      if (rest.district) dataToUpdate.district = rest.district;
+    }
+
     try {
       console.log(`[UsersService.update] Final data for Prisma update:`, JSON.stringify(dataToUpdate, null, 2));
       const updatedUser = await this.prisma.user.update({
