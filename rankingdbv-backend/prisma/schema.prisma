@@ -66,10 +66,11 @@ model ReferralCredit {
 }
 
 model Unit {
-  id      String @id @default(uuid())
+  id      String   @id @default(uuid())
   name    String
+  type    UnitType @default(MISTA)
   clubId  String
-  club    Club   @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  club    Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
   members User[]
 
   @@map("units")
@@ -663,4 +664,10 @@ enum PaymentStatus {
   CONFIRMED
   EXPIRED
   REFUNDED
+}
+
+enum UnitType {
+  MASCULINA
+  FEMININA
+  MISTA
 }

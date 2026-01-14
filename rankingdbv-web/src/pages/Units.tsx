@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 interface Unit {
     id: string;
     name: string;
+    type?: 'MASCULINA' | 'FEMININA' | 'MISTA';
     _count?: {
         members: number;
     };
@@ -29,6 +30,8 @@ function UnitModal({
     title,
     unitName,
     setUnitName,
+    unitType,
+    setUnitType,
     activeTab,
     setActiveTab,
     selectedMemberIds,
@@ -45,16 +48,37 @@ function UnitModal({
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={title}>
             <form onSubmit={handleSubmit} className="flex flex-col h-[500px]">
-                <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Nome da Unidade</label>
-                    <input
-                        type="text"
-                        value={unitName}
-                        onChange={e => setUnitName(e.target.value)}
-                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        required
-                        placeholder="Ex: Unidade Alpha"
-                    />
+                <div className="mb-4 space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Nome da Unidade</label>
+                        <input
+                            type="text"
+                            value={unitName}
+                            onChange={e => setUnitName(e.target.value)}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            required
+                            placeholder="Ex: Unidade Alpha"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Tipo de Unidade (Gênero)</label>
+                        <div className="grid grid-cols-3 gap-2">
+                            {['MASCULINA', 'FEMININA', 'MISTA'].map((type) => (
+                                <button
+                                    key={type}
+                                    type="button"
+                                    onClick={() => setUnitType(type)}
+                                    className={`px-3 py-2 rounded-lg text-sm font-semibold border transition-all ${unitType === type
+                                            ? 'bg-indigo-50 border-indigo-500 text-indigo-700 ring-1 ring-indigo-500'
+                                            : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'
+                                        }`}
+                                >
+                                    {type}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex border-b border-gray-200 mb-4 gap-2">
@@ -178,6 +202,7 @@ export function Units() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
     const [unitName, setUnitName] = useState('');
+    const [unitType, setUnitType] = useState<'MASCULINA' | 'FEMININA' | 'MISTA'>('MISTA');
 
     // Selection state
     const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
@@ -211,6 +236,7 @@ export function Units() {
     const units = useMemo(() => {
         return rawUnits.map(unit => ({
             ...unit,
+            type: unit.type || 'MISTA',
             _count: {
                 members: users.filter(u => u.unitId === unit.id).length
             }
@@ -229,13 +255,14 @@ export function Units() {
 
     // Create Unit
     const createUnitMutation = useMutation({
-        mutationFn: async (data: { name: string, clubId: string, members?: string[] }) => {
+        mutationFn: async (data: { name: string, type: string, clubId: string, members?: string[] }) => {
             const batch = writeBatch(db);
 
             // 1. Create Unit
             const unitRef = doc(collection(db, 'units'));
             batch.set(unitRef, {
                 name: data.name,
+                type: data.type,
                 clubId: data.clubId,
                 createdAt: new Date().toISOString()
             });
@@ -261,12 +288,12 @@ export function Units() {
 
     // Update Unit
     const updateUnitMutation = useMutation({
-        mutationFn: async (data: { id: string, name: string, members: string[] }) => {
+        mutationFn: async (data: { id: string, name: string, type: string, members: string[] }) => {
             const batch = writeBatch(db);
             const unitRef = doc(db, 'units', data.id);
 
-            // 1. Update Name
-            batch.update(unitRef, { name: data.name });
+            // 1. Update Name & Type
+            batch.update(unitRef, { name: data.name, type: data.type });
 
             // 2. Update Members
             // Find users currently in this unit but NOT in new selection -> Remove them
@@ -332,6 +359,7 @@ export function Units() {
     const handleEdit = (unit: Unit) => {
         setEditingUnit(unit);
         setUnitName(unit.name);
+        setUnitType(unit.type || 'MISTA');
         setActiveTab('info');
         setIsModalOpen(true);
     };
@@ -359,6 +387,7 @@ export function Units() {
         setIsModalOpen(false);
         setEditingUnit(null);
         setUnitName('');
+        setUnitType('MISTA');
         setSelectedMemberIds(new Set());
         setActiveTab('info');
     };
@@ -375,11 +404,13 @@ export function Units() {
             updateUnitMutation.mutate({
                 id: editingUnit.id,
                 name: unitName,
+                type: unitType,
                 members: Array.from(selectedMemberIds)
             });
         } else {
             createUnitMutation.mutate({
                 name: unitName,
+                type: unitType,
                 clubId: user.clubId,
                 members: Array.from(selectedMemberIds)
             });
@@ -397,7 +428,7 @@ export function Units() {
                 </div>
                 {['OWNER', 'ADMIN', 'DIRECTOR'].includes(user?.role || '') && (
                     <button
-                        onClick={() => { setEditingUnit(null); setUnitName(''); setIsModalOpen(true); }}
+                        onClick={() => { setEditingUnit(null); setUnitName(''); setUnitType('MISTA'); setIsModalOpen(true); }}
                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
                     >
                         <Plus className="w-5 h-5" />
@@ -411,12 +442,18 @@ export function Units() {
                     <div key={unit.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
                         <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
-                                    <Shield className="w-5 h-5" />
+                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${unit.type === 'MASCULINA' ? 'bg-blue-100 text-blue-600' :
+                                        unit.type === 'FEMININA' ? 'bg-pink-100 text-pink-600' :
+                                            'bg-purple-100 text-purple-600'
+                                    }`}>
+                                    {unit.type === 'MASCULINA' ? 'M' : unit.type === 'FEMININA' ? 'F' : 'Mix'}
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-slate-800">{unit.name}</h3>
-                                    <p className="text-sm text-slate-500">{unit._count?.members || 0} membros</p>
+                                    <p className="text-sm text-slate-500 flex items-center gap-1">
+                                        <Users className="w-3 h-3" />
+                                        {unit._count?.members || 0} membros
+                                    </p>
                                 </div>
                             </div>
                             {['OWNER', 'ADMIN', 'DIRECTOR'].includes(user?.role || '') && (
