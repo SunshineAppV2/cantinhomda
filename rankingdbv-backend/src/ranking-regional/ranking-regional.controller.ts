@@ -45,8 +45,11 @@ else if (user.role === 'COORDINATOR_AREA') {
 if (['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA'].includes(user.role)) {
     let isIncomplete = false;
 
-    if (!scope.association) {
-        console.warn(`[RankingRegional] Coordinator ${user.email} is missing Association/Mission!`);
+    // Relaxed check: If Region is present, we assume it's specific enough (matches ClubsService logic)
+    // if (!scope.association && !scope.region && !scope.district) { ... }
+
+    if (user.role === 'COORDINATOR_AREA' && !scope.association) {
+        console.warn(`[RankingRegional] Area Coordinator ${user.email} is missing Association!`);
         isIncomplete = true;
     }
 
@@ -55,8 +58,9 @@ if (['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA'].include
         isIncomplete = true;
     }
 
-    if (user.role === 'COORDINATOR_DISTRICT' && (!scope.region || !scope.district)) {
-        console.warn(`[RankingRegional] District Coordinator ${user.email} is missing Region or District!`);
+    if (user.role === 'COORDINATOR_DISTRICT' && !scope.district) {
+        // Note: ClubsService only checks district.
+        console.warn(`[RankingRegional] District Coordinator ${user.email} is missing District!`);
         isIncomplete = true;
     }
 
