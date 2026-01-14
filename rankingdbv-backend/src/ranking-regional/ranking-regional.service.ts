@@ -11,7 +11,9 @@ export class RankingRegionalService {
 
         console.log(`[RankingService] Calculating Ranking for scope:`, scope);
 
-        if (scope.union) where.union = scope.union;
+        if (scope.union && !scope.association && !scope.region && !scope.district) {
+            where.union = scope.union; // Only filter by union if stricter filters are missing (to avoid data mismatch)
+        }
 
         if (scope.association) {
             // Priority 1: Association/Mission matching

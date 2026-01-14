@@ -38,7 +38,6 @@ import { AuditModule } from './audit/audit.module';
     // ...
     RankingRegionalModule,
     SubscriptionsModule,
-    AuditModule,
     RegionalEventsModule,
     ReportsModule,
   ],

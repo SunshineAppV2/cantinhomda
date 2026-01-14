@@ -19,58 +19,54 @@ export class RankingRegionalController {
         if (user.role === 'DIRECTOR' || user.role === 'OWNER' || user.role === 'ADMIN') {
             scope = { clubId: user.clubId };
         }
-    }
-        else if(user.role === 'COORDINATOR_DISTRICT') {
-    scope = {
-        // union: user.union,
-        // association: user.association || user.mission,
-        // region: user.region,
-        district: user.district // Trust District Uniqueness (matches ClubsService)
-    };
-}
+        else if (user.role === 'COORDINATOR_DISTRICT') {
+            scope = {
+                union: user.union,
+                association: user.association || user.mission,
+                region: user.region,
+                district: user.district
+            };
+        }
         else if (user.role === 'COORDINATOR_REGIONAL') {
-    scope = {
-        // union: user.union,
-        // association: user.association || user.mission,
-        region: user.region // Trust Region Uniqueness (matches ClubsService)
-    };
-}
-else if (user.role === 'COORDINATOR_AREA') {
-    scope = {
-        association: user.association || user.mission
-    };
-}
+            scope = {
+                union: user.union,
+                association: user.association || user.mission,
+                region: user.region
+            };
+        }
+        else if (user.role === 'COORDINATOR_AREA') {
+            scope = {
+                union: user.union,
+                association: user.association || user.mission
+            };
+        }
 
-// Final security check: ensure scope is not too broad for coordinators
-if (['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA'].includes(user.role)) {
-    let isIncomplete = false;
+        // Final security check: ensure scope is not too broad for coordinators
+        if (['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA'].includes(user.role)) {
+            let isIncomplete = false;
 
-    // Relaxed check: If Region is present, we assume it's specific enough (matches ClubsService logic)
-    // if (!scope.association && !scope.region && !scope.district) { ... }
+            if (!scope.association) {
+                console.warn(`[RankingRegional] Coordinator ${user.email} is missing Association/Mission!`);
+                isIncomplete = true;
+            }
 
-    if (user.role === 'COORDINATOR_AREA' && !scope.association) {
-        console.warn(`[RankingRegional] Area Coordinator ${user.email} is missing Association!`);
-        isIncomplete = true;
-    }
+            if (user.role === 'COORDINATOR_REGIONAL' && !scope.region) {
+                console.warn(`[RankingRegional] Regional Coordinator ${user.email} is missing Region!`);
+                isIncomplete = true;
+            }
 
-    if (user.role === 'COORDINATOR_REGIONAL' && !scope.region) {
-        console.warn(`[RankingRegional] Regional Coordinator ${user.email} is missing Region!`);
-        isIncomplete = true;
-    }
+            if (user.role === 'COORDINATOR_DISTRICT' && (!scope.region || !scope.district)) {
+                console.warn(`[RankingRegional] District Coordinator ${user.email} is missing Region or District!`);
+                isIncomplete = true;
+            }
 
-    if (user.role === 'COORDINATOR_DISTRICT' && !scope.district) {
-        // Note: ClubsService only checks district.
-        console.warn(`[RankingRegional] District Coordinator ${user.email} is missing District!`);
-        isIncomplete = true;
-    }
+            if (isIncomplete) {
+                console.warn(`[RankingRegional] Profile incomplete for role ${user.role}. Returning empty ranking.`);
+                return []; // Return empty array if profile is incomplete
+            }
+        }
 
-    if (isIncomplete) {
-        console.warn(`[RankingRegional] Profile incomplete for role ${user.role}. Returning empty ranking.`);
-        return []; // Return empty array if profile is incomplete
-    }
-}
-
-console.log(`[RankingRegional] Final Effective Scope:`, scope);
-return this.rankingService.getRegionalRanking(scope);
+        console.log(`[RankingRegional] Final Effective Scope:`, scope);
+        return this.rankingService.getRegionalRanking(scope);
     }
 }

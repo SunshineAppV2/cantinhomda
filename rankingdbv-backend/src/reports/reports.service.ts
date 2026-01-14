@@ -17,7 +17,7 @@ export class ReportsService {
         console.log('[Reports] getRegionalStats Filters:', filters);
 
         // 1. Build Club Filter
-        const clubFilter: any = { subscriptionStatus: { in: ['ACTIVE', 'TRIAL', 'PENDING', 'OVERDUE'] } }; // Include all non-canceled
+        const clubFilter: any = { status: 'ACTIVE' }; // Only ACTIVE clubs
         if (association) clubFilter.association = association;
         if (region) clubFilter.region = region;
         if (district) clubFilter.district = district;
