@@ -77,7 +77,11 @@ export class RegionalEventsController {
     @Post(':id/subscribe')
     subscribe(@Param('id') id: string, @Request() req) {
         const clubId = req.user.clubId;
-        if (!clubId) throw new ForbiddenException('Apenas diretores de clube podem se inscrever.');
+        console.log(`[RegionalEvents] Subscribe Request. User: ${req.user.email}, ClubId: ${clubId}`);
+        if (!clubId) {
+            console.error(`[RegionalEvents] Subscribe Failed: No ClubId for user ${req.user.email}`);
+            throw new ForbiddenException('Apenas diretores de clube podem se inscrever.');
+        }
         return this.regionalEventsService.subscribe(id, clubId);
     }
 
@@ -85,6 +89,7 @@ export class RegionalEventsController {
     @Post(':id/unsubscribe')
     unsubscribe(@Param('id') id: string, @Request() req) {
         const clubId = req.user.clubId;
+        console.log(`[RegionalEvents] Unsubscribe Request. User: ${req.user.email}, ClubId: ${clubId}`);
         if (!clubId) throw new ForbiddenException('Apenas diretores de clube podem cancelar inscrição.');
         return this.regionalEventsService.unsubscribe(id, clubId);
     }
@@ -105,7 +110,12 @@ export class RegionalEventsController {
     ) {
         const clubId = req.user.clubId;
         const userId = req.user.userId || req.user.id;
-        if (!clubId) throw new ForbiddenException('Apenas membros de clube podem responder.');
+        console.log(`[RegionalEvents] Submit Response. User: ${req.user.email}, ClubId: ${clubId}, ReqId: ${reqId}`);
+
+        if (!clubId) {
+            console.error(`[RegionalEvents] Submit Failed: No ClubId for user ${req.user.email}`);
+            throw new ForbiddenException('Apenas membros de clube podem responder.');
+        }
 
         return this.regionalEventsService.submitResponse(eventId, reqId, clubId, userId, body);
     }

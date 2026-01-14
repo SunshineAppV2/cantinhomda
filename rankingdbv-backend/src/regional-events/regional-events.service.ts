@@ -145,8 +145,14 @@ export class RegionalEventsService {
     // --- Event Evaluation (EventResponse Entity) ---
 
     async submitResponse(eventId: string, requirementId: string, clubId: string, userId: string, data: { text?: string, file?: string }) {
-        // Upsert response for Club + Requirement
-        // Verify if Requirement belongs to Event? (Optional but good)
+        // Check if already approved (Prevent tampering after approval)
+        const existing = await this.prisma.eventResponse.findUnique({
+            where: { clubId_requirementId: { clubId, requirementId } }
+        });
+
+        if (existing && existing.status === 'APPROVED') {
+            throw new UnauthorizedException('Este requisito já foi aprovado e não pode ser alterado.');
+        }
 
         return this.prisma.eventResponse.upsert({
             where: {

@@ -1,4 +1,4 @@
-﻿import { Injectable, UnauthorizedException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { ClubsService } from '../clubs/clubs.service'; // Import ClubsService
@@ -110,6 +110,11 @@ export class AuthService {
       region: user.region || (club as any)?.region,
       district: user.district || (club as any)?.district
     };
+
+    console.log(`[AuthService.login] Generating Token for ${user.email}. ClubID: ${user.clubId}, Role: ${user.role}`);
+    if (!user.clubId && (user.role === 'DIRECTOR' || user.role === 'OWNER')) {
+        console.warn(`[AuthService.login] ⚠️ WARNING: DIRECTOR/OWNER ${user.email} has NO ClubID! Functionality will be limited.`);
+    }
 
     return {
       access_token: this.jwtService.sign(payload),
