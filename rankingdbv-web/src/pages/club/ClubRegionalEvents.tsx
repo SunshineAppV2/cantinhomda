@@ -32,6 +32,7 @@ interface Requirement {
     questions?: any[];
     completed?: boolean; // Front-end helper if we fetch progress
     response?: any; // To store existing response
+    userProgress?: { status: string, completedAt: string }[];
 }
 
 export function ClubRegionalEvents() {
@@ -205,12 +206,24 @@ function ClubEventDetails({ eventId, onBack }: { eventId: string, onBack: () => 
                                 </div>
                             </div>
                             <div className="ml-4">
-                                <button
-                                    onClick={() => setAnsweringReq(req)}
-                                    className="bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                                >
-                                    Responder
-                                </button>
+                                <div className="ml-4 flex flex-col items-end gap-2">
+                                    {req.userProgress?.[0]?.status === 'APPROVED' ? (
+                                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
+                                            Concluído
+                                        </span>
+                                    ) : req.userProgress?.[0]?.status === 'PENDING' ? (
+                                        <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200">
+                                            Em Análise
+                                        </span>
+                                    ) : (
+                                        <button
+                                            onClick={() => setAnsweringReq(req)}
+                                            className="bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                                        >
+                                            Responder
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>

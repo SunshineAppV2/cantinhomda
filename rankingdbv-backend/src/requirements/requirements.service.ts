@@ -328,9 +328,28 @@ export class RequirementsService {
     // Submit Answer for Requirement
     // Submit Answer for Requirement
     async submitAnswer(userId: string, requirementId: string, text?: string, fileUrl?: string) {
-        // Upsert Answer (Auto-assign if not exists, e.g. for Event Requirements)
-        // We set status to PENDING so it can be approved.
+        // 1. Fetch Requirement & Context
+        const requirement = await this.prisma.requirement.findUnique({
+            where: { id: requirementId },
+            include: { regionalEvent: { include: { participatingClubs: true } } }
+        });
+        if (!requirement) throw new Error('Requisito não encontrado');
 
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: { club: true }
+        });
+        if (!user || !user.clubId) throw new UnauthorizedException('Usuário inválido ou sem clube');
+
+        // 2. Event Participation Check
+        if (requirement.regionalEventId && requirement.regionalEvent) {
+            const isSubscribed = requirement.regionalEvent.participatingClubs.some(c => c.id === user.clubId);
+            if (!isSubscribed) {
+                throw new UnauthorizedException('Seu clube não está inscrito neste evento.');
+            }
+        }
+
+        // 3. Upsert Response
         const result = await this.prisma.userRequirement.upsert({
             where: { userId_requirementId: { userId, requirementId } },
             create: {
@@ -349,28 +368,46 @@ export class RequirementsService {
             }
         });
 
-        // Notify Admins
+        // 4. Notifications
         try {
-            const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { name: true, clubId: true } });
-            const requirement = await this.prisma.requirement.findUnique({ where: { id: requirementId }, select: { description: true, code: true } });
+            // If Event Requirement -> Notify Coordinators
+            if (requirement.regionalEventId) {
+                // Find Coordinators for the Event's Region/District
+                // Assuming RegionalEvent has region/district fields.
+                // Or we notify the Event Creator?
+                // Better: Notify Regional/District Coordinators.
 
-            if (user && user.clubId && requirement) {
-                const admins = await this.prisma.user.findMany({
-                    where: {
-                        clubId: user.clubId,
-                        role: { in: ['OWNER', 'ADMIN', 'INSTRUCTOR'] }
-                    },
+                const whereCoord: any = { role: { in: ['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'MASTER'] } };
+                if (requirement.regionalEvent?.district) {
+                    whereCoord.district = requirement.regionalEvent.district;
+                } else if (requirement.regionalEvent?.region) {
+                    whereCoord.region = requirement.regionalEvent.region;
+                }
+
+                const coordinators = await this.prisma.user.findMany({
+                    where: whereCoord,
                     select: { id: true }
                 });
 
-                // Also notify Regional/District coordinator if it's a regional requirement?
-                // For now, Club Admin approves as per plan "Aprovação do Regional ou Distrital".
-                // Wait, user said "Aprovação do Regional ou Distrital".
-                // If so, the notification should go to THEM, not just Club Admin.
-                // But Club Admin sees it in "Pending Approvals"?
-                // We need to implement Regional Approvals in the future or now.
-                // The current logic notifies Club Admins. 
-                // Let's keep it simple for now, as Coordinators can also look at the event dashboard.
+                for (const coord of coordinators) {
+                    await this.notificationsService.send(
+                        coord.id,
+                        'Nova Resposta de Evento',
+                        `O clube ${user.club?.name} enviou uma resposta para o evento ${requirement.regionalEvent?.title}.`,
+                        'INFO'
+                    );
+                }
+
+            } else {
+                // Legacy / Club Requirement -> Notify Club Admins
+                const admins = await this.prisma.user.findMany({
+                    where: {
+                        clubId: user.clubId,
+                        role: { in: ['OWNER', 'ADMIN', 'INSTRUCTOR'] },
+                        id: { not: userId } // Don't notify self
+                    },
+                    select: { id: true }
+                });
 
                 for (const admin of admins) {
                     await this.notificationsService.send(

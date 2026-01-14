@@ -68,14 +68,16 @@ export class RegionalEventsService {
         });
     }
 
-    async findOne(id: string) {
+    async findOne(id: string, userId?: string) {
         const event = await this.prisma.regionalEvent.findUnique({
             where: { id },
             include: {
                 requirements: {
                     include: {
-                        // Include progress for current user? Passed in logic needed?
-                        // For now just requirements
+                        userProgress: userId ? {
+                            where: { userId },
+                            select: { status: true, completedAt: true }
+                        } : false
                     }
                 }
             }

@@ -52,8 +52,9 @@ export class RegionalEventsController {
 
     @UseGuards(JwtAuthGuard)
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.regionalEventsService.findOne(id);
+    findOne(@Param('id') id: string, @Request() req) {
+        const userId = req.user?.userId || req.user?.id;
+        return this.regionalEventsService.findOne(id, userId);
     }
 
     @UseGuards(JwtAuthGuard)
