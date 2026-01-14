@@ -249,13 +249,19 @@ export function RegionalEventsManager() {
 
                         <div className="mt-4 grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
                             <button
-                                onClick={() => setEvalEvent(event)}
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    console.log('Opening evaluation for event:', event.id);
+                                    setEvalEvent(event);
+                                }}
                                 className="flex items-center justify-center gap-2 bg-orange-50 hover:bg-orange-100 text-orange-700 py-2 px-3 rounded-lg text-sm font-bold transition-colors border border-orange-200"
                             >
                                 <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
                                 Avaliar
                             </button>
                             <button
+                                type="button"
                                 onClick={() => setSelectedEventId(event.id)}
                                 className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-bold transition-colors shadow-sm"
                             >
@@ -276,7 +282,7 @@ export function RegionalEventsManager() {
             {evalEvent && (
                 <EventEvaluationModal
                     event={evalEvent}
-                    isOpen={!!evalEvent}
+                    isOpen={true}
                     onClose={() => setEvalEvent(null)}
                 />
             )}
