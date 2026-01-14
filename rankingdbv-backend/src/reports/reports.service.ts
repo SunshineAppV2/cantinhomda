@@ -43,11 +43,29 @@ export class ReportsService {
             };
         }
 
-        // 2. Total Units
-        const totalUnits = await this.prisma.unit.count({
+        // 2. Units Stats
+        const unitStats: any = await this.prisma.unit.groupBy({
+            by: ['type'],
             where: {
                 clubId: { in: clubIds }
+            },
+            _count: {
+                id: true
             }
+        });
+
+        const activeUnits = {
+            masculine: 0,
+            feminine: 0,
+            mixed: 0,
+            total: 0
+        };
+
+        unitStats.forEach(stat => {
+            if (stat.type === 'MASCULINA') activeUnits.masculine = stat._count.id;
+            else if (stat.type === 'FEMININA') activeUnits.feminine = stat._count.id;
+            else if (stat.type === 'MISTA') activeUnits.mixed = stat._count.id;
+            activeUnits.total += stat._count.id;
         });
 
         // 3. User Stats (Members, Gender, Age)
@@ -133,7 +151,8 @@ export class ReportsService {
 
         return {
             totalMembers: users.length,
-            totalUnits,
+            totalUnits: activeUnits.total,
+            unitStats: activeUnits,
             pathfindersCount,
             staffCount,
             genderDistribution: { male, female },
