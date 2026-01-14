@@ -70,6 +70,9 @@ export function RegionalEventsManager() {
     const [isPartModalOpen, setIsPartModalOpen] = useState(false);
     const [managingPartEventId, setManagingPartEventId] = useState<string | null>(null);
 
+    // Evaluation Modal State
+    const [evalEvent, setEvalEvent] = useState<RegionalEvent | null>(null);
+
     const createEventMutation = useMutation({
         mutationFn: async (data: any) => await api.post('/regional-events', data),
         onSuccess: () => {
@@ -248,12 +251,21 @@ export function RegionalEventsManager() {
                             <span className="text-xs text-slate-500 font-medium">
                                 {event._count?.requirements || 0} Requisitos
                             </span>
-                            <button
-                                onClick={() => setSelectedEventId(event.id)}
-                                className="text-blue-600 text-sm font-bold flex items-center hover:underline"
-                            >
-                                Gerenciar <ChevronRight className="w-4 h-4 ml-1" />
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setEvalEvent(event)}
+                                    className="text-orange-600 text-sm font-bold hover:underline flex items-center gap-1"
+                                >
+                                    <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></div>
+                                    Avaliar
+                                </button>
+                                <button
+                                    onClick={() => setSelectedEventId(event.id)}
+                                    className="text-blue-600 text-sm font-bold flex items-center hover:underline"
+                                >
+                                    Gerenciar <ChevronRight className="w-4 h-4 ml-1" />
+                                </button>
+                            </div>
                         </div>
                     </div>
                 ))}
@@ -263,6 +275,14 @@ export function RegionalEventsManager() {
                     </div>
                 )}
             </div>
+
+            {evalEvent && (
+                <EventEvaluationModal
+                    event={evalEvent}
+                    isOpen={!!evalEvent}
+                    onClose={() => setEvalEvent(null)}
+                />
+            )}
 
             <Modal isOpen={isEventModalOpen} onClose={closeEventModal} title={editingEventId ? "Editar Evento" : "Novo Evento"}>
                 <form onSubmit={handleSaveEvent} className="space-y-4">
@@ -615,4 +635,102 @@ function EventRequirementsManager({ eventId }: { eventId: string }) {
             </Modal>
         </div>
     )
+}
+
+function EventEvaluationModal({ event, isOpen, onClose }: { event: RegionalEvent, isOpen: boolean, onClose: () => void }) {
+    const queryClient = useQueryClient();
+
+    // Fetch Pending Responses
+    const { data: pending = [], isLoading } = useQuery({
+        queryKey: ['event-pending', event.id],
+        queryFn: async () => {
+            const res = await api.get(`/regional-events/${event.id}/pending-responses`);
+            return res.data;
+        },
+        enabled: isOpen
+    });
+
+    const approveMutation = useMutation({
+        mutationFn: async (id: string) => await api.post(`/regional-events/${event.id}/responses/${id}/approve`),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['event-pending', event.id] });
+            import('sonner').then(({ toast }) => toast.success('Aprovado!'));
+        }
+    });
+
+    const rejectMutation = useMutation({
+        mutationFn: async (id: string) => await api.post(`/regional-events/${event.id}/responses/${id}/reject`, { reason: 'Rejeitado pelo coordenador' }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['event-pending', event.id] });
+            import('sonner').then(({ toast }) => toast.success('Rejeitado!'));
+        }
+    });
+
+    // Group by Club
+    const groupedByClub = (pending as any[]).reduce((acc: any, curr: any) => {
+        const clubName = curr.user.club?.name || 'Sem Clube';
+        if (!acc[clubName]) acc[clubName] = [];
+        acc[clubName].push(curr);
+        return acc;
+    }, {});
+
+    return (
+        <Modal isOpen={isOpen} onClose={onClose} title={`Avaliar: ${event.title}`}>
+            <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2">
+                {isLoading && <p className="text-center text-slate-500">Carregando...</p>}
+                {!isLoading && pending.length === 0 && <p className="text-center text-slate-500 py-10">Nenhuma resposta pendente.</p>}
+
+                {Object.entries(groupedByClub).map(([clubName, responses]: [string, any]) => (
+                    <div key={clubName} className="bg-white border rounded-lg shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 px-4 py-2 border-b font-bold text-slate-700 flex justify-between">
+                            <span>{clubName}</span>
+                            <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded-full">{responses.length} pendentes</span>
+                        </div>
+                        <div className="divide-y relative">
+                            {responses.map((resp: any) => (
+                                <div key={resp.id} className="p-4 flex flex-col gap-3">
+                                    <div className="flex items-start gap-3">
+                                        <div className="relative">
+                                            <img src={resp.user.photoUrl || `https://ui-avatars.com/api/?name=${resp.user.name}`} className="w-10 h-10 rounded-full object-cover" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="font-bold text-slate-800">{resp.user.name}</div>
+                                            <div className="text-xs text-slate-500 mb-2">{resp.requirement.code} - {resp.requirement.title}</div>
+
+                                            {resp.answerText && (
+                                                <div className="bg-slate-50 p-2 rounded text-sm text-slate-700 border mb-2">
+                                                    {resp.answerText}
+                                                </div>
+                                            )}
+                                            {resp.answerFileUrl && (
+                                                <a href={resp.answerFileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline text-sm block mb-2">
+                                                    Ver Arquivo Anexado
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <button
+                                            onClick={() => rejectMutation.mutate(resp.id)}
+                                            disabled={rejectMutation.isPending || approveMutation.isPending}
+                                            className="px-3 py-1 text-xs font-bold text-red-600 hover:bg-red-50 rounded border border-red-200"
+                                        >
+                                            Rejeitar
+                                        </button>
+                                        <button
+                                            onClick={() => approveMutation.mutate(resp.id)}
+                                            disabled={rejectMutation.isPending || approveMutation.isPending}
+                                            className="px-3 py-1 text-xs font-bold text-green-600 hover:bg-green-50 rounded border border-green-200"
+                                        >
+                                            Aprovar
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </Modal>
+    );
 }

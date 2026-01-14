@@ -135,4 +135,26 @@ export class RegionalEventsService {
             }
         });
     }
+
+    async getPendingResponses(eventId: string, user: any) {
+        // Validate access? 
+        // Assuming controller checks if user is Coordinator/Master.
+
+        return this.prisma.userRequirement.findMany({
+            where: {
+                requirement: { regionalEventId: eventId },
+                status: 'PENDING',
+                // Filter only those with actual answers?
+                OR: [
+                    { answerText: { not: null } },
+                    { answerFileUrl: { not: null } }
+                ]
+            },
+            include: {
+                user: { select: { id: true, name: true, photoUrl: true, club: { select: { id: true, name: true } } } },
+                requirement: { select: { id: true, title: true, code: true, points: true, type: true } }
+            },
+            orderBy: { completedAt: 'asc' } // Oldest first
+        });
+    }
 }

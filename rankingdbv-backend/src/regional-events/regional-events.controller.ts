@@ -3,10 +3,14 @@ import { RegionalEventsService } from './regional-events.service';
 import { CreateRegionalEventDto } from './dto/create-regional-event.dto';
 import { UpdateRegionalEventDto } from './dto/update-regional-event.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RequirementsService } from '../requirements/requirements.service';
 
 @Controller('regional-events')
 export class RegionalEventsController {
-    constructor(private readonly regionalEventsService: RegionalEventsService) { }
+    constructor(
+        private readonly regionalEventsService: RegionalEventsService,
+        private readonly requirementsService: RequirementsService
+    ) { }
 
     @UseGuards(JwtAuthGuard)
     @Post()
@@ -85,5 +89,24 @@ export class RegionalEventsController {
         const clubId = req.user.clubId;
         if (!clubId) throw new ForbiddenException('Apenas diretores de clube podem cancelar inscrição.');
         return this.regionalEventsService.unsubscribe(id, clubId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get(':id/pending-responses')
+    getPendingResponses(@Param('id') id: string, @Request() req) {
+        return this.regionalEventsService.getPendingResponses(id, req.user);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post(':id/responses/:respId/approve')
+    approveResponse(@Param('respId') respId: string, @Request() req) {
+        // We pass the coordinator ID to validate permissions inside the service
+        return this.requirementsService.approveByCoordinator(respId, req.user.userId || req.user.id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post(':id/responses/:respId/reject')
+    rejectResponse(@Param('respId') respId: string, @Body() body: any, @Request() req) {
+        return this.requirementsService.rejectByCoordinator(respId, req.user.userId || req.user.id, body.reason);
     }
 }
