@@ -58,6 +58,7 @@ import { CompleteProfile } from './pages/CompleteProfile';
 import { Toaster } from 'sonner';
 
 function App() {
+  console.log("RankingDBV Web App v1.0.5 - Fix Applied");
   return (
     <AuthProvider>
       <Toaster position="top-center" richColors closeButton />
