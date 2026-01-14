@@ -171,7 +171,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
             if (hasAccess('APPROVALS')) managementSubItems.push({ id: 'approvals', label: 'Aprovações', icon: ListChecks, path: '/dashboard/approvals' });
             if (['OWNER', 'ADMIN', 'DIRECTOR'].includes(user?.role || '')) {
                 managementSubItems.push({ id: 'units', label: 'Unidades', icon: Shield, path: '/dashboard/units' });
-                managementSubItems.push({ id: 'club-regional-events', label: 'Eventos Regionais', icon: Calendar, path: '/dashboard/club/regional-events' });
+                managementSubItems.push({ id: 'club-regional-events', label: 'Meus Eventos (Regionais)', icon: Calendar, path: '/dashboard/club/regional-events' });
                 // managementSubItems.push({ id: 'regional-req-view', label: 'Requisitos Regionais', icon: Award, path: '/dashboard/regional-requirements' }); // Deprecated/Legacy view?
             }
 

@@ -418,7 +418,7 @@ export function ClubRegionalEvents() {
             <div className="flex flex-col gap-2">
                 <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
                     <MapPin className="text-blue-600" />
-                    Eventos Regionais
+                    Painel do Clube - Eventos
                 </h1>
                 <p className="text-slate-500">Participe dos eventos e ganhe pontos para o ranking do seu clube.</p>
                 {!user?.clubId && (
