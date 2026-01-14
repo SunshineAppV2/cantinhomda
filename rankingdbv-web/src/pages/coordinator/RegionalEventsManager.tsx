@@ -4,6 +4,7 @@ import { api } from '../../lib/axios';
 import { Plus, Calendar, MapPin, Trash2, Pencil, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Modal } from '../../components/Modal';
 import { format } from 'date-fns';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Types
 interface RegionalEvent {
@@ -20,9 +21,16 @@ interface RegionalEvent {
 }
 
 export function RegionalEventsManager() {
+    // const { user } = useAuth(); // Not needed in parent anymore if only used in sub-component?
+    // Actually, parent manages EVENTS (Add/Edit/Delete Event).
+    // So parent DOES need permission check for Event buttons.
     const { user } = useAuth();
     const isCoordinator = user?.role === 'COORDINATOR_REGIONAL' || user?.role === 'COORDINATOR_DISTRICT' || user?.role === 'MASTER';
-    const canManageEvents = isCoordinator; // Simplify for now
+    // const canManageEvents = isCoordinator; // Removing unused variable warning if only used in conditional rendering below.
+    // Wait, I need to USE it in the JSX.
+
+
+    const canManageEvents = isCoordinator;
 
     // Redirect or Show simplified view if not coordinator? 
     // Actually, this component is likely protected by a Route Guard, but let's reinforce.
@@ -146,12 +154,14 @@ export function RegionalEventsManager() {
                     </h1>
                     <p className="text-slate-500">Crie eventos e atribua requisitos aos clubes.</p>
                 </div>
-                <button
-                    onClick={openCreateEvent}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-colors"
-                >
-                    <Plus className="w-5 h-5" /> Novo Evento
-                </button>
+                {canManageEvents && (
+                    <button
+                        onClick={openCreateEvent}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-colors"
+                    >
+                        <Plus className="w-5 h-5" /> Novo Evento
+                    </button>
+                )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -162,10 +172,12 @@ export function RegionalEventsManager() {
                                 <Calendar className="w-3 h-3" />
                                 {format(new Date(event.startDate), 'dd/MM/yyyy')}
                             </div>
-                            <div className="flex gap-1">
-                                <button onClick={() => openEditEvent(event)} className="p-1 hover:bg-slate-100 rounded text-slate-500"><Pencil className="w-4 h-4" /></button>
-                                <button onClick={() => { if (confirm('Excluir evento?')) deleteEventMutation.mutate(event.id) }} className="p-1 hover:bg-red-50 rounded text-red-500"><Trash2 className="w-4 h-4" /></button>
-                            </div>
+                            {canManageEvents && (
+                                <div className="flex gap-1">
+                                    <button onClick={() => openEditEvent(event)} className="p-1 hover:bg-slate-100 rounded text-slate-500"><Pencil className="w-4 h-4" /></button>
+                                    <button onClick={() => { if (confirm('Excluir evento?')) deleteEventMutation.mutate(event.id) }} className="p-1 hover:bg-red-50 rounded text-red-500"><Trash2 className="w-4 h-4" /></button>
+                                </div>
+                            )}
                         </div>
                         <h3 className="font-bold text-lg text-slate-800 mb-1">{event.title}</h3>
                         <p className="text-sm text-slate-500 line-clamp-2 mb-4 h-10">{event.description}</p>
