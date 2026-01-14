@@ -140,7 +140,7 @@ export class ClubsController {
 
     @UseGuards(JwtAuthGuard)
     @Put(':id')
-    update(@Param('id') id: string, @Body() data: { name?: string; logoUrl?: string; settings?: any; union?: string; mission?: string; region?: string; district?: string; association?: string }) {
+    update(@Param('id') id: string, @Body() data: { name?: string; logoUrl?: string; settings?: any; union?: string; mission?: string; region?: string; district?: string; association?: string; participatesInRanking?: boolean }) {
         return this.clubsService.update(id, data);
     }
 

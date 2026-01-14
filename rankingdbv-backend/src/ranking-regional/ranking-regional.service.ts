@@ -7,7 +7,9 @@ export class RankingRegionalService {
     constructor(private prisma: PrismaService) { }
 
     async getRegionalRanking(scope: { union?: string, region?: string, district?: string, association?: string, clubId?: string }) {
-        const where: any = {};
+        const where: any = {
+            participatesInRanking: true // Only show clubs that participate
+        };
 
         console.log(`[RankingService] Calculating Ranking for scope:`, scope);
 

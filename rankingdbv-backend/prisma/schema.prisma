@@ -23,6 +23,7 @@ model Club {
   nextBillingDate       DateTime?
   gracePeriodDays       Int                 @default(5)
   status                ClubStatus          @default(ACTIVE)
+  participatesInRanking Boolean             @default(true)
   subscriptionId        String?
   createdAt             DateTime            @default(now())
   updatedAt             DateTime            @updatedAt

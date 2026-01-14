@@ -21,6 +21,7 @@ interface Club {
     mission?: string;
     region?: string;
     phoneNumber?: string;
+    participatesInRanking?: boolean;
 }
 
 interface EditClubModalProps {
@@ -37,7 +38,8 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
         region: '',
         district: '',
         association: '',
-        phoneNumber: ''
+        phoneNumber: '',
+        participatesInRanking: true
     });
 
     const [members, setMembers] = useState<User[]>([]);
@@ -60,7 +62,8 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
                 region: club.region || '',
                 district: (club as any).district || '',
                 association: (club as any).association || '',
-                phoneNumber: (club as any).phoneNumber || ''
+                phoneNumber: (club as any).phoneNumber || '',
+                participatesInRanking: club.participatesInRanking !== undefined ? club.participatesInRanking : true
             });
             fetchMembers();
         }
@@ -245,113 +248,125 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
                         />
                         <p className="text-[10px] text-slate-400 mt-1">Insira apenas números com DDD (ex: 5561987654321)</p>
                     </div>
-                    <div className="flex justify-end">
-                        <button
-                            onClick={handleSaveClub}
-                            disabled={loading}
-                            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    disabled={loading}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-colors flex items-center gap-2"
                         >
-                            {loading ? 'Salvando...' : <><Save className="w-4 h-4" /> Atualizar Clube</>}
-                        </button>
-                    </div>
-                </div>
+                    {loading ? 'Salvando...' : <><Save className="w-4 h-4" /> Atualizar Clube</>}
+                </button>
+            </div>
 
-                {/* --- SEÇÃO CLUBES SUPERVISIONADOS (Para Regionais/Distritais) --- */}
-                {(club.name.toUpperCase().includes('REGIONAL') || club.name.toUpperCase().includes('DISTRITO')) && (
-                    <div className="border-t pt-6 space-y-4">
-                        <h4 className="text-xs font-bold text-blue-500 uppercase tracking-wider flex items-center gap-2">
-                            <Building2 className="w-4 h-4" /> Clubes Supervisionados ({supervisedClubs.length})
-                        </h4>
-                        <p className="text-[11px] text-slate-500 italic">
-                            Estes são os clubes que pertencem à {formData.region} / {formData.association}.
-                        </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                            {supervisedClubs.map((c: any) => (
-                                <div key={c.id} className="flex items-center gap-2 p-2 rounded bg-slate-50 border border-slate-100 group">
-                                    <div className="w-8 h-8 rounded bg-white flex items-center justify-center border border-slate-200 shadow-sm overflow-hidden text-[10px] text-slate-400">
-                                        {c.logoUrl ? <img src={c.logoUrl} className="w-full h-full object-cover" /> : 'DBV'}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="text-xs font-bold text-slate-700 truncate">{c.name}</div>
-                                        <div className="text-[10px] text-slate-500 truncate">{c.mission} / {c.district || 'Sem Distrito'}</div>
-                                    </div>
-                                    <Globe className="w-3 h-3 text-slate-300 group-hover:text-blue-500 transition-colors" />
-                                </div>
-                            ))}
-                            {supervisedClubs.length === 0 && !isLoadingSupervised && (
-                                <div className="col-span-2 text-center py-4 text-xs text-slate-400 italic">
-                                    Nenhum outro clube encontrado nesta jurisdição.
-                                </div>
-                            )}
-                            {isLoadingSupervised && (
-                                <div className="col-span-2 text-center py-4 text-xs text-slate-400 italic">
-                                    Buscando clubes...
-                                </div>
-                            )}
+            <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <input
+                    type="checkbox"
+                    id="participatesInRanking"
+                    checked={formData.participatesInRanking}
+                    onChange={e => setFormData({ ...formData, participatesInRanking: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="participatesInRanking" className="text-sm font-medium text-slate-700 cursor-pointer select-none">
+                    Este clube participa do Ranking Regional?
+                </label>
+            </div>
+        </div>
+
+                {/* --- SEÇÃO CLUBES SUPERVISIONADOS (Para Regionais/Distritais) --- */ }
+    {
+        (club.name.toUpperCase().includes('REGIONAL') || club.name.toUpperCase().includes('DISTRITO')) && (
+            <div className="border-t pt-6 space-y-4">
+                <h4 className="text-xs font-bold text-blue-500 uppercase tracking-wider flex items-center gap-2">
+                    <Building2 className="w-4 h-4" /> Clubes Supervisionados ({supervisedClubs.length})
+                </h4>
+                <p className="text-[11px] text-slate-500 italic">
+                    Estes são os clubes que pertencem à {formData.region} / {formData.association}.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
+                    {supervisedClubs.map((c: any) => (
+                        <div key={c.id} className="flex items-center gap-2 p-2 rounded bg-slate-50 border border-slate-100 group">
+                            <div className="w-8 h-8 rounded bg-white flex items-center justify-center border border-slate-200 shadow-sm overflow-hidden text-[10px] text-slate-400">
+                                {c.logoUrl ? <img src={c.logoUrl} className="w-full h-full object-cover" /> : 'DBV'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-xs font-bold text-slate-700 truncate">{c.name}</div>
+                                <div className="text-[10px] text-slate-500 truncate">{c.mission} / {c.district || 'Sem Distrito'}</div>
+                            </div>
+                            <Globe className="w-3 h-3 text-slate-300 group-hover:text-blue-500 transition-colors" />
                         </div>
-                    </div>
-                )}
-
-                <div className="border-t pt-6" />
-
-                {/* --- SEÇÃO 2: DIRETORIA (DESTAQUE) --- */}
-                <div className="space-y-4">
-                    <h4 className="text-xs font-bold text-amber-500 uppercase tracking-wider flex items-center gap-2">
-                        <Key className="w-4 h-4" /> Direção do Clube
-                    </h4>
-                    {loadingMembers ? (
-                        <div className="text-center py-4 text-slate-400 text-sm">Carregando diretoria...</div>
-                    ) : director ? (
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                            {editingUserId === director.id ? (
-                                <UserEditField
-                                    name={editName}
-                                    password={editPassword}
-                                    mustChangePassword={editMustChangePassword}
-                                    setName={setEditName}
-                                    setPassword={setEditPassword}
-                                    setMustChangePassword={setEditMustChangePassword}
-                                    onSave={() => handleSaveUser(director.id)}
-                                    onCancel={() => setEditingUserId(null)}
-                                    loading={savingUser}
-                                />
-                            ) : (
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-amber-200 rounded-full flex items-center justify-center text-amber-700">
-                                            <Shield className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <div className="font-bold text-slate-800">{director.name} <span className="text-[10px] bg-amber-400 text-white px-1.5 py-0.5 rounded ml-2">{ROLE_TRANSLATIONS[director.role] || director.role}</span></div>
-                                            <div className="text-xs text-slate-500">{director.email}</div>
-                                            {formData.phoneNumber && (
-                                                <a
-                                                    href={`https://wa.me/${formData.phoneNumber}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-1.5 mt-1 text-green-600 hover:text-green-700 transition-colors w-fit"
-                                                    title="Chamar no WhatsApp"
-                                                >
-                                                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg">
-                                                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
-                                                    </svg>
-                                                    <span className="text-xs font-bold">Chamar no WhatsApp</span>
-                                                </a>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <button onClick={() => handleEditUser(director)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
-                                        <Pencil className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            )}
+                    ))}
+                    {supervisedClubs.length === 0 && !isLoadingSupervised && (
+                        <div className="col-span-2 text-center py-4 text-xs text-slate-400 italic">
+                            Nenhum outro clube encontrado nesta jurisdição.
                         </div>
-                    ) : (
-                        <div className="text-sm text-slate-500 italic">Nenhum diretor (Owner) identificado neste clube.</div>
+                    )}
+                    {isLoadingSupervised && (
+                        <div className="col-span-2 text-center py-4 text-xs text-slate-400 italic">
+                            Buscando clubes...
+                        </div>
                     )}
                 </div>
+            </div>
+        )
+    }
 
-                {/* --- SEÇÃO 3: OUTROS MEMBROS --- */}
+    <div className="border-t pt-6" />
+
+    {/* --- SEÇÃO 2: DIRETORIA (DESTAQUE) --- */ }
+    <div className="space-y-4">
+        <h4 className="text-xs font-bold text-amber-500 uppercase tracking-wider flex items-center gap-2">
+            <Key className="w-4 h-4" /> Direção do Clube
+        </h4>
+        {loadingMembers ? (
+            <div className="text-center py-4 text-slate-400 text-sm">Carregando diretoria...</div>
+        ) : director ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                {editingUserId === director.id ? (
+                    <UserEditField
+                        name={editName}
+                        password={editPassword}
+                        mustChangePassword={editMustChangePassword}
+                        setName={setEditName}
+                        setPassword={setEditPassword}
+                        setMustChangePassword={setEditMustChangePassword}
+                        onSave={() => handleSaveUser(director.id)}
+                        onCancel={() => setEditingUserId(null)}
+                        loading={savingUser}
+                    />
+                ) : (
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-amber-200 rounded-full flex items-center justify-center text-amber-700">
+                                <Shield className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <div className="font-bold text-slate-800">{director.name} <span className="text-[10px] bg-amber-400 text-white px-1.5 py-0.5 rounded ml-2">{ROLE_TRANSLATIONS[director.role] || director.role}</span></div>
+                                <div className="text-xs text-slate-500">{director.email}</div>
+                                {formData.phoneNumber && (
+                                    <a
+                                        href={`https://wa.me/${formData.phoneNumber}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-1.5 mt-1 text-green-600 hover:text-green-700 transition-colors w-fit"
+                                        title="Chamar no WhatsApp"
+                                    >
+                                        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" />
+                                        </svg>
+                                        <span className="text-xs font-bold">Chamar no WhatsApp</span>
+                                    </a>
+                                )}
+                            </div>
+                        </div>
+                        <button onClick={() => handleEditUser(director)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors">
+                            <Pencil className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
+            </div>
+        ) : (
+            <div className="text-sm text-slate-500 italic">Nenhum diretor (Owner) identificado neste clube.</div>
+        )}
+    </div>
+
+    {/* --- SEÇÃO 3: OUTROS MEMBROS --- */ }
                 <div className="space-y-4">
                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                         <UserIcon className="w-4 h-4" /> Outros Membros ({otherMembers.length})
@@ -406,7 +421,7 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
                         Fechar
                     </button>
                 </div>
-            </div>
+            </div >
         </Modal >
     );
 }

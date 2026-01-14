@@ -30,4 +30,7 @@ export class CreateClubDto {
 
     @IsOptional()
     settings?: any;
+
+    @IsOptional()
+    participatesInRanking?: boolean;
 }
