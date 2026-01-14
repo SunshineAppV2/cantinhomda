@@ -106,6 +106,7 @@ export class RegionalEventsService {
         });
     }
     async subscribe(eventId: string, clubId: string) {
+        console.log(`[RegionalEvents] Subscribing Club ${clubId} to Event ${eventId}`);
         return this.prisma.regionalEvent.update({
             where: { id: eventId },
             data: {

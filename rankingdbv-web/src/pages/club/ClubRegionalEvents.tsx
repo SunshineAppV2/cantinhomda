@@ -107,15 +107,21 @@ export function ClubRegionalEvents() {
                                             Acessar <ChevronRight className="w-4 h-4 ml-1" />
                                         </span>
                                     ) : (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (confirm('Deseja inscrever seu clube neste evento?')) subscribeMutation.mutate(event.id);
-                                            }}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-3 py-1.5 rounded transition-colors"
-                                        >
-                                            Inscrever-se
-                                        </button>
+                                        !user?.clubId ? (
+                                            <span className="text-xs text-red-500 font-bold border border-red-200 bg-red-50 px-2 py-1 rounded">
+                                                Erro: Clube não identificado
+                                            </span>
+                                        ) : (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm('Deseja inscrever seu clube neste evento?')) subscribeMutation.mutate(event.id);
+                                                }}
+                                                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-3 py-1.5 rounded transition-colors"
+                                            >
+                                                Quero Participar!
+                                            </button>
+                                        )
                                     )}
                                 </div>
                             </div>
