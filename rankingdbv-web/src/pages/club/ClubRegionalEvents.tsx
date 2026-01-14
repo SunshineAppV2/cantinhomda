@@ -183,7 +183,11 @@ function ClubEventDetails({ eventId, onBack }: { eventId: string, onBack: () => 
             <div className="space-y-4">
                 <h2 className="text-lg font-bold text-slate-700">Requisitos</h2>
                 {requirements.map(req => (
-                    <div key={req.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <div
+                        key={req.id}
+                        onClick={() => setAnsweringReq(req)}
+                        className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm cursor-pointer hover:border-blue-400 hover:shadow-md transition-all group"
+                    >
                         <div className="flex justify-between items-start">
                             <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
@@ -205,28 +209,20 @@ function ClubEventDetails({ eventId, onBack }: { eventId: string, onBack: () => 
                                     )}
                                 </div>
                             </div>
-                            <div className="ml-4">
-                                <div className="ml-4 flex flex-col items-end gap-2">
-                                    {req.userProgress?.[0]?.status === 'APPROVED' ? (
-                                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
-                                            Concluído
-                                        </span>
-                                    ) : req.userProgress?.[0]?.status === 'PENDING' ? (
-                                        <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200">
-                                            Em Análise
-                                        </span>
-                                    ) : (
-                                        <button
-                                            onClick={() => setAnsweringReq(req)}
-                                            className="bg-blue-600 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
-                                        >
-                                            Responder
-                                        </button>
-                                    )}
-                                    <div className="text-[10px] text-slate-400 mt-1">
-                                        Debug: {req.userProgress?.length ? req.userProgress[0].status : 'No Prog'}
-                                    </div>
-                                </div>
+                            <div className="ml-4 flex flex-col items-end gap-2">
+                                {req.userProgress?.[0]?.status === 'APPROVED' ? (
+                                    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold border border-green-200">
+                                        Concluído
+                                    </span>
+                                ) : req.userProgress?.[0]?.status === 'PENDING' ? (
+                                    <span className="bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-bold border border-orange-200">
+                                        Em Análise
+                                    </span>
+                                ) : (
+                                    <span className="text-blue-600 text-xs font-bold flex items-center group-hover:translate-x-1 transition-transform">
+                                        Responder <ChevronRight className="w-4 h-4 ml-1" />
+                                    </span>
+                                )}
                             </div>
                         </div>
                     </div>
