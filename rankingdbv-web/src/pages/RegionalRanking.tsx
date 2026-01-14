@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, Star, TrendingUp, Users, MapPin } from 'lucide-react';
+import { Trophy, Star, TrendingUp, Users, MapPin, Calendar } from 'lucide-react';
 import { api } from '../lib/axios';
 
 interface RankingClub {
@@ -18,13 +18,26 @@ import { useAuth } from '../contexts/AuthContext';
 
 export const RegionalRanking: React.FC = () => {
     const { user } = useAuth();
+    const [selectedEventId, setSelectedEventId] = useState<string>('');
+
+    // Fetch Events for Filter
+    const { data: events = [] } = useQuery({
+        queryKey: ['regional-events-filter'],
+        queryFn: async () => {
+            const res = await api.get('/regional-events');
+            return res.data;
+        }
+    });
+
     const { data: clubs, isLoading } = useQuery<RankingClub[]>({
-        queryKey: ['regional-ranking', user?.region, user?.district, user?.association],
+        queryKey: ['regional-ranking', user?.region, user?.district, user?.association, selectedEventId],
         queryFn: async () => {
             const params = new URLSearchParams();
             if (user?.role === 'COORDINATOR_REGIONAL' && user?.region) params.append('region', user.region);
             if (user?.role === 'COORDINATOR_DISTRICT' && user?.district) params.append('district', user.district);
             if (user?.role === 'COORDINATOR_AREA' && user?.association) params.append('association', user.association);
+
+            if (selectedEventId) params.append('regionalEventId', selectedEventId);
 
             const res = await api.get(`/ranking-regional?${params.toString()}`);
             return res.data;
@@ -49,6 +62,20 @@ export const RegionalRanking: React.FC = () => {
                         Ranking Regional
                     </h1>
                     <p className="text-slate-500 mt-1">Desempenho comparativo entre clubes da região/distrito.</p>
+                </div>
+
+                <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
+                    <Calendar className="text-slate-400 w-5 h-5" />
+                    <select
+                        value={selectedEventId}
+                        onChange={(e) => setSelectedEventId(e.target.value)}
+                        className="bg-transparent border-none outline-none text-slate-700 font-medium min-w-[200px]"
+                    >
+                        <option value="">Ranking Geral (Anual)</option>
+                        {events.map((evt: any) => (
+                            <option key={evt.id} value={evt.id}>{evt.title}</option>
+                        ))}
+                    </select>
                 </div>
             </header>
 
