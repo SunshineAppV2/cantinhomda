@@ -3,13 +3,11 @@ import { RegionalEventsService } from './regional-events.service';
 import { CreateRegionalEventDto } from './dto/create-regional-event.dto';
 import { UpdateRegionalEventDto } from './dto/update-regional-event.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RequirementsService } from '../requirements/requirements.service';
 
 @Controller('regional-events')
 export class RegionalEventsController {
     constructor(
-        private readonly regionalEventsService: RegionalEventsService,
-        private readonly requirementsService: RequirementsService
+        private readonly regionalEventsService: RegionalEventsService
     ) { }
 
     @UseGuards(JwtAuthGuard)
@@ -98,15 +96,29 @@ export class RegionalEventsController {
     }
 
     @UseGuards(JwtAuthGuard)
+    @Post(':id/requirements/:reqId/response')
+    async submitResponse(
+        @Param('id') eventId: string,
+        @Param('reqId') reqId: string,
+        @Body() body: { text?: string, file?: string },
+        @Request() req
+    ) {
+        const clubId = req.user.clubId;
+        const userId = req.user.userId || req.user.id;
+        if (!clubId) throw new ForbiddenException('Apenas membros de clube podem responder.');
+
+        return this.regionalEventsService.submitResponse(eventId, reqId, clubId, userId, body);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Post(':id/responses/:respId/approve')
     approveResponse(@Param('respId') respId: string, @Request() req) {
-        // We pass the coordinator ID to validate permissions inside the service
-        return this.requirementsService.approveByCoordinator(respId, req.user.userId || req.user.id);
+        return this.regionalEventsService.approveResponse(respId, req.user.userId || req.user.id);
     }
 
     @UseGuards(JwtAuthGuard)
     @Post(':id/responses/:respId/reject')
     rejectResponse(@Param('respId') respId: string, @Body() body: any, @Request() req) {
-        return this.requirementsService.rejectByCoordinator(respId, req.user.userId || req.user.id, body.reason);
+        return this.regionalEventsService.rejectResponse(respId, req.user.userId || req.user.id, body.reason);
     }
 }

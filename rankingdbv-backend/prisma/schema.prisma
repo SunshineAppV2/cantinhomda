@@ -49,6 +49,7 @@ model Club {
   users                 User[]
   payments              Payment[]
   participatingEvents   RegionalEvent[] @relation("EventParticipants")
+  eventResponses        EventResponse[]
 
   @@map("clubs")
 }
@@ -167,6 +168,7 @@ model User {
   unit                   Unit?               @relation(fields: [unitId], references: [id])
   confirmedPayments      Payment[]           @relation("PaymentConfirmer")
   createdEvents          RegionalEvent[]     @relation("EventCreator")
+  submittedEventResponses EventResponse[]
 
   @@map("users")
 }
@@ -286,6 +288,7 @@ model Requirement {
   regionalEventId String?
   regionalEvent RegionalEvent? @relation(fields: [regionalEventId], references: [id], onDelete: SetNull)
   userProgress UserRequirement[]
+  eventResponses EventResponse[]
 
   @@map("requirements")
 }
@@ -592,6 +595,29 @@ enum TransactionStatus {
   WAITING_APPROVAL
   COMPLETED
   CANCELED
+}
+
+
+
+model EventResponse {
+  id                String            @id @default(uuid())
+  status            RequirementStatus @default(PENDING)
+  answerText        String?
+  answerFileUrl     String?
+  comments          String?           // For rejection reasons
+  completedAt       DateTime?
+  clubId            String
+  requirementId     String
+  submittedByUserId String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  club        Club        @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  requirement Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  submittedBy User        @relation(fields: [submittedByUserId], references: [id])
+
+  @@unique([clubId, requirementId])
+  @@map("event_responses")
 }
 
 enum MinuteType {

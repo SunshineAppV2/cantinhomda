@@ -69,14 +69,20 @@ export class RegionalEventsService {
     }
 
     async findOne(id: string, userId?: string) {
+        let clubId: string | undefined;
+        if (userId) {
+            const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { clubId: true } });
+            clubId = user?.clubId;
+        }
+
         const event = await this.prisma.regionalEvent.findUnique({
             where: { id },
             include: {
                 requirements: {
                     include: {
-                        userProgress: userId ? {
-                            where: { userId },
-                            select: { status: true, completedAt: true }
+                        eventResponses: clubId ? {
+                            where: { clubId },
+                            select: { status: true, completedAt: true, answerText: true, answerFileUrl: true }
                         } : false
                     }
                 }
@@ -136,25 +142,71 @@ export class RegionalEventsService {
         });
     }
 
-    async getPendingResponses(eventId: string, user: any) {
-        // Validate access? 
-        // Assuming controller checks if user is Coordinator/Master.
+    // --- Event Evaluation (EventResponse Entity) ---
 
-        return this.prisma.userRequirement.findMany({
+    async submitResponse(eventId: string, requirementId: string, clubId: string, userId: string, data: { text?: string, file?: string }) {
+        // Upsert response for Club + Requirement
+        // Verify if Requirement belongs to Event? (Optional but good)
+
+        return this.prisma.eventResponse.upsert({
+            where: {
+                clubId_requirementId: {
+                    clubId,
+                    requirementId
+                }
+            },
+            update: {
+                answerText: data.text,
+                answerFileUrl: data.file,
+                status: 'PENDING',
+                submittedByUserId: userId,
+                updatedAt: new Date()
+            },
+            create: {
+                clubId,
+                requirementId,
+                answerText: data.text,
+                answerFileUrl: data.file,
+                submittedByUserId: userId,
+                status: 'PENDING'
+            }
+        });
+    }
+
+    async getPendingResponses(eventId: string, user: any) {
+        // Fetch from EventResponse
+        return this.prisma.eventResponse.findMany({
             where: {
                 requirement: { regionalEventId: eventId },
-                status: 'PENDING',
-                // Filter only those with actual answers?
-                OR: [
-                    { answerText: { not: null } },
-                    { answerFileUrl: { not: null } }
-                ]
+                status: 'PENDING'
             },
             include: {
-                user: { select: { id: true, name: true, photoUrl: true, club: { select: { id: true, name: true } } } },
-                requirement: { select: { id: true, title: true, code: true, points: true, type: true } }
+                club: { select: { id: true, name: true, region: true, district: true } },
+                requirement: { select: { id: true, title: true, code: true, points: true, type: true } },
+                submittedBy: { select: { id: true, name: true, photoUrl: true } }
             },
-            orderBy: { completedAt: 'asc' } // Oldest first
+            orderBy: { updatedAt: 'asc' }
+        });
+    }
+
+    async approveResponse(responseId: string, coordinatorId: string) {
+        // TODO: Validate Permissions
+        return this.prisma.eventResponse.update({
+            where: { id: responseId },
+            data: {
+                status: 'APPROVED',
+                completedAt: new Date()
+            }
+        });
+    }
+
+    async rejectResponse(responseId: string, coordinatorId: string, reason?: string) {
+        return this.prisma.eventResponse.update({
+            where: { id: responseId },
+            data: {
+                status: 'REJECTED',
+                comments: reason
+            }
         });
     }
 }
