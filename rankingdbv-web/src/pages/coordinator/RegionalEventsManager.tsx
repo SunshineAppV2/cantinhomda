@@ -20,6 +20,13 @@ interface RegionalEvent {
 }
 
 export function RegionalEventsManager() {
+    const { user } = useAuth();
+    const isCoordinator = user?.role === 'COORDINATOR_REGIONAL' || user?.role === 'COORDINATOR_DISTRICT' || user?.role === 'MASTER';
+    const canManageEvents = isCoordinator; // Simplify for now
+
+    // Redirect or Show simplified view if not coordinator? 
+    // Actually, this component is likely protected by a Route Guard, but let's reinforce.
+
     const queryClient = useQueryClient();
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
@@ -214,8 +221,13 @@ export function RegionalEventsManager() {
 
 // --- SUB-COMPONENT: REQUIREMENT MANAGER FOR EVENT ---
 function EventRequirementsManager({ eventId }: { eventId: string }) {
+    const { user } = useAuth();
+    const isCoordinator = user?.role === 'COORDINATOR_REGIONAL' || user?.role === 'COORDINATOR_DISTRICT' || user?.role === 'MASTER';
+    const canManageEvents = isCoordinator;
+
     const queryClient = useQueryClient();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingReqId, setEditingReqId] = useState<string | null>(null);
 
     // Create/Edit States
     const [reqDescription, setReqDescription] = useState('');
@@ -260,6 +272,15 @@ function EventRequirementsManager({ eventId }: { eventId: string }) {
         }
     });
 
+    const updateMutation = useMutation({
+        mutationFn: async (data: { id: string, payload: any }) => await api.patch(`/requirements/${data.id}`, data.payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['event-requirements', eventId] });
+            closeModal();
+            import('sonner').then(({ toast }) => toast.success('Requisito atualizado!'));
+        }
+    });
+
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => await api.delete(`/requirements/${id}`),
         onSuccess: () => {
@@ -270,6 +291,7 @@ function EventRequirementsManager({ eventId }: { eventId: string }) {
 
     const closeModal = () => {
         setIsModalOpen(false);
+        setEditingReqId(null);
         setReqCode('');
         setReqTitle('');
         setReqDescription('');
@@ -281,9 +303,35 @@ function EventRequirementsManager({ eventId }: { eventId: string }) {
         setSelectedTargetClub(null);
     }
 
+    const openCreate = () => {
+        closeModal(); // Reset fields
+        setIsModalOpen(true);
+    }
+
+    const openEdit = (req: any) => {
+        setEditingReqId(req.id);
+        setReqCode(req.code || '');
+        setReqTitle(req.title || '');
+        setReqDescription(req.description || '');
+        setReqPoints(req.points || 0);
+        setReqType(req.type || 'NONE');
+        setReqStart(req.startDate ? req.startDate.split('T')[0] : '');
+        setReqEnd(req.endDate ? req.endDate.split('T')[0] : '');
+
+        if (req.clubId) {
+            setReqScope('SPECIFIC');
+            setSelectedTargetClub(req.clubId);
+        } else {
+            setReqScope('ALL');
+            setSelectedTargetClub(null);
+        }
+
+        setIsModalOpen(true);
+    }
+
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        createMutation.mutate({
+        const payload = {
             description: reqDescription,
             code: reqCode,
             title: reqTitle,
@@ -292,14 +340,22 @@ function EventRequirementsManager({ eventId }: { eventId: string }) {
             startDate: reqStart ? new Date(reqStart).toISOString() : null,
             endDate: reqEnd ? new Date(reqEnd).toISOString() : null,
             clubId: reqScope === 'SPECIFIC' ? selectedTargetClub : null
-        });
+        };
+
+        if (editingReqId) {
+            updateMutation.mutate({ id: editingReqId, payload });
+        } else {
+            createMutation.mutate(payload);
+        }
     }
 
     return (
         <div className="bg-slate-50 p-6 rounded-xl border border-slate-200">
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-lg font-bold text-slate-700">Requisitos do Evento</h2>
-                <button onClick={() => setIsModalOpen(true)} className="bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center hover:bg-slate-50"><Plus className="w-4 h-4 mr-1" /> Adicionar Requisito</button>
+                {canManageEvents && (
+                    <button onClick={openCreate} className="bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-sm font-bold flex items-center hover:bg-slate-50"><Plus className="w-4 h-4 mr-1" /> Adicionar Requisito</button>
+                )}
             </div>
 
             <div className="space-y-3">
@@ -321,13 +377,22 @@ function EventRequirementsManager({ eventId }: { eventId: string }) {
                                 )}
                             </div>
                         </div>
-                        <button onClick={() => { if (confirm('Remover?')) deleteMutation.mutate(req.id) }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4" /></button>
+                        {canManageEvents && (
+                            <div className="flex items-center gap-1">
+                                <button onClick={() => openEdit(req)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-lg transition-colors" title="Editar">
+                                    <Pencil className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => { if (confirm('Remover?')) deleteMutation.mutate(req.id) }} className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 ))}
                 {requirements.length === 0 && <p className="text-center text-slate-400 text-sm">Nenhum requisito neste evento.</p>}
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={closeModal} title="Adicionar Requisito ao Evento">
+            <Modal isOpen={isModalOpen} onClose={closeModal} title={editingReqId ? "Editar Requisito" : "Adicionar Requisito"}>
                 <form onSubmit={handleSave} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
