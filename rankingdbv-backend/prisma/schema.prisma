@@ -366,6 +366,8 @@ model RegionalEvent {
   endDate       DateTime?
   region        String?       // If set, applies to this region
   district      String?       // If set, applies to this district
+  association   String?       // If set, applies to this association
+  union         String?       // If set, applies to this union
   creatorId     String
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt

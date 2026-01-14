@@ -23,5 +23,13 @@ export class CreateRegionalEventDto {
     @IsOptional()
     district?: string;
 
+    @IsString()
+    @IsOptional()
+    association?: string;
+
+    @IsString()
+    @IsOptional()
+    union?: string;
+
     // No clubId here, as these are managed by hierarchy, not clubs
 }

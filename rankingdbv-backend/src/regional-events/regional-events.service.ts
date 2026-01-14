@@ -22,25 +22,22 @@ export class RegionalEventsService {
 
         // 1. Regional/District Coordinator: See created events or events in their scope
         if (role === 'COORDINATOR_REGIONAL') {
-            // Can see events for their Region OR Global events? 
-            // Or events they created?
             where.region = region;
         } else if (role === 'COORDINATOR_DISTRICT') {
-            // Can see events for their District OR their Region
             where.OR = [
                 { district: district },
                 { region: region, district: null }
             ];
+        } else if (role === 'COORDINATOR_AREA') {
+            // See events for their Association
+            where.association = user['association'] || user['mission'];
         } else if (['MASTER'].includes(role)) {
-            // See ALL
             return this.prisma.regionalEvent.findMany({
                 include: { _count: { select: { requirements: true } } },
                 orderBy: { startDate: 'desc' }
             });
         } else {
-            // Club Directors / Others
-            // See events targeted to their Hierarchy
-            if (!clubId) return []; // Needs club context to know hierarchy
+            if (!clubId) return [];
 
             const club = await this.prisma.club.findUnique({ where: { id: clubId } });
             if (!club) return [];
@@ -49,8 +46,7 @@ export class RegionalEventsService {
 
             if (club.district) where.OR.push({ district: club.district });
             if (club.region) where.OR.push({ region: club.region, district: null });
-            // NOTE: If an event has Region=X and District=Y, it is specific to District Y.
-            // If an event has Region=X and District=NULL, it is for the whole Region X.
+            if (club.association || club.mission) where.OR.push({ association: club.association || club.mission, region: null, district: null });
         }
 
         return this.prisma.regionalEvent.findMany({
