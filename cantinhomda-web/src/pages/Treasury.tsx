@@ -50,7 +50,7 @@ export function Treasury() {
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('Mensalidade');
     const [payerId, setPayerId] = useState('');
-    const [points, setPoints] = useState(0);
+    const [points, setPoints] = useState<number>(100); // Default: 100 points
     const [generatePoints, setGeneratePoints] = useState(false);
     const [recurrence, setRecurrence] = useState(false);
     const [installments, setInstallments] = useState(1);
