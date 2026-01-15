@@ -175,9 +175,9 @@ export class ClubsService implements OnModuleInit {
         const where: any = {};
 
         if (user) {
-            const isMaster = user.email === 'master@cantinhodbv.com' || user.role === 'MASTER' || user.role === 'OWNER'; // Owner sees all? Or just their club? Usually Owner=ClubOwner.
+            const isMaster = user.email === 'master@cantinhomda.com' || user.role === 'MASTER' || user.role === 'OWNER'; // Owner sees all? Or just their club? Usually Owner=ClubOwner.
             // Wait, OWNER is Club Owner. Only Master is Super Admin.
-            const isSuperAdmin = user.email === 'master@cantinhodbv.com' || user.role === 'MASTER';
+            const isSuperAdmin = user.email === 'master@cantinhomda.com' || user.role === 'MASTER';
 
             if (!isSuperAdmin) {
                 if (user.role === 'COORDINATOR_REGIONAL') {
@@ -209,7 +209,7 @@ export class ClubsService implements OnModuleInit {
         const where: any = {};
 
         if (currentUser) {
-            const isMaster = currentUser.email === 'master@cantinhodbv.com' || currentUser.role === 'MASTER';
+            const isMaster = currentUser.email === 'master@cantinhomda.com' || currentUser.role === 'MASTER';
             if (!isMaster && ['COORDINATOR_AREA', 'COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT'].includes(currentUser.role)) {
 
                 const association = currentUser.association || currentUser.mission;

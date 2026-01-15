@@ -12,7 +12,7 @@ export class SpecialtiesController {
 
     @Post()
     create(@Body() createSpecialtyDto: CreateSpecialtyDto, @Request() req: any) {
-        if (req.user.email !== 'master@cantinhodbv.com' && req.user.role !== 'MASTER') {
+        if (req.user.email !== 'master@cantinhomda.com' && req.user.role !== 'MASTER') {
             throw new Error('Apenas o Master pode criar especialidades.'); // Or ForbiddenException if imported
         }
         return this.specialtiesService.create(createSpecialtyDto);

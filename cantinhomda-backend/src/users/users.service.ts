@@ -1,4 +1,4 @@
-Ôªøimport { Injectable, UnauthorizedException, Inject, forwardRef, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject, forwardRef, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { User, Prisma } from '@prisma/client';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -14,14 +14,14 @@ export class UsersService {
     @Inject(forwardRef(() => ClubsService)) private clubsService: ClubsService
   ) { }
 
-  // Busca usu√°rio pelo Email (usado no login)
+  // Busca usu·rio pelo Email (usado no login)
   async findOneByEmail(email: string): Promise<User | null> {
     return this.prisma.user.findUnique({
       where: { email },
     });
   }
 
-  // Busca usu√°rios eleg√≠veis para serem donos de clube (sem clube atribu√≠do)
+  // Busca usu·rios elegÌveis para serem donos de clube (sem clube atribuÌdo)
   async findAvailableDirectors() {
     return this.prisma.user.findMany({
       where: {
@@ -40,7 +40,7 @@ export class UsersService {
     });
   }
 
-  // Busca todos os usu√°rios
+  // Busca todos os usu·rios
   async findAll(currentUser?: any, clubId?: string) {
     console.log('[UsersService.findAll] Called with currentUser:', {
       email: currentUser?.email,
@@ -64,7 +64,7 @@ export class UsersService {
     // Build Where Clause
     const where: Prisma.UserWhereInput = {};
 
-    if (currentUser?.email === 'master@cantinhodbv.com') {
+    if (currentUser?.email === 'master@cantinhomda.com') {
       // Master can filter by clubId if provided, otherwise see all
       if (clubId) where.clubId = clubId;
     } else if (currentUser && currentUser.role === 'COUNSELOR') {
@@ -196,13 +196,13 @@ export class UsersService {
     });
   }
 
-  // Ranking de usu√°rios por pontos
+  // Ranking de usu·rios por pontos
   async findRanking(currentUser?: any) {
     const where: any = {
       isActive: true
     };
 
-    const isMaster = currentUser?.email?.toLowerCase() === 'master@cantinhodbv.com';
+    const isMaster = currentUser?.email?.toLowerCase() === 'master@cantinhomda.com';
 
     if (!isMaster) {
       if (!currentUser?.clubId) {
@@ -237,8 +237,8 @@ export class UsersService {
     });
   }
 
-  // Busca usu√°rio pelo ID (usado para validar token)
-  // Busca usu√°rio pelo ID (usado para validar token)
+  // Busca usu·rio pelo ID (usado para validar token)
+  // Busca usu·rio pelo ID (usado para validar token)
   async findOne(id: string, currentUser?: any): Promise<User | null> {
     const user = await this.prisma.user.findUnique({
       where: { id },
@@ -256,7 +256,7 @@ export class UsersService {
 
     // Strict ACL Check if context is provided
     if (currentUser) {
-      if (currentUser.email === 'master@cantinhodbv.com') return user; // Master sees all
+      if (currentUser.email === 'master@cantinhomda.com') return user; // Master sees all
       if (user.id === currentUser.userId) return user; // Self sees self
 
       // Club Director
@@ -275,7 +275,7 @@ export class UsersService {
       if (currentUser.role === 'INSTRUCTOR') {
         // Allow if same class (assuming Instructor has dbvClass set)
         if (currentUser.dbvClass && user.dbvClass === currentUser.dbvClass && user.clubId === currentUser.clubId) return user;
-        throw new UnauthorizedException('Acesso negado: Aluno n√£o atribu√≠do.');
+        throw new UnauthorizedException('Acesso negado: Aluno n„o atribuÌdo.');
       }
 
       // Regional/District Coordinators
@@ -285,31 +285,31 @@ export class UsersService {
       }
 
       if (currentUser.role === 'COORDINATOR_REGIONAL') {
-        if (user.club?.region !== currentUser.region) throw new UnauthorizedException('Acesso negado: Perfil fora da sua regi√£o.');
+        if (user.club?.region !== currentUser.region) throw new UnauthorizedException('Acesso negado: Perfil fora da sua regi„o.');
         return user;
       }
 
       if (currentUser.role === 'COORDINATOR_AREA') {
-        if (user.club?.association !== currentUser.association) throw new UnauthorizedException('Acesso negado: Perfil fora da sua associa√ß√£o.');
+        if (user.club?.association !== currentUser.association) throw new UnauthorizedException('Acesso negado: Perfil fora da sua associaÁ„o.');
         return user;
       }
 
       // Parent
       if (currentUser.role === 'PARENT') {
-        if (user.parentId !== currentUser.userId) throw new UnauthorizedException('Acesso negado: N√£o √© seu filho.');
+        if (user.parentId !== currentUser.userId) throw new UnauthorizedException('Acesso negado: N„o È seu filho.');
         return user;
       }
 
       // Pathfinder / Others trying to see others
       if (currentUser.role === 'PATHFINDER') {
-        throw new UnauthorizedException('Acesso restrito ao pr√≥prio perfil.');
+        throw new UnauthorizedException('Acesso restrito ao prÛprio perfil.');
       }
     }
 
     return user;
   }
 
-  // Cria um novo usu√°rio
+  // Cria um novo usu·rio
   async create(createUserDto: any): Promise<User> {
     // Strip fields that belong to club or are not part of user schema
     const {
@@ -371,7 +371,7 @@ export class UsersService {
         // Check Limit if creating a NON-PARENT
         if (rest.role !== 'PARENT') {
           if (paidCount >= limit) {
-            throw new ForbiddenException(`Limite do plano atingido (${paidCount}/${limit} membros ativos). Fa√ßa upgrade para adicionar mais.`);
+            throw new ForbiddenException(`Limite do plano atingido (${paidCount}/${limit} membros ativos). FaÁa upgrade para adicionar mais.`);
           }
         }
       }
@@ -431,14 +431,14 @@ export class UsersService {
       },
     });
 
-    console.log(`[UsersService.create] ‚úÖ User created in Postgres: ${user.id} (${user.email})`);
+    console.log(`[UsersService.create] ? User created in Postgres: ${user.id} (${user.email})`);
 
     // ===== STEP 4: SYNC TO FIREBASE (NON-BLOCKING) =====
     // We do this AFTER Postgres creation so database is the source of truth
     // If Firebase fails, user can still use the system via Postgres auth
     if (rest.email && password) {
       this.syncUserToFirebase(rest.email, password, rest.name).catch(err => {
-        console.error(`[UsersService.create] ‚ö†Ô∏è Firebase sync failed for ${rest.email}:`, err.message);
+        console.error(`[UsersService.create] ?? Firebase sync failed for ${rest.email}:`, err.message);
         // Non-blocking - user creation succeeded in Postgres
       });
     }
@@ -456,7 +456,7 @@ export class UsersService {
         displayName: displayName,
         emailVerified: true
       });
-      console.log(`[FirebaseSync] ‚úÖ User ${email} created in Firebase.`);
+      console.log(`[FirebaseSync] ? User ${email} created in Firebase.`);
     } catch (error: any) {
       if (error.code === 'auth/email-already-exists') {
         console.warn(`[FirebaseSync] User ${email} already exists. Updating password...`);
@@ -466,13 +466,13 @@ export class UsersService {
             password: password,
             displayName: displayName
           });
-          console.log(`[FirebaseSync] ‚úÖ User ${email} updated in Firebase.`);
+          console.log(`[FirebaseSync] ? User ${email} updated in Firebase.`);
         } catch (updErr) {
-          console.error(`[FirebaseSync] ‚ùå Failed to update existing user:`, updErr);
+          console.error(`[FirebaseSync] ? Failed to update existing user:`, updErr);
           throw updErr;
         }
       } else {
-        console.error(`[FirebaseSync] ‚ùå Failed to create user:`, error);
+        console.error(`[FirebaseSync] ? Failed to create user:`, error);
         throw error;
       }
     }
@@ -486,7 +486,7 @@ export class UsersService {
     });
 
     if (!child) {
-      throw new Error('Filho n√£o encontrado');
+      throw new Error('Filho n„o encontrado');
     }
 
     return this.prisma.user.update({
@@ -495,7 +495,7 @@ export class UsersService {
     });
   }
 
-  // Atualiza um usu√°rio
+  // Atualiza um usu·rio
   async update(id: string, updateUserDto: UpdateUserDto, currentUser?: any): Promise<User> {
     console.log(`[UsersService.update] Target ID: ${id}, Current User: ${currentUser?.email} (${currentUser?.role})`);
     console.log(`[UsersService.update] Raw DTO:`, JSON.stringify(updateUserDto, null, 2));
@@ -555,20 +555,20 @@ export class UsersService {
     }
 
     if (!userToUpdate) {
-      console.error(`[Update] ‚ùå User NOT FOUND for ID/UID: ${id} (User: ${currentUser?.email})`);
-      throw new NotFoundException('Usu√°rio n√£o encontrado');
+      console.error(`[Update] ? User NOT FOUND for ID/UID: ${id} (User: ${currentUser?.email})`);
+      throw new NotFoundException('Usu·rio n„o encontrado');
     }
 
     // 3. ACL CHECK
     if (currentUser) {
-      const isMaster = currentUser.role === 'MASTER' || currentUser.email === 'master@cantinhodbv.com';
+      const isMaster = currentUser.role === 'MASTER' || currentUser.email === 'master@cantinhomda.com';
       const isSelf = currentUser.userId === userToUpdate.id || currentUser.email === userToUpdate.email;
       const isClubAdmin = ['OWNER', 'ADMIN', 'DIRECTOR'].includes(currentUser.role) && userToUpdate.clubId === currentUser.clubId;
 
       console.log(`[Update] ACL Check: Master=${isMaster}, Self=${isSelf}, ClubAdmin=${isClubAdmin}`);
 
       if (!isMaster && !isSelf && !isClubAdmin) {
-        throw new UnauthorizedException('Permiss√£o negada para editar este usu√°rio.');
+        throw new UnauthorizedException('Permiss„o negada para editar este usu·rio.');
       }
     }
 
@@ -580,7 +580,7 @@ export class UsersService {
 
     // Role Security Check
     if (dataToUpdate.role === 'OWNER' || dataToUpdate.role === 'COORDINATOR_REGIONAL' || dataToUpdate.role === 'COORDINATOR_AREA' || dataToUpdate.role === 'COORDINATOR_DISTRICT') {
-      const isMaster = currentUser?.email === 'master@cantinhodbv.com';
+      const isMaster = currentUser?.email === 'master@cantinhomda.com';
       if (!isMaster) {
         // If not Master, prevent escalation to OWNER/COORDINATORS if the role is changing
         if (userToUpdate.role !== dataToUpdate.role) {
@@ -689,7 +689,7 @@ export class UsersService {
       if (rest.union !== undefined) dataToUpdate.union = rest.union;
       if (rest.mission !== undefined) dataToUpdate.mission = rest.mission;
       if (rest.association !== undefined) dataToUpdate.association = rest.association;
-      // Special handling for 'Associa√ß√£o' alias if needed, but 'rest.association' is standard
+      // Special handling for 'AssociaÁ„o' alias if needed, but 'rest.association' is standard
 
       if (rest.region !== undefined) dataToUpdate.region = rest.region;
       if (rest.district !== undefined) dataToUpdate.district = rest.district;
@@ -895,10 +895,10 @@ export class UsersService {
   }
   async remove(id: string, currentUser?: any) {
     const user = await this.prisma.user.findUnique({ where: { id } });
-    if (!user) throw new Error('Usu√°rio n√£o encontrado');
+    if (!user) throw new Error('Usu·rio n„o encontrado');
 
     if (currentUser) {
-      const isMaster = currentUser.email === 'master@cantinhodbv.com';
+      const isMaster = currentUser.email === 'master@cantinhomda.com';
       const isClubAdmin = ['OWNER', 'ADMIN', 'DIRECTOR'].includes(currentUser.role) && user.clubId === currentUser.clubId;
 
       if (!isMaster && !isClubAdmin) {
@@ -936,7 +936,7 @@ export class UsersService {
     return this.prisma.user.delete({ where: { id } });
   }
   async resetMasterPasswordForce() {
-    const email = 'master@cantinhodbv.com';
+    const email = 'master@cantinhomda.com';
     const pass = 'Ascg@300585!@#$';
     const hash = await bcrypt.hash(pass, 10);
     await this.prisma.user.update({
@@ -951,7 +951,7 @@ export class UsersService {
   // ============================================
 
   /**
-   * Buscar todos os usu√°rios pendentes de aprova√ß√£o
+   * Buscar todos os usu·rios pendentes de aprovaÁ„o
    */
   async findPendingUsers() {
     return this.prisma.user.findMany({
@@ -990,7 +990,7 @@ export class UsersService {
   }
 
   /**
-   * Aprovar usu√°rio pendente
+   * Aprovar usu·rio pendente
    * - Atualiza status para ACTIVE
    * - Se for OWNER, cria pagamento pendente para o clube
    */
@@ -1001,14 +1001,14 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('Usu√°rio n√£o encontrado');
+      throw new NotFoundException('Usu·rio n„o encontrado');
     }
 
     if (user.status !== 'PENDING') {
-      throw new UnauthorizedException('Usu√°rio n√£o est√° pendente de aprova√ß√£o');
+      throw new UnauthorizedException('Usu·rio n„o est· pendente de aprovaÁ„o');
     }
 
-    // Atualizar status do usu√°rio
+    // Atualizar status do usu·rio
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -1026,7 +1026,7 @@ export class UsersService {
       // Calcular meses baseado no ciclo
       const months = billingCycle === 'TRIMESTRAL' ? 3 : billingCycle === 'ANUAL' ? 12 : 1;
 
-      // R$ 2,00 por membro/m√™s
+      // R$ 2,00 por membro/mÍs
       const pricePerMember = 2.00;
       const amount = memberLimit * pricePerMember * months;
 
@@ -1060,13 +1060,13 @@ export class UsersService {
 
     return {
       success: true,
-      message: 'Usu√°rio aprovado com sucesso',
+      message: 'Usu·rio aprovado com sucesso',
       user: updatedUser
     };
   }
 
   /**
-   * Rejeitar usu√°rio pendente
+   * Rejeitar usu·rio pendente
    */
   async rejectUser(userId: string, rejectedBy: string) {
     const user = await this.prisma.user.findUnique({
@@ -1074,11 +1074,11 @@ export class UsersService {
     });
 
     if (!user) {
-      throw new NotFoundException('Usu√°rio n√£o encontrado');
+      throw new NotFoundException('Usu·rio n„o encontrado');
     }
 
     if (user.status !== 'PENDING') {
-      throw new UnauthorizedException('Usu√°rio n√£o est√° pendente de aprova√ß√£o');
+      throw new UnauthorizedException('Usu·rio n„o est· pendente de aprovaÁ„o');
     }
 
     // Atualizar status para BLOCKED
@@ -1094,7 +1094,7 @@ export class UsersService {
 
     return {
       success: true,
-      message: 'Usu√°rio rejeitado',
+      message: 'Usu·rio rejeitado',
       user: updatedUser
     };
   }

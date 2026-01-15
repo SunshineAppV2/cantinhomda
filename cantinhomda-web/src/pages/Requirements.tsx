@@ -388,7 +388,7 @@ export function Requirements() {
 
                 {isAdmin && (
                     <div className="ml-auto flex gap-2">
-                        {user?.email === 'master@cantinhodbv.com' && (
+                        {user?.email === 'master@cantinhomda.com' && (
                             <button
                                 onClick={() => setIsImportModalOpen(true)}
                                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2"

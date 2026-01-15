@@ -31,7 +31,7 @@ export function MasterTreasury() {
     const queryClient = useQueryClient();
 
     // Auth Check
-    if (user?.email !== 'master@cantinhodbv.com' && user?.role !== 'MASTER') {
+    if (user?.email !== 'master@cantinhomda.com' && user?.role !== 'MASTER') {
         return <div className="p-8 text-center text-red-500">Acesso Restrito ao Master.</div>;
     }
 

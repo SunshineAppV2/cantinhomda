@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function checkUser() {
-    const email = 'master@cantinhodbv.com';
+    const email = 'master@cantinhomda.com';
     console.log(`Checking user: ${email}...`);
 
     const user = await prisma.user.findUnique({

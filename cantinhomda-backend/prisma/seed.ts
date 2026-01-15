@@ -24,13 +24,13 @@ async function main() {
 
     // 2. Create Master User
     const user = await prisma.user.upsert({
-        where: { email: 'master@cantinhodbv.com' },
+        where: { email: 'master@cantinhomda.com' },
         update: {
             role: 'OWNER', // Ensure role is Owner
             clubId: club.id
         },
         create: {
-            email: 'master@cantinhodbv.com',
+            email: 'master@cantinhomda.com',
             name: 'Master Admin',
             password,
             role: 'OWNER',
@@ -348,7 +348,7 @@ async function main() {
     console.log(`Seeded ${faqs.length} FAQs.`);
 
     console.log('--- SEED COMPLETE ---');
-    console.log('Master: master@rankingdbv.com / 123456');
+    console.log('Master: master@cantinhomda.com / 123456');
     console.log('Parent: pai@rankingdbv.com / 123456');
     console.log('Child:  filho@rankingdbv.com / 123456');
 }

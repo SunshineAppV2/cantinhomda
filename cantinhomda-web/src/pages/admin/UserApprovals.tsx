@@ -52,7 +52,7 @@ export function UserApprovals() {
             const res = await api.get('/users/pending');
             return res.data as PendingUser[];
         },
-        enabled: user?.role === 'MASTER' || user?.email === 'master@cantinhodbv.com'
+        enabled: user?.role === 'MASTER' || user?.email === 'master@cantinhomda.com'
     });
 
     // Mutation para aprovar
@@ -122,7 +122,7 @@ export function UserApprovals() {
         return memberLimit * 2 * months; // R$ 2,00 por membro/mês
     };
 
-    if (user?.role !== 'MASTER' && user?.email !== 'master@cantinhodbv.com') {
+    if (user?.role !== 'MASTER' && user?.email !== 'master@cantinhomda.com') {
         return (
             <div className="p-8 text-center text-red-500">
                 Acesso restrito ao Master.

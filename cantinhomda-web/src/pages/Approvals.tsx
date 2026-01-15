@@ -35,7 +35,7 @@ export function Approvals() {
             // Logic: 
             // - Master sees NEW CLUBS (Owners)
             // - Club Admins see NEW MEMBERS (Non-Owners)
-            const isMaster = user?.email === 'master@cantinhodbv.com';
+            const isMaster = user?.email === 'master@cantinhomda.com';
 
             const pending = response.data.filter((u: any) => {
                 if (u.status !== 'PENDING') return false;

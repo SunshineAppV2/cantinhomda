@@ -1,4 +1,4 @@
-﻿import { Controller, Get, Param, UseGuards, Patch, Body, Post, Req, Delete, Request, Query, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards, Patch, Body, Post, Req, Delete, Request, Query, ForbiddenException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -15,7 +15,7 @@ export class UsersController {
   @Get('pending')
   async findPendingUsers(@Req() req) {
     // Apenas MASTER pode ver pendentes
-    if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhodbv.com') {
+    if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhomda.com') {
       throw new ForbiddenException('Apenas o Master pode visualizar cadastros pendentes');
     }
     return this.usersService.findPendingUsers();
@@ -25,7 +25,7 @@ export class UsersController {
   @Patch(':id/approve')
   async approveUser(@Param('id') id: string, @Req() req) {
     // Apenas MASTER pode aprovar
-    if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhodbv.com') {
+    if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhomda.com') {
       throw new ForbiddenException('Apenas o Master pode aprovar cadastros');
     }
     return this.usersService.approveUser(id, req.user.sub);
@@ -35,7 +35,7 @@ export class UsersController {
   @Patch(':id/reject')
   async rejectUser(@Param('id') id: string, @Req() req) {
     // Apenas MASTER pode rejeitar
-    if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhodbv.com') {
+    if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhomda.com') {
       throw new ForbiddenException('Apenas o Master pode rejeitar cadastros');
     }
     return this.usersService.rejectUser(id, req.user.sub);

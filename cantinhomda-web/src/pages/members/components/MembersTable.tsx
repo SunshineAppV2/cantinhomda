@@ -93,7 +93,7 @@ export function MembersTable({ members, units, onInspect, onEdit, onDelete, onTo
                             {renderTh("Idade", "age")}
                             {renderTh("Contato", "email")}
                             {renderTh("Classe", "dbvClass")}
-                            {user?.email === 'master@cantinhodbv.com' && renderTh("Clube", "clubName")}
+                            {user?.email === 'master@cantinhomda.com' && renderTh("Clube", "clubName")}
                             {renderTh("Cadastro", "createdAt")}
                             {renderTh("Cargo", "role")}
                             <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase text-right">Ações</th>
@@ -114,7 +114,7 @@ export function MembersTable({ members, units, onInspect, onEdit, onDelete, onTo
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{getAge(member.birthDate)}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600"><Mail className="w-4 h-4 inline mr-1" />{member.email}</td>
                                 <td className="px-6 py-4 whitespace-nowrap"><span className={`text-xs px-2 py-1 rounded-full ${member.dbvClass ? 'bg-blue-50 text-blue-700' : 'text-slate-400'}`}>{member.dbvClass || 'Nenhuma'}</span></td>
-                                {user?.email === 'master@cantinhodbv.com' && <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800 font-bold">{member.club?.name || '-'}</td>}
+                                {user?.email === 'master@cantinhomda.com' && <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-800 font-bold">{member.club?.name || '-'}</td>}
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
                                     {(member.createdAt || (member as any).created_at) ? new Date(member.createdAt || (member as any).created_at).toLocaleDateString('pt-BR') : '-'}
                                 </td>
@@ -122,7 +122,7 @@ export function MembersTable({ members, units, onInspect, onEdit, onDelete, onTo
                                 <td className="px-6 py-4 whitespace-nowrap text-right">
                                     <div className="flex justify-end gap-2">
                                         <button onClick={() => onInspect(member)} className="text-slate-400 hover:text-blue-600" title="Ver Detalhes"><Eye className="w-4 h-4" /></button>
-                                        {(['OWNER', 'ADMIN'].includes(user?.role || '') || user?.email === 'master@cantinhodbv.com') && (
+                                        {(['OWNER', 'ADMIN'].includes(user?.role || '') || user?.email === 'master@cantinhomda.com') && (
                                             <>
                                                 <button onClick={() => onEdit(member)} className="text-slate-400 hover:text-blue-600" title="Editar"><Edit className="w-4 h-4" /></button>
                                                 <button

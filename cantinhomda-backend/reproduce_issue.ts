@@ -7,7 +7,7 @@ async function testUpdate() {
     try {
         console.log('1. Logging in as Master...');
         const loginRes = await axios.post(`${API_URL}/auth/login`, {
-            email: 'master@rankingdbv.com',
+            email: 'master@cantinhomda.com',
             password: '123456'
         });
         const token = loginRes.data.access_token;

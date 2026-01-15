@@ -118,7 +118,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
         }
 
         // Detect roles
-        const isMaster = user?.role === 'MASTER' || user?.email === 'master@cantinhodbv.com';
+        const isMaster = user?.role === 'MASTER' || user?.email === 'master@cantinhomda.com';
         const isPureCoordinator = ['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA'].includes(user?.role || '');
         const isCoordinator = isMaster || isPureCoordinator;
 

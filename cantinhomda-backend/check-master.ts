@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
     const user = await prisma.user.findFirst({
-        where: { email: 'master@rankingdbv.com' },
+        where: { email: 'master@cantinhomda.com' },
         include: { club: true }
     });
 

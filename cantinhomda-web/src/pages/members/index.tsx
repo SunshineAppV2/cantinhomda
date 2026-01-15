@@ -75,7 +75,7 @@ function MembersContent() {
     const { data: members = [], isLoading, error } = useQuery<Member[]>({
         queryKey: ['members', user?.clubId, user?.email],
         queryFn: async () => {
-            const url = user?.email === 'master@cantinhodbv.com' ? '/users' : `/users?clubId=${user?.clubId}`;
+            const url = user?.email === 'master@cantinhomda.com' ? '/users' : `/users?clubId=${user?.clubId}`;
             const res = await api.get(url);
             return res.data;
         },
@@ -99,7 +99,7 @@ function MembersContent() {
             const res = await api.get('/clubs');
             return res.data;
         },
-        enabled: user?.email === 'master@cantinhodbv.com',
+        enabled: user?.email === 'master@cantinhomda.com',
         staleTime: 1000 * 60 * 5 // 5 minutes
     });
 
@@ -344,27 +344,27 @@ function MembersContent() {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-slate-800">{user?.role === 'COUNSELOR' ? 'Minha Unidade' : 'Membros'}</h1>
                 <div className="flex gap-2">
-                    {(['COUNSELOR', 'OWNER', 'ADMIN', 'INSTRUCTOR'].includes(user?.role || '') || user?.email === 'master@cantinhodbv.com') && (
+                    {(['COUNSELOR', 'OWNER', 'ADMIN', 'INSTRUCTOR'].includes(user?.role || '') || user?.email === 'master@cantinhomda.com') && (
                         <button onClick={() => { setIsAssignModalOpen(true); setSelectedMemberIds(filteredMembers.map(m => m.id)); }} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2">
                             <ListChecks className="w-5 h-5" /> Enviar Requisito
                         </button>
                     )}
-                    {(['OWNER', 'ADMIN'].includes(user?.role || '') || user?.email === 'master@cantinhodbv.com') && (
+                    {(['OWNER', 'ADMIN'].includes(user?.role || '') || user?.email === 'master@cantinhomda.com') && (
                         <>
                             <button onClick={handleCopyInvite} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2">
                                 <Share2 className="w-5 h-5" /> Convite
                             </button>
                             <button
                                 onClick={() => {
-                                    if (isLimitReached && user?.email !== 'master@cantinhodbv.com') {
+                                    if (isLimitReached && user?.email !== 'master@cantinhomda.com') {
                                         toast.error('Limite de usuários atingido. Faça upgrade do plano.');
                                         return;
                                     }
                                     setEditingMember(null);
                                     setIsModalOpen(true);
                                 }}
-                                disabled={!!isLimitReached && user?.email !== 'master@cantinhodbv.com'}
-                                className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 text-white ${(isLimitReached && user?.email !== 'master@cantinhodbv.com') ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
+                                disabled={!!isLimitReached && user?.email !== 'master@cantinhomda.com'}
+                                className={`px-4 py-2 rounded-lg font-medium flex items-center gap-2 text-white ${(isLimitReached && user?.email !== 'master@cantinhomda.com') ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
                             >
                                 <Plus className="w-5 h-5" /> Adicionar Membro
                             </button>

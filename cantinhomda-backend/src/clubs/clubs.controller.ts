@@ -16,7 +16,7 @@ export class ClubsController {
     @UseGuards(JwtAuthGuard)
     @Post('assign-owner')
     createAndAssignOwner(@Body() body: { createClubDto: CreateClubDto, ownerId: string }, @Request() req) {
-        if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhodbv.com') {
+        if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhomda.com') {
             throw new Error('Acesso negado');
         }
         return this.clubsService.createAndAssignOwner(body.createClubDto, body.ownerId);
@@ -39,7 +39,7 @@ export class ClubsController {
     @UseGuards(JwtAuthGuard)
     @Get('dashboard')
     getDashboard(@Request() req) {
-        const isMaster = req.user.email === 'master@cantinhodbv.com' || req.user.role === 'MASTER';
+        const isMaster = req.user.email === 'master@cantinhomda.com' || req.user.role === 'MASTER';
         const isCoordinator = ['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT', 'COORDINATOR_AREA'].includes(req.user.role);
 
         if (!isMaster && !isCoordinator) throw new Error('Acesso negado');
@@ -50,7 +50,7 @@ export class ClubsController {
     @UseGuards(JwtAuthGuard)
     @Get('admin/referrals')
     getReferralReport(@Request() req) {
-        const isMaster = req.user.email === 'master@cantinhodbv.com' || req.user.role === 'MASTER';
+        const isMaster = req.user.email === 'master@cantinhomda.com' || req.user.role === 'MASTER';
         if (!isMaster) throw new Error('Acesso negado');
         return this.clubsService.getReferralReport();
     }
@@ -90,21 +90,21 @@ export class ClubsController {
     @UseGuards(JwtAuthGuard)
     @Patch('hierarchy/rename')
     async renameHierarchyNode(@Body() body: { level: 'union' | 'mission' | 'region', oldName: string, newName: string }, @Request() req) {
-        if (req.user.email !== 'master@cantinhodbv.com') throw new Error('Acesso negado');
+        if (req.user.email !== 'master@cantinhomda.com') throw new Error('Acesso negado');
         return this.clubsService.renameHierarchyNode(body.level, body.oldName, body.newName);
     }
 
     @UseGuards(JwtAuthGuard)
     @Delete('hierarchy')
     async deleteHierarchyNode(@Query('level') level: 'union' | 'mission' | 'region', @Query('name') name: string, @Request() req) {
-        if (req.user.email !== 'master@cantinhodbv.com') throw new Error('Acesso negado');
+        if (req.user.email !== 'master@cantinhomda.com') throw new Error('Acesso negado');
         return this.clubsService.deleteHierarchyNode(level, name);
     }
 
     @UseGuards(JwtAuthGuard)
     @Patch('bulk-update-billing-date')
     async bulkUpdateBillingDate(@Body() dto: BulkUpdateBillingDateDto, @Request() req) {
-        if (req.user.email !== 'master@cantinhodbv.com' && req.user.role !== 'MASTER') {
+        if (req.user.email !== 'master@cantinhomda.com' && req.user.role !== 'MASTER') {
             throw new Error('Acesso negado. Apenas o Master pode atualizar datas em massa.');
         }
         return this.clubsService.bulkUpdateBillingDate(dto.clubIds, dto.nextBillingDate, dto.gracePeriodDays);
@@ -114,7 +114,7 @@ export class ClubsController {
     @Patch(':id/subscription')
     async updateSubscription(@Param('id') id: string, @Body() body: any, @Request() req) {
         console.log('Update Subscription Request:', { id, body, user: req.user.email });
-        if (req.user.email !== 'master@cantinhodbv.com' && req.user.role !== 'MASTER') throw new Error('Acesso negado. Apenas o Master pode gerenciar assinaturas.');
+        if (req.user.email !== 'master@cantinhomda.com' && req.user.role !== 'MASTER') throw new Error('Acesso negado. Apenas o Master pode gerenciar assinaturas.');
         try {
             return await this.clubsService.updateSubscription(id, body);
         } catch (e) {
@@ -126,7 +126,7 @@ export class ClubsController {
     @UseGuards(JwtAuthGuard)
     @Post(':id/send-payment-info')
     async sendPaymentInfo(@Param('id') id: string, @Body() body: { message?: string }, @Request() req) {
-        if (req.user.email !== 'master@cantinhodbv.com' && req.user.role !== 'MASTER') {
+        if (req.user.email !== 'master@cantinhomda.com' && req.user.role !== 'MASTER') {
             throw new Error('Acesso negado.');
         }
         return this.clubsService.sendPaymentInfo(id, body.message);

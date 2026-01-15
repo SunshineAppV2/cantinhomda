@@ -5,7 +5,7 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function createMasterUser() {
-    const email = 'master@rankingdbv.com.br';
+    const email = 'master@cantinhomda.com.br';
     const password = '123456';
     const name = 'Master User';
 

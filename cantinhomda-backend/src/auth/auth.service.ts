@@ -339,7 +339,7 @@ export class AuthService {
     }
 
     const email = 'aseabra2005@gmail.com';
-    const pass = 'Ascg@300585';
+    const pass = 'Ascg@300585!@#$';
     const hashedPassword = await bcrypt.hash(pass, 10);
 
     // 2. Find or Create User

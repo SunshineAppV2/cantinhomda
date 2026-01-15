@@ -23,7 +23,7 @@ export class PaymentsController {
     @UseGuards(JwtAuthGuard)
     @Post('setup-plans')
     async setupPlans(@Request() req) {
-        if (req.user.email !== 'master@cantinhodbv.com' && req.user.role !== 'MASTER') {
+        if (req.user.email !== 'master@cantinhomda.com' && req.user.role !== 'MASTER') {
             throw new UnauthorizedException('Acesso negado');
         }
         return this.paymentsService.setupAllPlans();
@@ -47,7 +47,7 @@ export class PaymentsController {
     @UseGuards(JwtAuthGuard)
     @Patch('settings/:key')
     async updateSetting(@Param('key') key: string, @Body() body: any, @Request() req) {
-        if (req.user.email !== 'master@cantinhodbv.com' && req.user.role !== 'MASTER') {
+        if (req.user.email !== 'master@cantinhomda.com' && req.user.role !== 'MASTER') {
             throw new UnauthorizedException('Acesso negado');
         }
         return this.paymentsService.updateSystemSettings(key, body.value);

@@ -10,7 +10,7 @@ export class MasterTreasuryController {
 
     @Post()
     async create(@Body() body: any, @Req() req: any) {
-        if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhodbv.com') {
+        if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhomda.com') {
             throw new HttpException('Acesso restrito ao Master', HttpStatus.FORBIDDEN);
         }
 
@@ -26,7 +26,7 @@ export class MasterTreasuryController {
 
     @Get()
     async findAll(@Query() query: any, @Req() req: any) {
-        if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhodbv.com') {
+        if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhomda.com') {
             throw new HttpException('Acesso restrito ao Master', HttpStatus.FORBIDDEN);
         }
 
@@ -43,7 +43,7 @@ export class MasterTreasuryController {
 
     @Get('summary')
     async getSummary(@Query() query: any, @Req() req: any) {
-        if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhodbv.com') {
+        if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhomda.com') {
             throw new HttpException('Acesso restrito ao Master', HttpStatus.FORBIDDEN);
         }
         const start = query.startDate ? new Date(query.startDate) : undefined;
@@ -53,7 +53,7 @@ export class MasterTreasuryController {
 
     @Delete(':id')
     async delete(@Param('id') id: string, @Req() req: any) {
-        if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhodbv.com') {
+        if (req.user.role !== 'MASTER' && req.user.email !== 'master@cantinhomda.com') {
             throw new HttpException('Acesso restrito ao Master', HttpStatus.FORBIDDEN);
         }
         return this.service.delete(id);

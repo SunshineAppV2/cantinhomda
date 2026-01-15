@@ -25,7 +25,7 @@ export class RequirementsController {
         console.log('[RequirementsController] User:', req.user.email, req.user.role);
 
         const userClubId = req.user.clubId;
-        const isMaster = req.user.email === 'master@cantinhodbv.com' || req.user.role === 'MASTER';
+        const isMaster = req.user.email === 'master@cantinhomda.com' || req.user.role === 'MASTER';
         const isRegionalCoordinator = req.user.role === 'COORDINATOR_REGIONAL';
         const isDistrictCoordinator = req.user.role === 'COORDINATOR_DISTRICT';
 
@@ -64,12 +64,12 @@ export class RequirementsController {
         // Ensure only Master can import GLOBAL requirements?
         // Or Club Admin can import BULK requirements?
         // Let's assume Master for now as requested.
-        // if (req.user.email !== 'master@cantinhodbv.com') throw new ForbiddenException();
+        // if (req.user.email !== 'master@cantinhomda.com') throw new ForbiddenException();
 
         // For flexibility, allows import. Logic inside service will handle creation.
         // We might want to force clubID if not master?
         const userClubId = req.user.clubId;
-        const isMaster = req.user.email === 'master@cantinhodbv.com';
+        const isMaster = req.user.email === 'master@cantinhomda.com';
 
         const dataToImport = items.map(item => {
             if (!isMaster && userClubId) {

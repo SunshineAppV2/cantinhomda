@@ -25,7 +25,7 @@ export class ClubAccessGuard implements CanActivate {
         }
 
         // 3. MASTER Override
-        if (user.role === 'MASTER' || user.email === 'master@cantinhodbv.com') {
+        if (user.role === 'MASTER' || user.email === 'master@cantinhomda.com') {
             return true;
         }
 

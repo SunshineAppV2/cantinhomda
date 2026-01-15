@@ -88,7 +88,7 @@ export function Settings() {
         }
     });
 
-    if (!['OWNER', 'ADMIN', 'MASTER'].includes(user?.role || '') && user?.email !== 'master@cantinhodbv.com') {
+    if (!['OWNER', 'ADMIN', 'MASTER'].includes(user?.role || '') && user?.email !== 'master@cantinhomda.com') {
         return <div className="p-8 text-center text-slate-500">Acesso restrito a administradores.</div>;
     }
 
@@ -102,7 +102,7 @@ export function Settings() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 {/* Master Only: Subscription Management Link */}
-                {(user?.email === 'master@cantinhodbv.com' || user?.role === 'MASTER') && (
+                {(user?.email === 'master@cantinhomda.com' || user?.role === 'MASTER') && (
                     <div className="md:col-span-2 bg-gradient-to-r from-blue-600 to-indigo-600 p-6 rounded-xl shadow-lg text-white flex items-center justify-between relative overflow-hidden">
                         <div className="relative z-10">
                             <h3 className="text-xl font-bold mb-1">Gerenciar Assinaturas (Master)</h3>
@@ -249,12 +249,12 @@ export function Settings() {
                 </div>
 
                 {/* --- Master Section: Payment Gateway Control --- */}
-                {(user?.email === 'master@cantinhodbv.com' || user?.role === 'MASTER') && (
+                {(user?.email === 'master@cantinhomda.com' || user?.role === 'MASTER') && (
                     <MasterPaymentsConfig />
                 )}
 
                 {/* --- Master Section: Referral System Control --- */}
-                {(user?.email === 'master@cantinhodbv.com' || user?.role === 'MASTER') && (
+                {(user?.email === 'master@cantinhomda.com' || user?.role === 'MASTER') && (
                     <MasterReferralConfig />
                 )}
 

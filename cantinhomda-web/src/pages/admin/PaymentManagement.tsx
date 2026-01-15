@@ -60,7 +60,7 @@ export function PaymentManagement() {
             const res = await api.get('/subscriptions/payments/pending');
             return res.data as Payment[];
         },
-        enabled: user?.role === 'MASTER' || user?.email === 'master@cantinhodbv.com'
+        enabled: user?.role === 'MASTER' || user?.email === 'master@cantinhomda.com'
     });
 
     // Confirmar pagamento
@@ -137,7 +137,7 @@ export function PaymentManagement() {
         }
     };
 
-    if (user?.role !== 'MASTER' && user?.email !== 'master@cantinhodbv.com') {
+    if (user?.role !== 'MASTER' && user?.email !== 'master@cantinhomda.com') {
         return (
             <div className="p-8 text-center text-red-500">
                 Acesso restrito ao Master.

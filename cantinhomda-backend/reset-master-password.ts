@@ -4,7 +4,7 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function resetPassword() {
-    const email = 'master@cantinhodbv.com';
+    const email = 'master@cantinhomda.com';
     const newPassword = 'Ascg@300585!@#$';
 
     try {

@@ -22,7 +22,7 @@ export class UnitsController {
 
   @Get('club/:clubId')
   findAllByClub(@Param('clubId') clubId: string, @Request() req) {
-    if (req.user.email !== 'master@cantinhodbv.com' && req.user.clubId !== clubId) {
+    if (req.user.email !== 'master@cantinhomda.com' && req.user.clubId !== clubId) {
       throw new UnauthorizedException('Acesso negado.');
     }
     return this.unitsService.findAllByClub(clubId);

@@ -20,7 +20,7 @@ async function main() {
     });
 
     // 2. Force Update Master User
-    const masterEmail = 'master@rankingdbv.com';
+    const masterEmail = 'master@cantinhomda.com';
     const user = await prisma.user.findUnique({ where: { email: masterEmail } });
 
     // Always set role to OWNER and clubId to Master Club

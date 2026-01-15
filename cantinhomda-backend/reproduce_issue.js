@@ -10,7 +10,7 @@ async function testUpdate() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                email: 'master@rankingdbv.com',
+                email: 'master@cantinhomda.com',
                 password: '123456'
             })
         });

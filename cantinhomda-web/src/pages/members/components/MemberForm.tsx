@@ -80,7 +80,7 @@ export function MemberForm({ isOpen, onClose, onSubmit, initialData, units, club
                             <input value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="Ex: joao@email.com" type="email" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" required />
                         </div>
 
-                        {user?.email === 'master@cantinhodbv.com' && (
+                        {user?.email === 'master@cantinhomda.com' && (
                             <div>
                                 <label className="block text-sm font-medium text-slate-700 mb-1">Clube (Apenas Master)</label>
                                 <select
@@ -167,7 +167,7 @@ export function MemberForm({ isOpen, onClose, onSubmit, initialData, units, club
                             >
                                 {Object.entries(ROLE_TRANSLATIONS).map(([key, label]) => {
                                     // Special logic for Master users
-                                    const isMaster = user?.role === 'MASTER' || user?.email === 'master@cantinhodbv.com';
+                                    const isMaster = user?.role === 'MASTER' || user?.email === 'master@cantinhomda.com';
 
                                     if (!isMaster) {
                                         // Non-master users cannot see coordinator roles

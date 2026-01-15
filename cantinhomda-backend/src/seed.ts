@@ -1,12 +1,12 @@
-Ôªøimport { PrismaClient, Role, PlanTier, ClubStatus } from '@prisma/client';
+import { PrismaClient, Role, PlanTier, ClubStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('üå± Iniciando Seed...');
+  console.log('?? Iniciando Seed...');
 
-  // Defini√ß√µes
+  // DefiniÁıes
   const clubId = '0001';
   const emailDiretor = 'diretor@aguias.com';
   const senhaPura = '123456';
@@ -20,14 +20,14 @@ async function main() {
     update: {},
     create: {
       id: clubId,
-      name: 'Clube √Åguias da Colina',
+      name: 'Clube ¡guias da Colina',
       planTier: PlanTier.TRIAL,
       status: ClubStatus.ACTIVE,
     },
   });
-  console.log(`üè¢ Clube OK: ${club.name}`);
+  console.log(`?? Clube OK: ${club.name}`);
 
-  // Usu√°rio
+  // Usu·rio
   const user = await prisma.user.upsert({
     where: { email: emailDiretor },
     update: { password: passwordHash, clubId: club.id },
@@ -51,10 +51,10 @@ async function main() {
       clubId: club.id,
     },
   });
-  console.log(`üë§ Usu√°rio OK: ${user.email}`);
+  console.log(`?? Usu·rio OK: ${user.email}`);
 
-  // Usu√°rio Master
-  const emailMaster = 'master@rankingdbv.com';
+  // Usu·rio Master
+  const emailMaster = 'master@cantinhomda.com';
   const masterUser = await prisma.user.upsert({
     where: { email: emailMaster },
     update: { password: passwordHash, clubId: club.id, role: Role.OWNER },
@@ -66,7 +66,7 @@ async function main() {
       clubId: club.id,
     },
   });
-  console.log(`üë§ Usu√°rio Master OK: ${masterUser.email}`);
+  console.log(`?? Usu·rio Master OK: ${masterUser.email}`);
   console.log
 
 
@@ -75,7 +75,7 @@ async function main() {
 
 
 
-    ('‚úÖ SUCESSO TOTAL!');
+    ('? SUCESSO TOTAL!');
 }
 
 main()
