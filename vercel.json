@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "cd rankingdbv-web && npm install && npm run build",
-  "outputDirectory": "rankingdbv-web/dist",
+  "buildCommand": "cd cantinhomda-web && npm install && npm run build",
+  "outputDirectory": "cantinhomda-web/dist",
   "framework": "vite",
   "headers": [
     {
