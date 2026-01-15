@@ -304,12 +304,25 @@ export class TreasuryService {
      */
     private async handlePointAwarding(transactionId: string, effectiveDate: Date = new Date()) {
         try {
+            console.log(`[RANKING] handlePointAwarding called for transaction: ${transactionId}`);
+
             const tx = await this.prisma.transaction.findUnique({
                 where: { id: transactionId },
                 include: { payer: true }
             });
 
-            if (!tx || tx.status !== 'COMPLETED' || tx.type !== 'INCOME') return;
+            console.log(`[RANKING] Transaction found:`, {
+                id: tx?.id,
+                status: tx?.status,
+                type: tx?.type,
+                points: tx?.points,
+                category: tx?.category
+            });
+
+            if (!tx || tx.status !== 'COMPLETED' || tx.type !== 'INCOME') {
+                console.log(`[RANKING] Skipping - conditions not met`);
+                return;
+            }
 
             let pointsToAward = tx.points || 0;
             let isLate = false;
@@ -318,11 +331,17 @@ export class TreasuryService {
             if (tx.dueDate && effectiveDate > tx.dueDate) {
                 pointsToAward = Math.floor(pointsToAward * 0.5);
                 isLate = true;
+                console.log(`[RANKING] Late payment - points reduced to 50%: ${pointsToAward}`);
             }
 
-            if (pointsToAward <= 0) return;
+            if (pointsToAward <= 0) {
+                console.log(`[RANKING] No points to award (points: ${pointsToAward})`);
+                return;
+            }
 
             const beneficiaryId = tx.memberId || tx.payerId;
+            console.log(`[RANKING] Beneficiary ID: ${beneficiaryId}, Points to award: ${pointsToAward}`);
+
             if (beneficiaryId) {
                 // 1. Award Points to User
                 await this.prisma.user.update({
@@ -339,6 +358,8 @@ export class TreasuryService {
                     }
                 });
 
+                console.log(`[RANKING] ✅ Points awarded successfully: +${pointsToAward} points`);
+
                 // 2. Notify Payer
                 if (tx.payerId) {
                     const message = isLate
@@ -354,7 +375,7 @@ export class TreasuryService {
                 }
             }
         } catch (error) {
-            console.error(`Error awarding points for tx ${transactionId}:`, error);
+            console.error(`[RANKING] ❌ Error awarding points for tx ${transactionId}:`, error);
         }
     }
 
@@ -363,22 +384,39 @@ export class TreasuryService {
      */
     private async handlePointReversal(transaction: any) {
         try {
+            console.log(`[RANKING] handlePointReversal called for transaction:`, {
+                id: transaction.id,
+                status: transaction.status,
+                type: transaction.type,
+                points: transaction.points
+            });
+
             // Only reverse points for completed income transactions
             if (transaction.status !== 'COMPLETED' || transaction.type !== 'INCOME') {
+                console.log(`[RANKING] Skipping reversal - conditions not met`);
                 return;
             }
 
             const pointsAwarded = transaction.points || 0;
-            if (pointsAwarded <= 0) return;
+            if (pointsAwarded <= 0) {
+                console.log(`[RANKING] No points to reverse (points: ${pointsAwarded})`);
+                return;
+            }
 
             const beneficiaryId = transaction.memberId || transaction.payerId;
-            if (!beneficiaryId) return;
+            if (!beneficiaryId) {
+                console.log(`[RANKING] No beneficiary found`);
+                return;
+            }
 
             // Calculate the actual points that were awarded (considering late penalty)
             let actualPoints = pointsAwarded;
             if (transaction.dueDate && transaction.date > transaction.dueDate) {
                 actualPoints = Math.floor(pointsAwarded * 0.5);
+                console.log(`[RANKING] Late payment detected - reversing 50%: ${actualPoints}`);
             }
+
+            console.log(`[RANKING] Reversing ${actualPoints} points from user ${beneficiaryId}`);
 
             // Subtract points from user
             await this.prisma.user.update({
@@ -395,6 +433,8 @@ export class TreasuryService {
                 }
             });
 
+            console.log(`[RANKING] ✅ Points reversed successfully: -${actualPoints} points`);
+
             // Notify user about point reversal
             if (transaction.payerId) {
                 await this.notificationsService.send(
@@ -405,7 +445,7 @@ export class TreasuryService {
                 );
             }
         } catch (error) {
-            console.error(`Error reversing points for deleted transaction:`, error);
+            console.error(`[RANKING] ❌ Error reversing points for deleted transaction:`, error);
         }
     }
 }
