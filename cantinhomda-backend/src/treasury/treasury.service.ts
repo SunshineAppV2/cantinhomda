@@ -13,52 +13,48 @@ export class TreasuryService {
     ) { }
 
     async create(data: CreateTransactionDto) {
-        console.log('[TREASURY] create() called with data:', {
+        console.log('[TREASURY] create() - Recebido:', {
             type: data.type,
-            isPaid: (data as any).isPaid,
             points: data.points,
-            category: data.category
+            isPaid: (data as any).isPaid
         });
 
-        // Extract isPaid flag (not a DB field)
+        // Extract isPaid (not a DB field)
         const { isPaid, ...dbData } = data as any;
 
-        let memberId = dbData.memberId;
-
         // Smart Deduction: If payer is Parent and has 1 child, assign to child
+        let memberId = dbData.memberId;
         if (!memberId && dbData.payerId) {
             const payer = await this.prisma.user.findUnique({
                 where: { id: dbData.payerId },
                 include: { children: true }
             });
-            if (payer && payer.children.length === 1) {
+            if (payer?.children.length === 1) {
                 memberId = payer.children[0].id;
             }
         }
 
+        // Create transaction
         const transaction = await this.prisma.transaction.create({
             data: {
                 ...dbData,
                 memberId,
                 status: (dbData.type === 'EXPENSE' || isPaid) ? 'COMPLETED' : 'PENDING',
-                paymentMethod: isPaid ? 'DINHEIRO' : 'DINHEIRO',
+                paymentMethod: 'DINHEIRO',
                 date: isPaid ? new Date() : (dbData.date || new Date())
             }
         });
 
-        console.log('[TREASURY] Transaction created:', {
+        console.log('[TREASURY] create() - Transação criada:', {
             id: transaction.id,
             status: transaction.status,
             type: transaction.type,
             points: transaction.points
         });
 
-        // Award points if income and paid immediately
-        if (transaction.status === 'COMPLETED' && transaction.type === 'INCOME') {
-            console.log('[TREASURY] Calling handlePointAwarding for transaction:', transaction.id);
-            await this.handlePointAwarding(transaction.id);
-        } else {
-            console.log('[TREASURY] Skipping point awarding - status:', transaction.status, 'type:', transaction.type);
+        // Award points if eligible
+        if (transaction.type === 'INCOME' && transaction.status === 'COMPLETED' && transaction.points > 0) {
+            await this.awardPoints(transaction);
         }
 
         return transaction;
@@ -66,46 +62,44 @@ export class TreasuryService {
 
     async createBulk(data: any) {
         try {
-            console.log('[TREASURY] createBulk() called');
+            console.log('[TREASURY] createBulk() - Iniciado');
 
             // Handle direct array of transactions from frontend
             if (data.transactions && Array.isArray(data.transactions)) {
-                console.log(`[TREASURY] Creating ${data.transactions.length} transactions from array`);
+                console.log(`[TREASURY] createBulk() - Criando ${data.transactions.length} transações`);
+
                 const operations = data.transactions.map(tx => {
-                    const { id, isPaid, ...cleanTx } = tx; // Remove temporary ID and isPaid flag
+                    const { id, isPaid, ...cleanTx } = tx;
                     return this.prisma.transaction.create({
                         data: {
                             ...cleanTx,
-                            status: tx.status || ((tx.type === 'EXPENSE' || isPaid) ? 'COMPLETED' : 'PENDING'),
-                            date: tx.date ? new Date(tx.date) : new Date(),
-                            dueDate: tx.dueDate ? new Date(tx.dueDate) : undefined
+                            status: (cleanTx.type === 'EXPENSE' || isPaid) ? 'COMPLETED' : 'PENDING',
+                            date: cleanTx.date ? new Date(cleanTx.date) : new Date(),
+                            dueDate: cleanTx.dueDate ? new Date(cleanTx.dueDate) : undefined
                         }
                     });
                 });
+
                 const transactions = await this.prisma.$transaction(operations);
+                console.log(`[TREASURY] createBulk() - ${transactions.length} transações criadas`);
 
-                console.log(`[TREASURY] ${transactions.length} transactions created, checking for points...`);
-
-                // Award points for all completed Income transactions
+                // Award points for eligible transactions
                 for (const tx of transactions) {
-                    console.log(`[TREASURY] Checking transaction ${tx.id}: status=${tx.status}, type=${tx.type}, points=${tx.points}`);
-                    if (tx.status === 'COMPLETED' && tx.type === 'INCOME') {
-                        console.log(`[TREASURY] Calling handlePointAwarding for bulk transaction: ${tx.id}`);
-                        await this.handlePointAwarding(tx.id);
+                    if (tx.type === 'INCOME' && tx.status === 'COMPLETED' && tx.points > 0) {
+                        await this.awardPoints(tx);
                     }
                 }
 
                 return transactions;
             }
 
+            // Handle memberIds array (bulk creation for multiple members)
             const { memberIds, installments = 1, ...txData } = data;
             if (!memberIds || !Array.isArray(memberIds)) {
-                throw new Error('Lista de membros ou transações não fornecida corretamente.');
+                throw new Error('Lista de membros não fornecida.');
             }
 
             const iterations = txData.recurrence ? (Number(installments) || 1) : 1;
-
-            // Fetch users
             const users = await this.prisma.user.findMany({
                 where: { id: { in: memberIds } },
                 select: { id: true, name: true, parentId: true }
@@ -134,33 +128,26 @@ export class TreasuryService {
                             memberId: user.id,
                             status: (txData.type === 'EXPENSE' || data.isPaid) ? 'COMPLETED' : 'PENDING',
                             dueDate: currentDueDate,
-                            paymentMethod: data.isPaid ? 'DINHEIRO' : 'DINHEIRO',
+                            paymentMethod: 'DINHEIRO',
                             date: data.isPaid ? new Date() : (txData.date || new Date())
-                        },
-                        include: {
-                            payer: {
-                                select: {
-                                    id: true,
-                                    name: true
-                                }
-                            }
                         }
                     }));
                 }
             }
 
             const transactions = await this.prisma.$transaction(operations);
+            console.log(`[TREASURY] createBulk() - ${transactions.length} transações criadas para membros`);
 
-            // Award points for all completed Income transactions
+            // Award points for eligible transactions
             for (const tx of transactions) {
-                if (tx.status === 'COMPLETED' && tx.type === 'INCOME') {
-                    await this.handlePointAwarding(tx.id);
+                if (tx.type === 'INCOME' && tx.status === 'COMPLETED' && tx.points > 0) {
+                    await this.awardPoints(tx);
                 }
             }
 
             return transactions;
         } catch (error) {
-            console.error('Error in createBulk:', error);
+            console.error('[TREASURY] createBulk() - Erro:', error);
             throw new HttpException(
                 `Erro ao criar transações: ${error.message}`,
                 HttpStatus.INTERNAL_SERVER_ERROR
@@ -171,13 +158,12 @@ export class TreasuryService {
     async update(id: string, data: UpdateTransactionDto) {
         try {
             const { id: _id, clubId, ...updateData } = data as any;
-
             return await this.prisma.transaction.update({
                 where: { id },
                 data: updateData
             });
         } catch (error) {
-            console.error('Error updating transaction:', error);
+            console.error('[TREASURY] update() - Erro:', error);
             throw new HttpException(
                 `Erro ao atualizar transação: ${error.message}`,
                 HttpStatus.INTERNAL_SERVER_ERROR
@@ -187,25 +173,22 @@ export class TreasuryService {
 
     async remove(id: string) {
         try {
-            // 1. Fetch transaction before deletion to reverse points if needed
             const transaction = await this.prisma.transaction.findUnique({
-                where: { id },
-                include: { payer: true }
+                where: { id }
             });
 
             if (!transaction) {
                 throw new HttpException('Transação não encontrada', HttpStatus.NOT_FOUND);
             }
 
-            // 2. Reverse points if this was a completed income transaction
-            await this.handlePointReversal(transaction);
+            // Reverse points if eligible
+            if (transaction.type === 'INCOME' && transaction.status === 'COMPLETED' && transaction.points > 0) {
+                await this.reversePoints(transaction);
+            }
 
-            // 3. Delete the transaction
-            return await this.prisma.transaction.delete({
-                where: { id }
-            });
+            return await this.prisma.transaction.delete({ where: { id } });
         } catch (error) {
-            console.error('Error deleting transaction:', error);
+            console.error('[TREASURY] remove() - Erro:', error);
             throw new HttpException(
                 `Erro ao excluir transação: ${error.message}`,
                 HttpStatus.INTERNAL_SERVER_ERROR
@@ -236,24 +219,22 @@ export class TreasuryService {
                 return priorityA - priorityB;
             }
 
-            // If PENDING, Sort by Due Date ASC (Vencidos/Antigos primeiro)
             if (a.status === 'PENDING') {
                 const dateA = a.dueDate ? new Date(a.dueDate).getTime() : new Date(a.date).getTime();
                 const dateB = b.dueDate ? new Date(b.dueDate).getTime() : new Date(b.date).getTime();
-                return dateA - dateB; // ASC
+                return dateA - dateB;
             }
 
-            // For COMPLETED/CANCELED/WAITING, keep Date DESC (Mais recentes primeiro)
             const dateA = new Date(a.date).getTime();
             const dateB = new Date(b.date).getTime();
-            return dateB - dateA; // DESC
+            return dateB - dateA;
         });
     }
 
     async settle(id: string, data: SettleTransactionDto) {
         const paymentDate = new Date(data.paymentDate);
 
-        const updated = await this.prisma.transaction.update({
+        const transaction = await this.prisma.transaction.update({
             where: { id },
             data: {
                 status: 'COMPLETED',
@@ -261,24 +242,28 @@ export class TreasuryService {
             }
         });
 
-        await this.handlePointAwarding(id, paymentDate);
+        // Award points if eligible
+        if (transaction.type === 'INCOME' && transaction.points > 0) {
+            await this.awardPoints(transaction, paymentDate);
+        }
 
-        return updated;
+        return transaction;
     }
 
     async approve(id: string) {
         const approvalDate = new Date();
 
-        // 1. Update Status
-        const updated = await this.prisma.transaction.update({
+        const transaction = await this.prisma.transaction.update({
             where: { id },
             data: { status: 'COMPLETED', date: approvalDate }
         });
 
-        // 2. Award Points and Notify
-        await this.handlePointAwarding(id, approvalDate);
+        // Award points if eligible
+        if (transaction.type === 'INCOME' && transaction.points > 0) {
+            await this.awardPoints(transaction, approvalDate);
+        }
 
-        return updated;
+        return transaction;
     }
 
     async pay(id: string, proofUrl?: string) {
@@ -307,7 +292,7 @@ export class TreasuryService {
 
     async getBalance(clubId: string) {
         const transactions = await this.prisma.transaction.findMany({
-            where: { clubId, status: 'COMPLETED' } // Only count COMPLETED
+            where: { clubId, status: 'COMPLETED' }
         });
 
         const income = transactions
@@ -326,153 +311,112 @@ export class TreasuryService {
     }
 
     /**
-     * Centralized logic to award points and notify user when a transaction is PAID
+     * Award points to user when payment is confirmed
      */
-    private async handlePointAwarding(transactionId: string, effectiveDate: Date = new Date()) {
+    private async awardPoints(transaction: any, effectiveDate: Date = new Date()) {
         try {
-            console.log(`[RANKING] handlePointAwarding called for transaction: ${transactionId}`);
-
-            const tx = await this.prisma.transaction.findUnique({
-                where: { id: transactionId },
-                include: { payer: true }
-            });
-
-            console.log(`[RANKING] Transaction found:`, {
-                id: tx?.id,
-                status: tx?.status,
-                type: tx?.type,
-                points: tx?.points,
-                category: tx?.category
-            });
-
-            if (!tx || tx.status !== 'COMPLETED' || tx.type !== 'INCOME') {
-                console.log(`[RANKING] Skipping - conditions not met`);
-                return;
-            }
-
-            let pointsToAward = tx.points || 0;
-            let isLate = false;
-
-            // Apply Penalty if late (payment/approval after due date)
-            if (tx.dueDate && effectiveDate > tx.dueDate) {
-                pointsToAward = Math.floor(pointsToAward * 0.5);
-                isLate = true;
-                console.log(`[RANKING] Late payment - points reduced to 50%: ${pointsToAward}`);
-            }
-
-            if (pointsToAward <= 0) {
-                console.log(`[RANKING] No points to award (points: ${pointsToAward})`);
-                return;
-            }
-
-            const beneficiaryId = tx.memberId || tx.payerId;
-            console.log(`[RANKING] Beneficiary ID: ${beneficiaryId}, Points to award: ${pointsToAward}`);
-
-            if (beneficiaryId) {
-                // 1. Award Points to User
-                await this.prisma.user.update({
-                    where: { id: beneficiaryId },
-                    data: {
-                        points: { increment: pointsToAward },
-                        pointsHistory: {
-                            create: {
-                                amount: pointsToAward,
-                                reason: `Pagamento: ${tx.category}`,
-                                source: 'PURCHASE'
-                            }
-                        }
-                    }
-                });
-
-                console.log(`[RANKING] ✅ Points awarded successfully: +${pointsToAward} points`);
-
-                // 2. Notify Payer
-                if (tx.payerId) {
-                    const message = isLate
-                        ? `Pagamento de ${tx.category} confirmado com atraso. Você recebeu ${pointsToAward} pontos (50% do total).`
-                        : `Seu pagamento de ${tx.category} foi confirmado! Você recebeu ${pointsToAward} pontos.`;
-
-                    await this.notificationsService.send(
-                        tx.payerId,
-                        'Ranking Atualizado',
-                        message,
-                        'SUCCESS'
-                    );
-                }
-            }
-        } catch (error) {
-            console.error(`[RANKING] ❌ Error awarding points for tx ${transactionId}:`, error);
-        }
-    }
-
-    /**
-     * Reverse points when a transaction is deleted
-     */
-    private async handlePointReversal(transaction: any) {
-        try {
-            console.log(`[RANKING] handlePointReversal called for transaction:`, {
+            console.log('[POINTS] Verificando elegibilidade:', {
                 id: transaction.id,
-                status: transaction.status,
                 type: transaction.type,
+                status: transaction.status,
                 points: transaction.points
             });
 
-            // Only reverse points for completed income transactions
-            if (transaction.status !== 'COMPLETED' || transaction.type !== 'INCOME') {
-                console.log(`[RANKING] Skipping reversal - conditions not met`);
-                return;
-            }
+            let pointsToAward = transaction.points;
 
-            const pointsAwarded = transaction.points || 0;
-            if (pointsAwarded <= 0) {
-                console.log(`[RANKING] No points to reverse (points: ${pointsAwarded})`);
-                return;
+            // Apply late penalty
+            if (transaction.dueDate && effectiveDate > transaction.dueDate) {
+                pointsToAward = Math.floor(pointsToAward * 0.5);
+                console.log('[POINTS] Penalidade por atraso aplicada: 50%');
             }
 
             const beneficiaryId = transaction.memberId || transaction.payerId;
             if (!beneficiaryId) {
-                console.log(`[RANKING] No beneficiary found`);
+                console.log('[POINTS] ❌ Nenhum beneficiário encontrado');
                 return;
             }
 
-            // Calculate the actual points that were awarded (considering late penalty)
-            let actualPoints = pointsAwarded;
-            if (transaction.dueDate && transaction.date > transaction.dueDate) {
-                actualPoints = Math.floor(pointsAwarded * 0.5);
-                console.log(`[RANKING] Late payment detected - reversing 50%: ${actualPoints}`);
-            }
-
-            console.log(`[RANKING] Reversing ${actualPoints} points from user ${beneficiaryId}`);
-
-            // Subtract points from user
+            // Update user points
             await this.prisma.user.update({
                 where: { id: beneficiaryId },
                 data: {
-                    points: { decrement: actualPoints },
+                    points: { increment: pointsToAward },
                     pointsHistory: {
                         create: {
-                            amount: -actualPoints,
-                            reason: `Estorno: ${transaction.category} (transação excluída)`,
+                            amount: pointsToAward,
+                            reason: `Pagamento: ${transaction.category}`,
                             source: 'PURCHASE'
                         }
                     }
                 }
             });
 
-            console.log(`[RANKING] ✅ Points reversed successfully: -${actualPoints} points`);
+            console.log(`[POINTS] ✅ ${pointsToAward} pontos concedidos para ${beneficiaryId}`);
 
-            // Notify user about point reversal
+            // Notify user
             if (transaction.payerId) {
                 await this.notificationsService.send(
                     transaction.payerId,
-                    'Pontos Estornados',
-                    `A transação "${transaction.category}" foi excluída. ${actualPoints} pontos foram removidos do seu ranking.`,
+                    'Pontos Adicionados',
+                    `Você ganhou ${pointsToAward} pontos por: ${transaction.category}`,
+                    'SUCCESS'
+                );
+            }
+        } catch (error) {
+            console.error('[POINTS] ❌ Erro ao conceder pontos:', error);
+        }
+    }
+
+    /**
+     * Reverse points when transaction is deleted
+     */
+    private async reversePoints(transaction: any) {
+        try {
+            console.log('[POINTS] Revertendo pontos:', {
+                id: transaction.id,
+                points: transaction.points
+            });
+
+            let pointsToReverse = transaction.points;
+
+            // Calculate penalty that was applied
+            if (transaction.dueDate && transaction.date > transaction.dueDate) {
+                pointsToReverse = Math.floor(pointsToReverse * 0.5);
+            }
+
+            const beneficiaryId = transaction.memberId || transaction.payerId;
+            if (!beneficiaryId) {
+                console.log('[POINTS] ❌ Nenhum beneficiário encontrado');
+                return;
+            }
+
+            await this.prisma.user.update({
+                where: { id: beneficiaryId },
+                data: {
+                    points: { decrement: pointsToReverse },
+                    pointsHistory: {
+                        create: {
+                            amount: -pointsToReverse,
+                            reason: `Estorno: ${transaction.category}`,
+                            source: 'PURCHASE'
+                        }
+                    }
+                }
+            });
+
+            console.log(`[POINTS] ✅ ${pointsToReverse} pontos revertidos de ${beneficiaryId}`);
+
+            // Notify user
+            if (transaction.payerId) {
+                await this.notificationsService.send(
+                    transaction.payerId,
+                    'Pontos Removidos',
+                    `${pointsToReverse} pontos foram removidos devido à exclusão de: ${transaction.category}`,
                     'INFO'
                 );
             }
         } catch (error) {
-            console.error(`[RANKING] ❌ Error reversing points for deleted transaction:`, error);
+            console.error('[POINTS] ❌ Erro ao reverter pontos:', error);
         }
     }
 }
-// Force reload
