@@ -310,6 +310,16 @@ export function Treasury() {
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        console.log('[Treasury] handleSubmit - Estado do formulário:', {
+            type,
+            amount,
+            points,
+            isPaid,
+            dueDate,
+            recurrence,
+            installments
+        });
+
         if (editingTransaction) {
             updateMutation.mutate({
                 id: editingTransaction.id,
@@ -317,9 +327,8 @@ export function Treasury() {
                 amount: Number(amount),
                 description,
                 category,
-                points: generatePoints ? Number(points) : 0,
+                points: Number(points),
                 dueDate: dueDate ? new Date(dueDate) : undefined
-                // payerId and memberIds usually not editable for simplicity in this flow
             });
         } else {
             createMutation.mutate({
@@ -328,7 +337,12 @@ export function Treasury() {
                 description,
                 category,
                 payerId: payerId || undefined,
-                memberIds: selectedMemberIds
+                memberIds: selectedMemberIds,
+                points: Number(points),        // ← ADICIONADO
+                isPaid: isPaid,                // ← ADICIONADO
+                dueDate: dueDate || undefined, // ← ADICIONADO
+                recurrence: recurrence,        // ← ADICIONADO
+                installments: installments     // ← ADICIONADO
             });
         }
     };
