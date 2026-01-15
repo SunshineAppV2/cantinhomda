@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "buildCommand": "( [ -d cantinhomda-web ] && cd cantinhomda-web || [ -d cantinhomda ] && cd cantinhomda || true ) && npm install && npm run build",
-  "outputDirectory": "cantinhomda-web/dist",
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "dist",
   "framework": "vite",
   "headers": [
     {
