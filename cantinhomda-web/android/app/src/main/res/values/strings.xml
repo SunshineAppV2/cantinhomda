@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CantinhoMDA</string>
+    <string name="title_activity_main">CantinhoMDA</string>
+    <string name="package_name">io.cantinhomda.app</string>
+    <string name="custom_url_scheme">io.cantinhomda.app</string>
+</resources>
