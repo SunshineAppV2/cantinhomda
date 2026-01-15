@@ -12,8 +12,7 @@ import { ROLE_TRANSLATIONS } from './members/types';
 
 import { useNavigate } from 'react-router-dom';
 
-import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, writeBatch, increment, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+// Firestore removed - using API instead
 
 interface Activity {
     id: string;
@@ -114,18 +113,17 @@ export function Activities() {
         queryKey: ['activities', user?.clubId],
         queryFn: async () => {
             if (!user?.clubId) return [];
-            const q = query(collection(db, 'activities'), where('clubId', '==', user.clubId));
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Activity));
+            const res = await api.get(`/activities/club/${user.clubId}`);
+            return res.data;
         },
         enabled: !!user?.clubId
     });
 
     const { data: specialties = [] } = useQuery<Specialty[]>({
-        queryKey: ['specialties-feed'], // consistent cache key
+        queryKey: ['specialties-feed'],
         queryFn: async () => {
-            const snapshot = await getDocs(collection(db, 'specialties'));
-            return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Specialty));
+            const res = await api.get('/specialties');
+            return res.data;
         },
         staleTime: 1000 * 60 * 60 // 1 hour
     });
@@ -134,31 +132,28 @@ export function Activities() {
         queryKey: ['members'],
         queryFn: async () => {
             if (!user?.clubId) return [];
-            const q = query(collection(db, 'users'), where('clubId', '==', user.clubId));
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as Member));
+            const res = await api.get(`/users?clubId=${user.clubId}`);
+            return res.data;
         },
         enabled: (isAwardModalOpen || isAssignModalOpen) && !!user?.clubId
     });
 
     const { data: mySpecialties = [] } = useQuery<UserSpecialty[]>({
-        queryKey: ['my-specialties-profile', user?.uid], // Reuse key for cache
+        queryKey: ['my-specialties-profile', user?.id],
         queryFn: async () => {
-            if (!user?.uid) return [];
-            const q = query(collection(db, 'user_specialties'), where('userId', '==', user.uid));
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as UserSpecialty));
+            if (!user?.id) return [];
+            const res = await api.get('/specialties/my');
+            return res.data;
         },
-        enabled: !!user?.uid
+        enabled: !!user?.id
     });
 
     const { data: units = [] } = useQuery<any[]>({
         queryKey: ['units', user?.clubId],
         queryFn: async () => {
             if (!user?.clubId) return [];
-            const q = query(collection(db, 'units'), where('clubId', '==', user.clubId));
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+            const res = await api.get(`/units/club/${user.clubId}`);
+            return res.data;
         },
         enabled: !!user?.clubId && isAwardModalOpen && selectedActivityForAward?.type === 'UNIT'
     });
@@ -167,23 +162,8 @@ export function Activities() {
         queryKey: ['pending-approvals', user?.clubId],
         queryFn: async () => {
             if (!user?.clubId) return { requirements: [], specialties: [] };
-            // Mocking pending approvals for now as it requires complex joins or denormalization
-            // Logic: Query 'user_specialties' where status == 'WAITING_APPROVAL' and clubId == user.clubId
-            const q = query(collection(db, 'user_specialties'), where('clubId', '==', user.clubId), where('status', '==', 'WAITING_APPROVAL'));
-            const snapshot = await getDocs(q);
-            // Manually join with User and Specialty
-            const specs = await Promise.all(snapshot.docs.map(async (d: any) => {
-                const data = d.data();
-                const userSnap = await getDoc(doc(db, 'users', data.userId));
-                const specSnap = await getDoc(doc(db, 'specialties', data.specialtyId));
-                return {
-                    ...data,
-                    id: d.id,
-                    user: userSnap.exists() ? userSnap.data() : { name: 'Unknown' },
-                    requirement: { specialty: specSnap.exists() ? specSnap.data() : { name: 'Unknown' }, specialtyId: data.specialtyId }
-                };
-            }));
-            return { requirements: specs, specialties: [] }; // Using 'requirements' array structure to match existing logic
+            const res = await api.get('/specialties/pending');
+            return res.data;
         },
         enabled: isAdmin && !!user?.clubId
     });
@@ -362,12 +342,8 @@ export function Activities() {
 
     const createActivityMutation = useMutation({
         mutationFn: async (newActivity: any) => {
-            // Generate ID automatically via addDoc, returns DocumentReference
-            return await addDoc(collection(db, 'activities'), {
-                ...newActivity,
-                clubId: user?.clubId,
-                createdAt: new Date().toISOString()
-            });
+            const res = await api.post('/activities', newActivity);
+            return res.data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['activities'] });
@@ -382,8 +358,8 @@ export function Activities() {
 
     const updateActivityMutation = useMutation({
         mutationFn: async (data: { id: string, updates: any }) => {
-            const docRef = doc(db, 'activities', data.id);
-            await updateDoc(docRef, data.updates);
+            const res = await api.patch(`/activities/${data.id}`, data.updates);
+            return res.data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['activities'] });
@@ -398,7 +374,7 @@ export function Activities() {
 
     const deleteActivityMutation = useMutation({
         mutationFn: async (id: string) => {
-            await deleteDoc(doc(db, 'activities', id));
+            await api.delete(`/activities/${id}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['activities'] });
@@ -412,29 +388,11 @@ export function Activities() {
 
     const awardPointsMutation = useMutation({
         mutationFn: async (data: { userId?: string, unitId?: string, activityId: string }) => {
-            // Batch write: Add Points Log AND Increment User Log
-            const batch = writeBatch(db);
-            const userRef = doc(db, 'users', data.userId!);
-            const logRef = doc(collection(db, 'points_logs')); // auto-generate ID for logs
-
-            // 1. Log the transaction
-            const points = selectedActivityForAward?.points || 0;
-            batch.set(logRef, {
+            await api.post('/activities/score', {
                 userId: data.userId,
                 activityId: data.activityId,
-                points: points,
-                reason: selectedActivityForAward?.title || 'Atividade',
-                type: 'ACTIVITY',
-                createdAt: new Date().toISOString(),
-                clubId: user?.clubId
+                points: selectedActivityForAward?.points || 0
             });
-
-            // 2. Increment User Points (Using Firestore increment to be safe)
-            batch.update(userRef, {
-                points: increment(points)
-            });
-
-            await batch.commit();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['ranking'] });
@@ -447,14 +405,7 @@ export function Activities() {
 
     const assignSpecialtyMutation = useMutation({
         mutationFn: async (data: { userId: string, specialtyId: string }) => {
-            // Check if already assigned? Ideally query first but for simplicity just adding
-            return await addDoc(collection(db, 'user_specialties'), {
-                userId: data.userId,
-                specialtyId: data.specialtyId,
-                status: 'IN_PROGRESS',
-                clubId: user?.clubId,
-                assignedAt: new Date().toISOString()
-            });
+            await api.post(`/specialties/assign/${data.userId}/${data.specialtyId}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['member-specialties'] });

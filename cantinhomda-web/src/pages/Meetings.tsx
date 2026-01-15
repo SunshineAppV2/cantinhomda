@@ -4,8 +4,7 @@ import { api } from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
 import { Calendar, Plus, Users, CheckCircle, ChevronRight, ArrowLeft, FileSpreadsheet, FileText, Save } from 'lucide-react';
 import { Modal } from '../components/Modal';
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, writeBatch, increment } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+// Firestore removed - using API instead
 import { toast } from 'sonner';
 import { ROLE_TRANSLATIONS } from './members/types';
 
@@ -65,11 +64,8 @@ export function Meetings() {
         queryKey: ['meetings', user?.clubId],
         queryFn: async () => {
             if (!user?.clubId) return [];
-            const q = query(collection(db, 'meetings'), where('clubId', '==', user.clubId));
-            const snapshot = await getDocs(q);
-            const meetingsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Meeting));
-            // Sort by date desc (client side)
-            return meetingsData.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            const res = await api.get(`/meetings/club/${user.clubId}`);
+            return res.data.sort((a: Meeting, b: Meeting) => new Date(b.date).getTime() - new Date(a.date).getTime());
         },
         enabled: !!user?.clubId && !selectedMeeting
     });
@@ -78,11 +74,10 @@ export function Meetings() {
         queryKey: ['members', user?.clubId],
         queryFn: async () => {
             if (!user?.clubId) return [];
-            const q = query(collection(db, 'users'), where('clubId', '==', user.clubId));
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Member));
+            const res = await api.get(`/users?clubId=${user.clubId}`);
+            return res.data;
         },
-        enabled: !!selectedMeeting // Only fetch when inside a meeting
+        enabled: !!selectedMeeting
     });
 
     // --- Helpers ---
@@ -107,8 +102,7 @@ export function Meetings() {
 
     const updateMeetingMutation = useMutation({
         mutationFn: async (data: { id: string, details: string }) => {
-            const docRef = doc(db, 'meetings', data.id);
-            await updateDoc(docRef, { details: data.details });
+            await api.patch(`/meetings/${data.id}`, { details: data.details });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
@@ -172,12 +166,8 @@ export function Meetings() {
 
     const createMeetingMutation = useMutation({
         mutationFn: async (data: any) => {
-            return await addDoc(collection(db, 'meetings'), {
-                ...data,
-                clubId: user?.clubId,
-                createdAt: new Date().toISOString(),
-                _count: { attendances: 0 }
-            });
+            const res = await api.post('/meetings', data);
+            return res.data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
@@ -192,45 +182,9 @@ export function Meetings() {
 
     const registerAttendanceMutation = useMutation({
         mutationFn: async (data: { meetingId: string, userIds: string[] }) => {
-            const batch = writeBatch(db);
-            const meetingRef = doc(db, 'meetings', data.meetingId);
-
-            // 1. Create Attendance Records
-            data.userIds.forEach(uid => {
-                const attRef = doc(collection(db, 'attendances'));
-                batch.set(attRef, {
-                    meetingId: data.meetingId,
-                    userId: uid,
-                    date: new Date().toISOString(),
-                    clubId: user?.clubId
-                });
-
-                // 2. Add Points if Scoring
-                if (selectedMeeting?.points && selectedMeeting.points > 0) {
-                    // Increment User Points
-                    const userRef = doc(db, 'users', uid);
-                    batch.update(userRef, { points: increment(selectedMeeting.points) });
-
-                    // Log Points
-                    const logRef = doc(collection(db, 'points_logs'));
-                    batch.set(logRef, {
-                        userId: uid,
-                        activityId: data.meetingId,
-                        points: selectedMeeting.points,
-                        reason: `Reunião: ${selectedMeeting.title}`,
-                        type: 'MEETING',
-                        createdAt: new Date().toISOString(),
-                        clubId: user?.clubId
-                    });
-                }
+            await api.post(`/meetings/${data.meetingId}/attendance`, {
+                attendees: data.userIds
             });
-
-            // 3. Update Meeting Count
-            batch.update(meetingRef, {
-                '_count.attendances': increment(data.userIds.length)
-            });
-
-            await batch.commit();
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });

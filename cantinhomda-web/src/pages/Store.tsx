@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, runTransaction, getDoc } from 'firebase/firestore';
-import { db, storage } from '../lib/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+// Firestore removed - using API instead
+import { api } from '../lib/axios';
 import { ShoppingBag, Plus, Tag, Coins, PackageCheck, AlertCircle, Edit, Trash2 } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { toast } from 'sonner';
@@ -52,11 +51,11 @@ export function Store() {
         queryKey: ['user-profile', user?.id],
         queryFn: async () => {
             if (!user?.id) return null;
-            const docSnap = await getDoc(doc(db, 'users', user.id));
-            return docSnap.exists() ? docSnap.data() : null;
+            const res = await api.get(`/users/${user.id}`);
+            return res.data;
         },
         enabled: !!user?.id,
-        staleTime: 0, // Always fetch fresh
+        staleTime: 0,
         refetchOnWindowFocus: true
     });
 
@@ -64,23 +63,20 @@ export function Store() {
         queryKey: ['products', user?.clubId],
         queryFn: async () => {
             if (!user?.clubId) return [];
-            const q = query(collection(db, 'products'), where('clubId', '==', user.clubId));
-            const snapshot = await getDocs(q);
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Product));
+            const res = await api.get('/store/products');
+            return res.data;
         },
         enabled: !!user?.clubId
     });
 
     const { data: myPurchases = [] } = useQuery<Purchase[]>({
-        queryKey: ['my-purchases', user?.uid],
+        queryKey: ['my-purchases', user?.id],
         queryFn: async () => {
-            if (!user?.uid) return [];
-            const q = query(collection(db, 'purchases'), where('userId', '==', user.uid)); // orderBy('createdAt', 'desc') needs index
-            const snapshot = await getDocs(q);
-            // Client side sort to avoid index issues for now
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase)).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            if (!user?.id) return [];
+            const res = await api.get('/store/inventory');
+            return res.data;
         },
-        enabled: !!user?.uid,
+        enabled: !!user?.id,
         retry: false
     });
 
@@ -88,37 +84,16 @@ export function Store() {
         queryKey: ['club-purchases', user?.clubId],
         queryFn: async () => {
             if (!user?.clubId) return [];
-            const q = query(collection(db, 'purchases'), where('clubId', '==', user.clubId));
-            const snapshot = await getDocs(q);
-
-            // Manual Join with User
-            const purchases = await Promise.all(snapshot.docs.map(async (d) => {
-                const data = d.data();
-                const userSnap = await getDoc(doc(db, 'users', data.userId));
-                return {
-                    id: d.id,
-                    ...data,
-                    user: userSnap.exists() ? userSnap.data() : { name: 'Unknown', role: 'UNKNOWN' }
-                } as Purchase;
-            }));
-
-            return purchases.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            const res = await api.get('/store/admin/purchases');
+            return res.data;
         },
         enabled: activeTab === 'admin' && isAdmin
     });
 
     const createMutation = useMutation({
         mutationFn: async (data: any) => {
-            return await addDoc(collection(db, 'products'), {
-                name: data.name,
-                description: data.description,
-                category: data.category,
-                imageUrl: data.imageUrl,
-                price: Number(data.price),
-                stock: Number(data.stock),
-                clubId: user?.clubId,
-                createdAt: new Date().toISOString()
-            });
+            const res = await api.post('/store/products', data);
+            return res.data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -133,14 +108,8 @@ export function Store() {
 
     const updateMutation = useMutation({
         mutationFn: async (data: any) => {
-            return await updateDoc(doc(db, 'products', data.id), {
-                name: data.name,
-                description: data.description,
-                category: data.category,
-                imageUrl: data.imageUrl,
-                price: Number(data.price),
-                stock: Number(data.stock)
-            });
+            const res = await api.patch(`/store/products/${data.id}`, data);
+            return res.data;
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -156,7 +125,7 @@ export function Store() {
 
     const deleteMutation = useMutation({
         mutationFn: async (productId: string) => {
-            await deleteDoc(doc(db, 'products', productId));
+            await api.delete(`/store/products/${productId}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -169,80 +138,24 @@ export function Store() {
 
     const buyMutation = useMutation({
         mutationFn: async (productId: string) => {
-            return runTransaction(db, async (transaction) => {
-                if (!user?.uid) throw new Error("Usuário não autenticado.");
-                const productRef = doc(db, 'products', productId);
-                const userRef = doc(db, 'users', user.uid); // Current user
-
-                const productDoc = await transaction.get(productRef);
-                const userDoc = await transaction.get(userRef);
-
-                if (!productDoc.exists()) throw new Error("Produto não encontrado.");
-                if (!userDoc.exists()) throw new Error("Usuário não encontrado.");
-
-                const productData = productDoc.data();
-                const userData = userDoc.data();
-
-                // Check Stock
-                if (productData.stock !== -1 && productData.stock <= 0) {
-                    throw new Error("Produto esgotado.");
-                }
-                // Check Points
-                const points = userData.points || 0;
-                if (points < productData.price) {
-                    throw new Error("Saldo insuficiente.");
-                }
-
-                // 1. Deduct Stock
-                if (productData.stock !== -1) {
-                    transaction.update(productRef, { stock: productData.stock - 1 });
-                }
-
-                // 2. Deduct Points
-                transaction.update(userRef, { points: points - productData.price });
-
-                // 3. Create Purchase Record
-                // Using 'add' behavior in transaction needs a ref to be created first
-                const purchaseRef = doc(collection(db, 'purchases'));
-                transaction.set(purchaseRef, {
-                    userId: user!.uid,
-                    productId: productId,
-                    product: productData, // Snapshot
-                    cost: productData.price,
-                    status: 'PENDING',
-                    createdAt: new Date().toISOString(),
-                    clubId: user?.clubId
-                });
-
-                // 4. Log Transaction
-                const logRef = doc(collection(db, 'points_logs'));
-                transaction.set(logRef, {
-                    userId: user!.uid,
-                    activityId: 'PURCHASE',
-                    points: -productData.price,
-                    reason: `Compra: ${productData.name}`,
-                    type: 'PURCHASE',
-                    createdAt: new Date().toISOString(),
-                    clubId: user?.clubId
-                });
-            });
+            await api.post(`/store/buy/${productId}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['products'] });
             queryClient.invalidateQueries({ queryKey: ['my-purchases'] });
-            queryClient.invalidateQueries({ queryKey: ['user-profile'] }); // Refresh points
+            queryClient.invalidateQueries({ queryKey: ['user-profile'] });
             toast.success('Compra realizada com sucesso!');
         },
         onError: (error: any) => {
             console.error('Buy error:', error);
-            const msg = error.message; // Transaction errors throw normal errors
-            toast.error(`Erro na compra: ${msg || 'Falha desconhecida.'}`);
+            const msg = error.response?.data?.message || error.message || 'Falha desconhecida.';
+            toast.error(`Erro na compra: ${msg}`);
         }
     });
 
     const deliverMutation = useMutation({
         mutationFn: async (purchaseId: string) => {
-            await updateDoc(doc(db, 'purchases', purchaseId), { status: 'DELIVERED', deliveredAt: new Date().toISOString() });
+            await api.post(`/store/admin/deliver/${purchaseId}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['club-purchases'] });
@@ -252,51 +165,7 @@ export function Store() {
 
     const refundMutation = useMutation({
         mutationFn: async (purchaseId: string) => {
-            return runTransaction(db, async (transaction) => {
-                const purchaseRef = doc(db, 'purchases', purchaseId);
-                const purchaseDoc = await transaction.get(purchaseRef);
-                if (!purchaseDoc.exists()) throw new Error("Compra não encontrada.");
-
-                const purchaseData = purchaseDoc.data();
-                if (purchaseData.status === 'REFUNDED') throw new Error("Compra já estornada.");
-
-                const userRef = doc(db, 'users', purchaseData.userId);
-                const userDoc = await transaction.get(userRef);
-
-                // 1. Restore Stock (if product still exists, nice to have but product might be deleted so safeguard)
-                // If we had product snapshot we know the ID.
-                if (purchaseData.productId) {
-                    const productRef = doc(db, 'products', purchaseData.productId);
-                    const productDoc = await transaction.get(productRef);
-                    if (productDoc.exists()) {
-                        const prodData = productDoc.data();
-                        if (prodData.stock !== -1) {
-                            transaction.update(productRef, { stock: prodData.stock + 1 });
-                        }
-                    }
-                }
-
-                // 2. Restore Points
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
-                    transaction.update(userRef, { points: (userData.points || 0) + purchaseData.cost });
-                }
-
-                // 3. Mark Refunded
-                transaction.update(purchaseRef, { status: 'REFUNDED', refundedAt: new Date().toISOString() });
-
-                // 4. Log Refund
-                const logRef = doc(collection(db, 'points_logs'));
-                transaction.set(logRef, {
-                    userId: purchaseData.userId,
-                    activityId: 'REFUND',
-                    points: purchaseData.cost,
-                    reason: `Estorno: ${purchaseData.product?.name || 'Compra'}`,
-                    type: 'REFUND',
-                    createdAt: new Date().toISOString(),
-                    clubId: purchaseData.clubId
-                });
-            });
+            await api.post(`/store/admin/refund/${purchaseId}`);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['club-purchases'] });
@@ -304,7 +173,7 @@ export function Store() {
             queryClient.invalidateQueries({ queryKey: ['user-profile'] });
             toast.success('Compra estornada com sucesso!');
         },
-        onError: (err: any) => toast.error('Erro ao estornar: ' + err.message)
+        onError: (err: any) => toast.error('Erro ao estornar: ' + (err.response?.data?.message || err.message))
     });
 
     const resetForm = () => {
@@ -334,6 +203,11 @@ export function Store() {
     };
 
     const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        // TODO: Implement image upload via backend API
+        toast.info('Upload de imagem temporariamente desabilitado. Use URL direta.');
+        return;
+
+        /* Firebase Storage removed
         if (!e.target.files || e.target.files.length === 0) return;
         const file = e.target.files[0];
 
@@ -350,6 +224,7 @@ export function Store() {
             console.error(error);
             toast.error('Erro ao enviar imagem.');
         }
+        */
     };
 
     const handleSubmit = (e: React.FormEvent) => {
