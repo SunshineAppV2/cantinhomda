@@ -125,8 +125,11 @@ export function Login() {
           <div className="mx-auto bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
             <Lock className="text-white w-8 h-8" />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Cantinho DBV</h1>
-          <p className="text-blue-100">Acesse o painel do seu clube</p>
+          <h1 className="text-3xl font-bold text-white mb-1">Cantinho MDA</h1>
+          <div className="space-y-0.5">
+            <p className="text-blue-100 text-sm font-medium">Desbravadores</p>
+            <p className="text-blue-100 text-sm font-medium">Aventureiros</p>
+          </div>
 
           <button
             onClick={() => setShowSettings(true)}

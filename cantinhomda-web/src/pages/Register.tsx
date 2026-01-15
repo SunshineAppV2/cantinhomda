@@ -426,7 +426,7 @@ export function Register() {
                         <UserPlus className="text-white w-8 h-8" />
                     </div>
                     <h1 className="text-3xl font-bold text-white mb-2">Criar Conta</h1>
-                    <p className="text-green-100">Junte-se ao Cantinho DBV</p>
+                    <p className="text-green-100">Junte-se ao Cantinho MDA</p>
                 </div>
             </div>
 
@@ -757,7 +757,7 @@ export function Register() {
                             <button type="button" onClick={() => setShowTerms(true)} className="text-blue-600 font-bold hover:underline">
                                 Termos de Uso e Privacidade
                             </button>
-                            {' '}do Cantinho DBV.
+                            {' '}do Cantinho MDA.
                         </label>
                     </div>
 

@@ -16,7 +16,7 @@ export function RegistrationSuccess() {
     // Construct the WhatsApp message
     const message = isNewClub
         ? `Olá Master!
-Acabei de cadastrar meu clube no Cantinho DBV e aguardo liberação.
+Acabei de cadastrar meu clube no Cantinho MDA e aguardo liberação.
 
 *Dados do Clube:*
 Nome: ${clubName || 'N/A'}
@@ -29,7 +29,7 @@ Valor: ${formattedAmount}
 
 Poderia liberar meu acesso?`
         : `Olá!
-Acabei de me cadastrar no Cantinho DBV e aguardo liberação.
+Acabei de me cadastrar no Cantinho MDA e aguardo liberação.
 
 Nome: ${ownerName || 'N/A'}
 Clube: ${clubName || 'N/A'}
@@ -49,7 +49,7 @@ Poderia aprovar meu acesso?`;
                             <CheckCircle className="text-white w-10 h-10" />
                         </div>
                         <h1 className="text-3xl font-bold text-white mb-2">Cadastro Realizado!</h1>
-                        <p className="text-green-100 font-medium">Seja bem-vindo ao Cantinho DBV</p>
+                        <p className="text-green-100 font-medium">Seja bem-vindo ao Cantinho MDA</p>
                     </div>
                 </div>
 
