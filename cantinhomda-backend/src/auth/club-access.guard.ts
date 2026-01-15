@@ -10,7 +10,12 @@ export class ClubAccessGuard implements CanActivate {
         const request = context.switchToHttp().getRequest();
         const user = request.user;
         const params = request.params;
-        const clubId = params.clubId || request.body.clubId || request.query.clubId;
+        let clubId = params.clubId || request.body.clubId || request.query.clubId;
+
+        // If not in root, check if it's a bulk transaction request
+        if (!clubId && request.body.transactions && Array.isArray(request.body.transactions) && request.body.transactions.length > 0) {
+            clubId = request.body.transactions[0].clubId;
+        }
 
         // 1. If no clubId is involved in the request, this guard might be irrelevant 
         // OR we might want to enforcement that clubId IS present.

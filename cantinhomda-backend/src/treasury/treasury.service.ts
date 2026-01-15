@@ -39,10 +39,31 @@ export class TreasuryService {
 
     async createBulk(data: any) {
         try {
-            const { memberIds, installments = 1, ...txData } = data;
-            const iterations = txData.recurrence ? (Number(installments) || 1) : 1;
+            // Handle direct array of transactions from frontend
+            if (data.transactions && Array.isArray(data.transactions)) {
+                console.log(`[TreasuryService] Creating ${data.transactions.length} transactions from array`);
+                const operations = data.transactions.map(tx => {
+                    const { id, ...cleanTx } = tx; // Remove any temporary ID
+                    return this.prisma.transaction.create({
+                        data: {
+                            ...cleanTx,
+                            status: tx.status || ((tx.type === 'EXPENSE' || tx.isPaid) ? 'COMPLETED' : 'PENDING'),
+                            date: tx.date ? new Date(tx.date) : new Date(),
+                            dueDate: tx.dueDate ? new Date(tx.dueDate) : undefined
+                        }
+                    });
+                });
+                return await this.prisma.$transaction(operations);
+            }
 
-            // 1. Fetch users
+            const { memberIds, installments = 1, ...txData } = data;
+            if (!memberIds || !Array.isArray(memberIds)) {
+                throw new Error('Lista de membros ou transações não fornecida corretamente.');
+            }
+
+            const iterations = txData.recurrence ? (Number(installments) || 1) : 1;
+            // ... (rest of existing logic)
+            // Existing logic to fetch users and create operations
             const users = await this.prisma.user.findMany({
                 where: { id: { in: memberIds } },
                 select: { id: true, name: true, parentId: true }
