@@ -259,8 +259,7 @@ export function Treasury() {
         setDescription('');
         setCategory('Mensalidade');
         setPayerId('');
-        setPoints(0);
-        setGeneratePoints(false);
+        setPoints(100);
         setRecurrence(false);
         setInstallments(1);
         setDueDate('');
@@ -286,8 +285,7 @@ export function Treasury() {
         setDescription(t.description);
         setCategory(t.category);
         setPayerId(t.payer?.id || '');
-        setPoints(t.points || 0);
-        setGeneratePoints((t.points || 0) > 0);
+        setPoints(t.points || 100);
         setRecurrence(false); // Valid for single edit
         setInstallments(1);
         setDueDate(t.date ? new Date(t.date).toISOString().split('T')[0] : ''); // Use date or dueDate? Typically date is creation, dueDate is specific. Using date for now as per form default logic. But wait, form has `dueDate` input.
