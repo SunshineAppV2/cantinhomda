@@ -153,21 +153,25 @@ export function Treasury() {
                 category: data.category,
                 clubId: user.clubId,
                 dueDate: data.dueDate,
-                points: data.generatePoints ? Number(data.points) : 0,
-                status: data.isPaid ? 'COMPLETED' : 'PENDING'
+                // Always send points if filled, regardless of generatePoints checkbox
+                points: data.points ? Number(data.points) : 0,
+                // Send isPaid flag to backend
+                isPaid: data.isPaid || false
             };
 
-            console.log(`[Treasury] Posting to ${api.defaults.baseURL || ''}/treasury/bulk with payload:`, { transactions });
+            console.log('[Treasury Frontend] Creating transaction with:', basePayload);
+
             if (data.memberIds && data.memberIds.length > 0) {
                 const transactions = data.memberIds.map((memberId: string) => ({
                     ...basePayload,
                     payerId: data.payerId || memberId, // Use explicit payer or member self-pay
                     memberId: memberId // Beneficiary
                 }));
+                console.log(`[Treasury Frontend] Posting to ${api.defaults.baseURL || ''}/treasury/bulk with ${transactions.length} transactions`);
                 await api.post('/treasury/bulk', { transactions });
             } else {
                 // Single transaction
-                console.log(`[Treasury] Posting to ${api.defaults.baseURL || ''}/treasury with payload:`, basePayload);
+                console.log(`[Treasury Frontend] Posting to ${api.defaults.baseURL || ''}/treasury with single transaction`);
                 await api.post('/treasury', {
                     ...basePayload,
                     payerId: data.payerId,
