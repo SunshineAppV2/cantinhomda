@@ -7,9 +7,7 @@ import { SecretaryMemberModal } from '../components/SecretaryMemberModal';
 import { SecretaryMinutesList } from '../components/SecretaryMinutesList';
 import { SecretaryMinuteEditor } from '../components/SecretaryMinuteEditor';
 import { ROLE_TRANSLATIONS } from './members/types';
-
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { api } from '../lib/axios';
 
 export function Secretary() {
     const { user } = useAuth();
@@ -25,9 +23,8 @@ export function Secretary() {
         queryKey: ['secretary-members', user?.clubId],
         queryFn: async () => {
             if (!user?.clubId) return [];
-            const q = query(collection(db, 'users'), where('clubId', '==', user.clubId));
-            const snaps = await getDocs(q);
-            return snaps.docs.map(d => ({ id: d.id, ...d.data() }));
+            const res = await api.get(`/users?clubId=${user.clubId}`);
+            return res.data;
         },
         enabled: !!user?.clubId
     });

@@ -3,8 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/axios';
 import { toast } from 'sonner';
 import { Send, AlertTriangle, CheckCircle, Info, XCircle, Settings } from 'lucide-react';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
 
 export function SystemMessages() {
     const [title, setTitle] = useState('');
@@ -129,8 +127,12 @@ function SystemConfigSection() {
     const { data: config, isLoading } = useQuery({
         queryKey: ['system-config-editor'],
         queryFn: async () => {
-            const snap = await getDoc(doc(db, 'system', 'config'));
-            return snap.exists() ? snap.data() : { referralEnabled: false };
+            try {
+                const res = await api.get('/system/config');
+                return res.data;
+            } catch {
+                return { referralEnabled: false };
+            }
         }
     });
 
@@ -138,7 +140,7 @@ function SystemConfigSection() {
 
     const toggleMutation = useMutation({
         mutationFn: async (newState: boolean) => {
-            await setDoc(doc(db, 'system', 'config'), { referralEnabled: newState }, { merge: true });
+            await api.patch('/system/config', { referralEnabled: newState });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['system-config-editor'] });
