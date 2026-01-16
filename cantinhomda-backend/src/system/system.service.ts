@@ -1,34 +1,16 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class SystemService {
-    constructor(private prisma: PrismaService) { }
+    // In-memory config until Prisma schema is updated with SystemConfig table
+    private config = { referralEnabled: false };
 
     async getConfig() {
-        // Try to get config from database, or return defaults
-        try {
-            const config = await this.prisma.systemConfig.findFirst();
-            return config || { referralEnabled: false };
-        } catch {
-            // If table doesn't exist yet, return defaults
-            return { referralEnabled: false };
-        }
+        return this.config;
     }
 
     async updateConfig(data: any) {
-        // Upsert config (create or update)
-        const existing = await this.prisma.systemConfig.findFirst();
-
-        if (existing) {
-            return this.prisma.systemConfig.update({
-                where: { id: existing.id },
-                data
-            });
-        } else {
-            return this.prisma.systemConfig.create({
-                data
-            });
-        }
+        this.config = { ...this.config, ...data };
+        return this.config;
     }
 }

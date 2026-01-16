@@ -210,13 +210,13 @@ export class ClubsService implements OnModuleInit {
         const nextEvent = await this.prisma.event.findFirst({
             where: {
                 clubId,
-                date: { gte: today }
+                startDate: { gte: today }
             },
-            orderBy: { date: 'asc' },
+            orderBy: { startDate: 'asc' },
             select: {
                 id: true,
                 title: true,
-                date: true
+                startDate: true
             }
         });
 
