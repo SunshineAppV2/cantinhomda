@@ -135,7 +135,7 @@ export function MasterTreasury() {
 
     // Mutations
     const createMutation = useMutation({
-        mutationFn: async (data: any) => {
+        mutationFn: async (_data: any) => {
             // TODO: Implement API endpoint POST /master-treasury/transactions
             console.warn('Create master transaction API not yet implemented');
             throw new Error('API not implemented');
@@ -150,7 +150,7 @@ export function MasterTreasury() {
     });
 
     const deleteMutation = useMutation({
-        mutationFn: async (id: string) => {
+        mutationFn: async (_id: string) => {
             // TODO: Implement API endpoint DELETE /master-treasury/transactions/:id
             console.warn('Delete master transaction API not yet implemented');
             throw new Error('API not implemented');
