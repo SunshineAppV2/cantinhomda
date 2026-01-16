@@ -196,8 +196,10 @@ export class TreasuryService {
         }
     }
 
-    async remove(id: string) {
+    async remove(id: string, user: any) {
         try {
+            console.log(`[TREASURY] remove() - User ${user.email} attempting to delete ${id}`);
+
             const transaction = await this.prisma.transaction.findUnique({
                 where: { id }
             });
@@ -206,12 +208,27 @@ export class TreasuryService {
                 throw new HttpException('Transação não encontrada', HttpStatus.NOT_FOUND);
             }
 
+            // Permission check: Global Master or Club Staff (Owner, Admin, Director)
+            const isMaster = user.role === 'MASTER' || user.email === 'master@cantinhomda.com';
+            const isStaff = ['OWNER', 'ADMIN', 'DIRECTOR'].includes(user.role);
+
+            if (!isMaster && !isStaff) {
+                throw new HttpException('Acesso negado: Apenas a diretoria pode excluir transações.', HttpStatus.FORBIDDEN);
+            }
+
+            if (!isMaster && transaction.clubId !== user.clubId) {
+                throw new HttpException('Acesso negado: Você não tem permissão para excluir esta transação.', HttpStatus.FORBIDDEN);
+            }
+
             // Reverse points if eligible
             if (transaction.type === 'INCOME' && transaction.status === 'COMPLETED' && transaction.points > 0) {
+                console.log('[TREASURY] remove() - Revertendo pontos antes da exclusão');
                 await this.reversePoints(transaction);
             }
 
-            return await this.prisma.transaction.delete({ where: { id } });
+            const deleted = await this.prisma.transaction.delete({ where: { id } });
+            console.log(`[TREASURY] remove() - Transação ${id} excluída com sucesso`);
+            return deleted;
         } catch (error) {
             console.error('[TREASURY] remove() - Erro:', error);
             throw new HttpException(

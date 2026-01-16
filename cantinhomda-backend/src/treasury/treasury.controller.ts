@@ -54,8 +54,8 @@ export class TreasuryController {
     }
 
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.treasuryService.remove(id);
+    remove(@Param('id') id: string, @Request() req) {
+        return this.treasuryService.remove(id, req.user);
     }
 
     @Post(':id/settle')

@@ -209,7 +209,14 @@ export function Treasury() {
 
     const deleteMutation = useMutation({
         mutationFn: async (id: string) => {
-            await api.delete(`/treasury/${id}`);
+            const toastId = toast.loading('Excluindo transação...');
+            try {
+                await api.delete(`/treasury/${id}`);
+                toast.dismiss(toastId);
+            } catch (error) {
+                toast.dismiss(toastId);
+                throw error;
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
@@ -496,20 +503,23 @@ export function Treasury() {
                                                     </a>
                                                 ) : <span className="text-slate-400">-</span>}
                                             </td>
-                                            <td className="px-6 py-3 text-right flex justify-end gap-2">
+                                            <td className="px-6 py-3 text-right flex justify-end gap-1">
                                                 <button
                                                     onClick={() => approveMutation.mutate(t.id)}
-                                                    className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200" title="Aprovar">
+                                                    disabled={approveMutation.isPending}
+                                                    className="p-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 disabled:opacity-50" title="Aprovar">
                                                     <Check className="w-5 h-5" />
                                                 </button>
                                                 <button
                                                     onClick={() => rejectMutation.mutate(t.id)}
-                                                    className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200" title="Rejeitar">
+                                                    disabled={rejectMutation.isPending}
+                                                    className="p-1.5 bg-red-100 text-red-700 rounded hover:bg-red-200 disabled:opacity-50" title="Rejeitar">
                                                     <X className="w-5 h-5" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(t.id)}
-                                                    className="p-1.5 bg-slate-100 text-slate-700 rounded hover:bg-slate-200" title="Excluir Definitivamente">
+                                                    disabled={deleteMutation.isPending}
+                                                    className="p-1.5 bg-slate-100 text-slate-700 rounded hover:bg-slate-200 disabled:opacity-50" title="Excluir Definitivamente">
                                                     <Trash2 className="w-5 h-5" />
                                                 </button>
                                             </td>
@@ -584,38 +594,41 @@ export function Treasury() {
                                                     {t.type === 'INCOME' ? '+' : '-'} R$ {t.amount.toFixed(2)}
                                                 </td>
                                                 <td className="px-6 py-3 text-center">
-                                                    <button
-                                                        onClick={() => handleEdit(t)}
-                                                        className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded transition-colors"
-                                                        title="Editar"
-                                                    >
-                                                        <Pencil className="w-4 h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(t.id)} // Assuming handleDelete is defined
-                                                        className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded transition-colors"
-                                                        title="Excluir"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
-                                                    {(t.status === 'WAITING_APPROVAL' || t.status === 'PENDING') && (
+                                                    <div className="flex justify-center gap-1">
                                                         <button
-                                                            onClick={() => setValidatingTx(t)}
+                                                            onClick={() => handleEdit(t)}
                                                             className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded transition-colors"
-                                                            title="Validar / Ver Detalhes"
+                                                            title="Editar"
                                                         >
-                                                            <Eye className="w-4 h-4" />
+                                                            <Pencil className="w-4 h-4" />
                                                         </button>
-                                                    )}
-                                                    {t.status === 'PENDING' && (
                                                         <button
-                                                            onClick={() => handleSettle(t)}
-                                                            className="p-1.5 text-slate-500 hover:text-green-600 hover:bg-slate-100 rounded transition-colors"
-                                                            title="Baixar (Quitar)"
+                                                            onClick={() => handleDelete(t.id)}
+                                                            disabled={deleteMutation.isPending}
+                                                            className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-slate-100 rounded transition-colors disabled:opacity-50"
+                                                            title="Excluir"
                                                         >
-                                                            <CheckCircle className="w-4 h-4" />
+                                                            <Trash2 className="w-4 h-4" />
                                                         </button>
-                                                    )}
+                                                        {(t.status === 'WAITING_APPROVAL' || t.status === 'PENDING') && (
+                                                            <button
+                                                                onClick={() => setValidatingTx(t)}
+                                                                className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded transition-colors"
+                                                                title="Validar / Ver Detalhes"
+                                                            >
+                                                                <Eye className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                        {t.status === 'PENDING' && (
+                                                            <button
+                                                                onClick={() => handleSettle(t)}
+                                                                className="p-1.5 text-slate-500 hover:text-green-600 hover:bg-slate-100 rounded transition-colors"
+                                                                title="Baixar (Quitar)"
+                                                            >
+                                                                <CheckCircle className="w-4 h-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
