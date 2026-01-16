@@ -171,6 +171,73 @@ export class ClubsService implements OnModuleInit {
         });
     }
 
+    // Assuming getReferralReport method would be here, ending with the return block below
+    // async getReferralReport(clubId: string) {
+    //     // ... some logic ...
+    //     return {
+    //         totalReferrals,
+    //         totalCredits,
+    //         totalUsed,
+    //         totalAvailable,
+    //         clubs: clubsWithReferrals
+    //     };
+    // }
+
+    async getDashboardStats(clubId: string) {
+        // Get members count
+        const membersCount = await this.prisma.user.count({
+            where: { clubId, isActive: true }
+        });
+
+        // Get upcoming birthdays (next 30 days)
+        const today = new Date();
+        const nextMonth = new Date();
+        nextMonth.setDate(today.getDate() + 30);
+
+        const users = await this.prisma.user.findMany({
+            where: { clubId, isActive: true, birthDate: { not: null } },
+            select: { birthDate: true }
+        });
+
+        const upcomingBirthdays = users.filter(user => {
+            if (!user.birthDate) return false;
+            const birthDate = new Date(user.birthDate);
+            const thisYearBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+            return thisYearBirthday >= today && thisYearBirthday <= nextMonth;
+        }).length;
+
+        // Get next event
+        const nextEvent = await this.prisma.event.findFirst({
+            where: {
+                clubId,
+                date: { gte: today }
+            },
+            orderBy: { date: 'asc' },
+            select: {
+                id: true,
+                title: true,
+                date: true
+            }
+        });
+
+        // Get financial balance
+        const transactions = await this.prisma.transaction.findMany({
+            where: { clubId, status: 'COMPLETED' },
+            select: { type: true, amount: true }
+        });
+
+        const balance = transactions.reduce((acc, t) => {
+            return t.type === 'INCOME' ? acc + t.amount : acc - t.amount;
+        }, 0);
+
+        return {
+            membersCount,
+            upcomingBirthdays,
+            nextEvent,
+            balance
+        };
+    }
+
     async findAll(user?: any) {
         const where: any = {};
 

@@ -309,6 +309,86 @@ export class ActivitiesService {
             }))
         };
     }
+
+    // Get pending approvals (submissions waiting for approval)
+    async getPendingApprovals(clubId: string) {
+        const submissions = await this.prisma.userRequirement.findMany({
+            where: {
+                user: { clubId },
+                status: 'WAITING_APPROVAL'
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        photoUrl: true
+                    }
+                },
+                requirement: {
+                    select: {
+                        id: true,
+                        code: true,
+                        description: true,
+                        area: true
+                    }
+                }
+            },
+            orderBy: { updatedAt: 'desc' }
+        });
+
+        return submissions;
+    }
+
+    // Get pending deliveries (submissions pending user action)
+    async getPendingDeliveries(clubId: string) {
+        const submissions = await this.prisma.userRequirement.findMany({
+            where: {
+                user: { clubId },
+                status: 'PENDING'
+            },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        photoUrl: true
+                    }
+                },
+                requirement: {
+                    select: {
+                        id: true,
+                        code: true,
+                        description: true
+                    }
+                }
+            },
+            orderBy: { assignedAt: 'desc' }
+        });
+
+        return submissions;
+    }
+
+    // Approve a submission
+    async approveSubmission(id: string) {
+        return this.prisma.userRequirement.update({
+            where: { id },
+            data: {
+                status: 'COMPLETED',
+                completedAt: new Date()
+            }
+        });
+    }
+
+    // Reject a submission (revert to PENDING)
+    async rejectSubmission(id: string) {
+        return this.prisma.userRequirement.update({
+            where: { id },
+            data: {
+                status: 'PENDING'
+            }
+        });
+    }
 }
 
 

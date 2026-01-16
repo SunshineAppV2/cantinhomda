@@ -301,6 +301,17 @@ export class TreasuryService {
         });
     }
 
+    // Submit payment proof
+    async submitProof(id: string, proofUrl: string) {
+        return this.prisma.transaction.update({
+            where: { id },
+            data: {
+                status: 'WAITING_APPROVAL',
+                proofUrl
+            }
+        });
+    }
+
     async findForUser(userId: string) {
         return this.prisma.transaction.findMany({
             where: { payerId: userId },

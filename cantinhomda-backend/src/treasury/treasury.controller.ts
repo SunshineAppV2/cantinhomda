@@ -93,4 +93,14 @@ export class TreasuryController {
 
         return this.treasuryService.pay(id, finalUrl);
     }
+
+    @Get('my-finances')
+    getMyFinances(@Request() req) {
+        return this.treasuryService.findForUser(req.user.id);
+    }
+
+    @Patch(':id/submit-proof')
+    submitProof(@Param('id') id: string, @Body('proofUrl') proofUrl: string) {
+        return this.treasuryService.submitProof(id, proofUrl);
+    }
 }

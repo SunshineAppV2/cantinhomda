@@ -110,4 +110,28 @@ export class ActivitiesController {
     getUnitRankingDetails(@Param('unitId') unitId: string) {
         return this.activitiesService.getUnitRankingDetails(unitId);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('pending-approvals')
+    getPendingApprovals(@Request() req) {
+        return this.activitiesService.getPendingApprovals(req.user.clubId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('pending-deliveries')
+    getPendingDeliveries(@Request() req) {
+        return this.activitiesService.getPendingDeliveries(req.user.clubId);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('submissions/:id/approve')
+    approveSubmission(@Param('id') id: string) {
+        return this.activitiesService.approveSubmission(id);
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Post('submissions/:id/reject')
+    rejectSubmission(@Param('id') id: string) {
+        return this.activitiesService.rejectSubmission(id);
+    }
 }
