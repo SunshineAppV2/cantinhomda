@@ -209,15 +209,20 @@ export class TreasuryService {
                 throw new HttpException('Transação não encontrada', HttpStatus.NOT_FOUND);
             }
 
-            // Permission check: Global Master or Club Staff (Owner, Admin, Director)
-            const isMaster = user.role === 'MASTER' || user.email === 'master@cantinhomda.com';
-            const isStaff = ['OWNER', 'ADMIN', 'DIRECTOR'].includes(user.role);
+            // Permission check: Global Master or Club Staff (Owner, Admin, Director, Treasurer)
+            const userRole = user?.role;
+            // userEmail is already declared above for logging
+
+            const isMaster = userRole === 'MASTER' || userEmail === 'master@cantinhomda.com';
+            const isStaff = ['OWNER', 'ADMIN', 'DIRECTOR', 'TREASURER'].includes(userRole);
 
             if (!isMaster && !isStaff) {
-                throw new HttpException('Acesso negado: Apenas a diretoria pode excluir transações.', HttpStatus.FORBIDDEN);
+                console.warn(`[TREASURY] remove() - Unauthorized role: ${userRole}`);
+                throw new HttpException('Acesso negado: Apenas a diretoria e tesouraria podem excluir transações.', HttpStatus.FORBIDDEN);
             }
 
             if (!isMaster && transaction.clubId !== user?.clubId) {
+                console.warn(`[TREASURY] remove() - Club mismatch: User ${user?.clubId} vs Tx ${transaction.clubId}`);
                 throw new HttpException('Acesso negado: Você não tem permissão para excluir esta transação.', HttpStatus.FORBIDDEN);
             }
 
@@ -236,12 +241,13 @@ export class TreasuryService {
             console.log(`[TREASURY] remove() - Transação ${id} excluída com sucesso`);
             return deleted;
         } catch (error) {
-            console.error('[TREASURY] remove() - Erro:', error);
+            console.error('[TREASURY] remove() - Erro fatal:', error);
             if (error instanceof HttpException) {
                 throw error;
             }
+            // Return detailed error in development/debug mode
             throw new HttpException(
-                `Erro ao excluir transação: ${error.message}`,
+                `Erro interno ao excluir transação: ${error.name} - ${error.message}`,
                 HttpStatus.INTERNAL_SERVER_ERROR
             );
         }

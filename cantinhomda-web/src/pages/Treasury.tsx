@@ -223,7 +223,10 @@ export function Treasury() {
             queryClient.invalidateQueries({ queryKey: ['treasury-balance'] });
             toast.success('Transação excluída.');
         },
-        onError: () => toast.error('Erro ao excluir.')
+        onError: (error: any) => {
+            const message = error.response?.data?.message || 'Erro ao excluir.';
+            toast.error(message);
+        }
     });
 
     const settleMutation = useMutation({
