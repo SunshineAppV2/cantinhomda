@@ -14,10 +14,7 @@ import { SubscriptionWidget } from '../components/SubscriptionWidget';
 import { SignaturesWidget } from '../components/SignaturesWidget';
 
 import { FamilyDashboard } from './FamilyDashboard';
-
-// Firestore Imports
-import { collection, query, where, getDocs, orderBy, limit, getDoc, doc } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { api } from '../lib/axios';
 
 export function Dashboard() {
     const { user, loading } = useAuth(); // Assuming 'loading' is available in AuthContext
@@ -59,73 +56,11 @@ function DirectorDashboard() {
         queryKey: ['dashboard-stats', user?.clubId],
         queryFn: async () => {
             if (!user?.clubId) return null;
-            const clubId = user.clubId;
-            // console.log('[Dashboard] Fetching stats for club:', clubId); // Reduced logging
-
             try {
-                // 1. Members and Birthdays
-                // Still fetching all users for accurate counts/birthdays, but query is relatively light for <100 docs
-                const usersQ = query(collection(db, 'users'), where('clubId', '==', clubId));
-                const usersSnap = await getDocs(usersQ);
-                const activeMembers = usersSnap.size;
-
-                const currentMonth = new Date().getMonth();
-                const birthdays = usersSnap.docs
-                    .map(d => ({ id: d.id, ...d.data() } as any))
-                    .filter(u => {
-                        if (!u.birthDate) return false;
-                        const bd = new Date(u.birthDate);
-                        return bd.getMonth() === currentMonth;
-                    })
-                    .map(u => ({
-                        id: u.id,
-                        name: u.name,
-                        role: u.role,
-                        day: new Date(u.birthDate).getDate()
-                    }))
-                    .sort((a, b) => a.day - b.day);
-
-                // 2. Next Event (Light Query: limit 1)
-                let nextEvent: any = null;
-                try {
-                    const today = new Date().toISOString();
-                    const eventsQ = query(
-                        collection(db, 'meetings'),
-                        where('clubId', '==', clubId),
-                        where('date', '>=', today),
-                        orderBy('date', 'asc'),
-                        limit(1)
-                    );
-                    const eventsSnap = await getDocs(eventsQ);
-                    nextEvent = eventsSnap.empty ? null : {
-                        id: eventsSnap.docs[0].id,
-                        ...eventsSnap.docs[0].data(),
-                        startDate: eventsSnap.docs[0].data().date
-                    };
-                } catch (idxErr) {
-                    console.warn('[Dashboard] Next Event Query Failed (Likely Missing Index):', idxErr);
-                }
-
-                // Removed: Attendance Stats (Heavy Query) - Optimization
-
-                // 3. Financial
-                let financial = { balance: 0 };
-                try {
-                    const clubSnap = await getDoc(doc(db, 'clubs', clubId));
-                    financial = { balance: clubSnap.exists() ? ((clubSnap.data() as any).balance || 0) : 0 };
-                } catch (finErr) {
-                    console.warn('[Dashboard] Financial Stats Failed:', finErr);
-                }
-
-                return {
-                    activeMembers,
-                    birthdays,
-                    nextEvent,
-                    financial
-                };
+                const res = await api.get('/users/dashboard-stats');
+                return res.data;
             } catch (error) {
-                console.error('[Dashboard] CRITICAL ERROR loading stats:', error);
-                // Return safe defaults to UNBLOCK UI
+                console.error('[Dashboard] Error loading stats:', error);
                 return {
                     activeMembers: 0,
                     birthdays: [],
@@ -135,8 +70,8 @@ function DirectorDashboard() {
             }
         },
         enabled: !!user?.clubId,
-        staleTime: 1000 * 60 * 5, // Cache for 5 mins to prevent aggressive refetching
-        refetchOnWindowFocus: false // Further Reduce Load
+        staleTime: 1000 * 60 * 5,
+        refetchOnWindowFocus: false
     });
 
     // 2. Fetch API Club Status for Referral Code
@@ -155,8 +90,12 @@ function DirectorDashboard() {
     const { data: systemConfig } = useQuery({
         queryKey: ['system-config'],
         queryFn: async () => {
-            const snap = await getDoc(doc(db, 'system', 'config'));
-            return snap.exists() ? snap.data() : { referralEnabled: false }; // Default false as per request
+            try {
+                const res = await api.get('/system/config');
+                return res.data;
+            } catch {
+                return { referralEnabled: false };
+            }
         },
         staleTime: 1000 * 60 * 5
     });

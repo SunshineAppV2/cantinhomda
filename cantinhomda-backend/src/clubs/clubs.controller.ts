@@ -37,6 +37,12 @@ export class ClubsController {
     }
 
     @UseGuards(JwtAuthGuard)
+    @Get('dashboard-stats')
+    async getDashboardStats(@Request() req) {
+        return this.clubsService.getDashboardStats(req.user.clubId);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Get('dashboard')
     getDashboard(@Request() req) {
         const isMaster = req.user.email === 'master@cantinhomda.com' || req.user.role === 'MASTER';

@@ -7,8 +7,6 @@ import { Share2, Plus, ListChecks, AlertTriangle, Search, FilterX, ArrowDownUp }
 import { toast } from 'sonner';
 import { useAuth } from '../../contexts/AuthContext';
 import { Modal } from '../../components/Modal';
-import { db } from '../../lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 import { MemberDetailsModal } from '../../components/MemberDetailsModal';
 import { MemberForm } from './components/MemberForm';
 import { MembersTable } from './components/MembersTable';
@@ -295,10 +293,8 @@ function MembersContent() {
         // Robust Fallback: Fetch name if missing
         if (!clubName) {
             try {
-                const clubDoc = await getDoc(doc(db, 'clubs', user.clubId));
-                if (clubDoc.exists()) {
-                    clubName = clubDoc.data().name;
-                }
+                const res = await api.get(`/clubs/${user.clubId}`);
+                clubName = res.data.name;
             } catch (err) {
                 console.error("Error fetching club name for invite:", err);
             }

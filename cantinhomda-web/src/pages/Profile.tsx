@@ -6,10 +6,8 @@ import * as LucideIcons from 'lucide-react';
 import { generatePathfinderCard } from '../lib/pdf-generator';
 import { Modal } from '../components/Modal';
 
-// Firestore Imports
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
 import { updatePassword } from 'firebase/auth';
-import { db, auth } from '../lib/firebase';
+import { auth } from '../lib/firebase';
 import { toast } from 'sonner';
 import { api } from '../lib/axios';
 
@@ -105,8 +103,12 @@ export function Profile() {
     // Initial Load: Clubs
     useEffect(() => {
         const fetchClubs = async () => {
-            const snaps = await getDocs(collection(db, 'clubs'));
-            setClubs(snaps.docs.map(d => ({ id: d.id, ...d.data() } as Club)));
+            try {
+                const res = await api.get('/clubs');
+                setClubs(res.data);
+            } catch (error) {
+                console.error('Error fetching clubs:', error);
+            }
         };
         fetchClubs();
     }, []);
@@ -115,9 +117,12 @@ export function Profile() {
     useEffect(() => {
         if (clubId) {
             const fetchUnits = async () => {
-                const q = query(collection(db, 'units'), where('clubId', '==', clubId));
-                const snaps = await getDocs(q);
-                setUnits(snaps.docs.map(d => ({ id: d.id, ...d.data() } as Unit)));
+                try {
+                    const res = await api.get(`/units?clubId=${clubId}`);
+                    setUnits(res.data);
+                } catch (error) {
+                    console.error('Error fetching units:', error);
+                }
             };
             fetchUnits();
         } else {
@@ -131,18 +136,6 @@ export function Profile() {
         mutationFn: async (data: any) => {
             // Update via BACKEND API (PostgreSQL)
             await api.patch(`/users/${user!.id}`, data);
-
-            // Also Sync FIRESTORE for legacy/social components
-            const userRef = doc(db, 'users', user!.id);
-            const updates: any = {
-                name: data.name,
-                clubId: data.clubId,
-                unitId: data.unitId,
-                sex: data.sex,
-                mobile: data.mobile,
-                birthDate: data.birthDate
-            };
-            await updateDoc(userRef, updates).catch(e => console.warn('Firestore sync failed:', e));
 
             if (data.password && auth.currentUser) {
                 await updatePassword(auth.currentUser, data.password);
@@ -165,24 +158,21 @@ export function Profile() {
 
     const createClubMutation = useMutation({
         mutationFn: async () => {
-            const docRef = await addDoc(collection(db, 'clubs'), {
+            const res = await api.post('/clubs', {
                 name: newClubName,
-                region: newClubRegion,
-                createdAt: new Date().toISOString()
+                region: newClubRegion
             });
-            return { id: docRef.id, name: newClubName };
+            return res.data;
         },
         onSuccess: (newClub) => {
             setClubId(newClub.id);
-            setUnitId(''); // Clear unit
+            setUnitId('');
             setIsClubModalOpen(false);
             setNewClubName('');
             setNewClubRegion('');
             queryClient.invalidateQueries({ queryKey: ['ranking'] });
-            // Refresh clubs list manually or rely on useEffect? 
-            // Better to append to local state or re-fetch
-            getDocs(collection(db, 'clubs')).then(snaps => setClubs(snaps.docs.map(d => ({ id: d.id, ...d.data() } as Club))));
-
+            // Refresh clubs list
+            api.get('/clubs').then(res => setClubs(res.data));
             toast.success('Clube criado com sucesso!');
         },
         onError: () => toast.error('Erro ao criar clube.')
@@ -190,12 +180,11 @@ export function Profile() {
 
     const createUnitMutation = useMutation({
         mutationFn: async () => {
-            const docRef = await addDoc(collection(db, 'units'), {
+            const res = await api.post('/units', {
                 name: newUnitName,
-                clubId: clubId, // Use current selected clubId
-                createdAt: new Date().toISOString()
+                clubId: clubId
             });
-            return { id: docRef.id, name: newUnitName };
+            return res.data;
         },
         onSuccess: (newUnit) => {
             setUnits([...units, newUnit]);
@@ -572,30 +561,13 @@ function MySpecialtiesList() {
         queryKey: ['my-specialties-profile', user?.id],
         queryFn: async () => {
             if (!user?.id) return [];
-
-            // Join user_specialties with specialties
-            const q = query(collection(db, 'user_specialties'), where('userId', '==', user.id));
-            const snapshot = await getDocs(q);
-
-            const results = await Promise.all(snapshot.docs.map(async (docSnap) => {
-                const data = docSnap.data();
-                // Fetch specialty details
-                let specialtyData = { name: 'Unknown', area: 'Geral', imageUrl: null };
-                if (data.specialtyId) {
-                    const specRef = doc(db, 'specialties', data.specialtyId);
-                    const specSnap = await getDoc(specRef);
-                    if (specSnap.exists()) {
-                        specialtyData = specSnap.data() as any;
-                    }
-                }
-
-                return {
-                    id: docSnap.id,
-                    ...data,
-                    specialty: specialtyData
-                };
-            }));
-            return results;
+            try {
+                const res = await api.get('/specialties/my');
+                return res.data;
+            } catch (error) {
+                console.error('Error fetching specialties:', error);
+                return [];
+            }
         },
         enabled: !!user?.id
     });
@@ -650,24 +622,13 @@ function MyAchievementsList() {
         queryKey: ['my-achievements-profile', user?.id],
         queryFn: async () => {
             if (!user?.id) return [];
-
-            // 1. Fetch User Achievements
-            const q = query(collection(db, 'user_achievements'), where('userId', '==', user.id));
-            const snapshot = await getDocs(q);
-            const userAchievements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
-
-            if (userAchievements.length === 0) return [];
-
-            // 2. Fetch All Achievements to map details
-            const achSnaps = await getDocs(collection(db, 'achievements'));
-            const achievementsMap = new Map();
-            achSnaps.docs.forEach(d => achievementsMap.set(d.id, d.data()));
-
-            // 3. Map
-            return userAchievements.map(ua => ({
-                ...ua,
-                details: achievementsMap.get(ua.achievementId) || { name: 'Desconhecido', icon: 'Trophy', description: '?', points: 0 }
-            }));
+            try {
+                const res = await api.get('/achievements/my');
+                return res.data;
+            } catch (error) {
+                console.error('Error fetching achievements:', error);
+                return [];
+            }
         },
         enabled: !!user?.id
     });
