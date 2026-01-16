@@ -231,6 +231,9 @@ export class TreasuryService {
             return deleted;
         } catch (error) {
             console.error('[TREASURY] remove() - Erro:', error);
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new HttpException(
                 `Erro ao excluir transação: ${error.message}`,
                 HttpStatus.INTERNAL_SERVER_ERROR
@@ -420,9 +423,6 @@ export class TreasuryService {
         }
     }
 
-    /**
-     * Reverse points when transaction is deleted
-     */
     private async reversePoints(transaction: any) {
         try {
             console.log('[POINTS] Revertendo pontos:', {
@@ -430,10 +430,15 @@ export class TreasuryService {
                 points: transaction.points
             });
 
+            if (!transaction.points || transaction.points <= 0) {
+                console.log('[POINTS] Transação sem pontos para reverter');
+                return;
+            }
+
             let pointsToReverse = transaction.points;
 
-            // Calculate penalty that was applied
-            if (transaction.dueDate && transaction.date > transaction.dueDate) {
+            // Calculate penalty that was applied (if it was late, we only award half, so we only reverse half)
+            if (transaction.dueDate && transaction.date && new Date(transaction.date) > new Date(transaction.dueDate)) {
                 pointsToReverse = Math.floor(pointsToReverse * 0.5);
             }
 
