@@ -445,6 +445,27 @@ export function Meetings() {
                                 Fazer Chamada
                                 <ChevronRight className="w-4 h-4" />
                             </button>
+
+                            <button
+                                onClick={() => {
+                                    if (window.confirm('Tem certeza que deseja excluir esta reunião? Todos os registros de presença serão apagados.')) {
+                                        api.delete(`/meetings/${meeting.id}`)
+                                            .then(() => {
+                                                toast.success('Reunião excluída!');
+                                                queryClient.invalidateQueries({ queryKey: ['meetings'] });
+                                            })
+                                            .catch(err => {
+                                                console.error(err);
+                                                toast.error('Erro ao excluir reunião.');
+                                            });
+                                    }
+                                }}
+                                className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Excluir Reunião"
+                            >
+                                <Users className="w-0 h-0 hidden" /> {/* Hack to keep icon import if needed, but we used Trash/Pencil */}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
+                            </button>
                         </div>
                     </div>
                 ))}
