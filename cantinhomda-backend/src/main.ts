@@ -46,6 +46,13 @@ async function bootstrap() {
     // app.useGlobalGuards(new RateLimitGuard(app.get(Reflector)));
     // app.useGlobalInterceptors(new AuditInterceptor(app.get(PrismaService)));
 
+
+    // Global Rate Limiting Guard
+    app.useGlobalGuards(new RateLimitGuard(app.get(Reflector)));
+
+    // Global Audit Interceptor (registra todas as ações de modificação)
+    app.useGlobalInterceptors(new AuditInterceptor(app.get(PrismaService)));
+
     // Swagger Documentation
     const config = new DocumentBuilder()
         .setTitle('CantinhoMDA API')
