@@ -101,6 +101,25 @@ export function Meetings() {
 
     // --- Mutations ---
 
+    // --- Mutations ---
+
+    const updateMeetingMutation = useMutation({
+        mutationFn: async (data: { id: string, details: string }) => {
+            await api.patch(`/meetings/${data.id}`, { details: data.details });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['meetings'] });
+            toast.success('Detalhes da reunião salvos!');
+            if (selectedMeeting) {
+                setSelectedMeeting({ ...selectedMeeting, details });
+            }
+        },
+        onError: (error: any) => {
+            console.error('Update Error:', error);
+            toast.error('Erro ao salvar detalhes.');
+        }
+    });
+
     const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
 
     // ...
