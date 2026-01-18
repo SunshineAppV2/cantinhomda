@@ -92,9 +92,10 @@ export function Meetings() {
             if (selectedMeeting.type === 'PARENTS') {
                 return member.role === 'PARENT'; // Only PARENTS for PARENTS meeting
             }
-            // STRICT: Only PATHFINDERS for other meetings (Regular, Camp, etc)
-            // Excluding Counselors/Directors as requested
-            return member.role === 'PATHFINDER';
+            // RELAXED: Allow everyone (Pathfinders, Counselors, Directors, etc)
+            // User requested that not ONLY Pathfinders should appear.
+            // We only exclude PARENTS from regular meetings.
+            return member.role !== 'PARENT';
         });
     }, [members, selectedMeeting]);
 
