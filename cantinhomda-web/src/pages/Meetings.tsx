@@ -247,31 +247,7 @@ export function Meetings() {
         }
     });
 
-    // --- Handlers ---
 
-    const handleCreateSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!user?.clubId) {
-            toast.error('Erro: ID do clube não encontrado.');
-            return;
-        }
-        createMeetingMutation.mutate({
-            title,
-            date,
-            type,
-            points: Number(points),
-            isScoring,
-            clubId: user.clubId
-        });
-    };
-
-    const closeCreateModal = () => {
-        setIsCreateModalOpen(false);
-        setTitle('');
-        setDate('');
-        setPoints(10);
-        setIsScoring(false);
-    };
 
     const handleAttendanceSubmit = () => {
         if (!selectedMeeting || selectedMemberIds.length === 0) return;
