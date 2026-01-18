@@ -243,4 +243,16 @@ export class MeetingsService {
         console.log(`Importação finalizada. Sucesso: ${results.success}, Erros: ${results.errors.length}`);
         return results;
     }
+
+    async remove(id: string) {
+        // Delete attendances first just in case (though cascade usually handles it)
+        // Check Prisma Schema behavior if possible, but manual delete is safer for now if unsure
+        const attendances = await this.prisma.attendance.deleteMany({
+            where: { meetingId: id }
+        });
+
+        return this.prisma.meeting.delete({
+            where: { id }
+        });
+    }
 }

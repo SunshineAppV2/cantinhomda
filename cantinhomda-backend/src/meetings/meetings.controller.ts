@@ -49,4 +49,9 @@ export class MeetingsController {
     importAttendance(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
         return this.meetingsService.importAttendance(id, file);
     }
+
+    @Delete(':id')
+    remove(@Param('id') id: string) {
+        return this.meetingsService.remove(id);
+    }
 }
