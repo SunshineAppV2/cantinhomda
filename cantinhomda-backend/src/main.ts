@@ -15,18 +15,18 @@ async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
     // Security Headers (Helmet.js)
-    app.use(helmet({
-        crossOriginResourcePolicy: { policy: "cross-origin" },
-        contentSecurityPolicy: {
-            directives: {
-                defaultSrc: ["'self'"],
-                scriptSrc: ["'self'"],
-                styleSrc: ["'self'", "'unsafe-inline'"],
-                imgSrc: ["'self'", "data:", "https:"],
-                connectSrc: ["'self'", "https://cantinhomda-backend.onrender.com"],
-            },
-        },
-    }));
+    // app.use(helmet({
+    //     crossOriginResourcePolicy: { policy: "cross-origin" },
+    //     contentSecurityPolicy: {
+    //         directives: {
+    //             defaultSrc: ["'self'"],
+    //             scriptSrc: ["'self'"],
+    //             styleSrc: ["'self'", "'unsafe-inline'"],
+    //             imgSrc: ["'self'", "data:", "https:"],
+    //             connectSrc: ["'self'", "https://cantinhomda-backend.onrender.com"],
+    //         },
+    //     },
+    // }));
 
     // Force HTTPS in production
     if (process.env.NODE_ENV === 'production') {
@@ -40,15 +40,15 @@ async function bootstrap() {
     }
 
     // Rate Limiting
-    app.use(
-        rateLimit({
-            windowMs: 15 * 60 * 1000, // 15 minutes
-            max: 500, // Limit each IP to 500 requests per windowMs
-            message: 'Muitas requisições deste IP, tente novamente mais tarde.',
-            standardHeaders: true,
-            legacyHeaders: false,
-        }),
-    );
+    // app.use(
+    //     rateLimit({
+    //         windowMs: 15 * 60 * 1000, // 15 minutes
+    //         max: 500, // Limit each IP to 500 requests per windowMs
+    //         message: 'Muitas requisições deste IP, tente novamente mais tarde.',
+    //         standardHeaders: true,
+    //         legacyHeaders: false,
+    //     }),
+    // );
 
     // CORS Configuration - Allow Frontend (Vercel + Local Dev)
     const allowedOrigins = [
@@ -58,21 +58,8 @@ async function bootstrap() {
         'https://cantinhodbv.vercel.app',     // Domínio alternativo
     ];
 
-    // Allow all Vercel preview deployments
-    const isVercelPreview = (origin: string) => {
-        return origin && (
-            origin.endsWith('.vercel.app') ||
-            origin.includes('vercel.app')
-        );
-    };
-
     app.enableCors({
-        origin: [
-            'http://localhost:5173',              // Vite dev
-            'http://localhost:3000',              // Local dev alternative
-            'https://cantinhomda.vercel.app',     // Production
-            'https://cantinhodbv.vercel.app',     // Alternative domain
-        ],
+        origin: true, // DEBUG: Allow all origins reflected
         credentials: true,
         methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
         allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
