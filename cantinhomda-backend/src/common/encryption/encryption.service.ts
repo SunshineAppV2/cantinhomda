@@ -38,9 +38,9 @@ export class EncryptionService {
    * Criptografa um texto usando AES-256-GCM
    * 
    * @param text - Texto a ser criptografado
-   * @returns String no formato: iv:authTag:encrypted
+   * @returns String no formato: iv:authTag:encrypted ou null se texto vazio
    */
-  encrypt(text: string): string {
+  encrypt(text: string): string | null {
     if (!text) return null;
 
     try {
@@ -69,15 +69,15 @@ export class EncryptionService {
    * Descriptografa um texto criptografado
    * 
    * @param encryptedData - String no formato: iv:authTag:encrypted
-   * @returns Texto descriptografado
+   * @returns Texto descriptografado ou null se dados vazios
    */
-  decrypt(encryptedData: string): string {
+  decrypt(encryptedData: string): string | null {
     if (!encryptedData) return null;
 
     try {
       // Separar componentes
       const parts = encryptedData.split(':');
-      
+
       if (parts.length !== 3) {
         throw new Error('Formato de dados criptografados inválido');
       }
@@ -108,9 +108,9 @@ export class EncryptionService {
    * Útil para comparações sem armazenar o valor original
    * 
    * @param text - Texto a ser hasheado
-   * @returns Hash SHA-256 em hexadecimal
+   * @returns Hash SHA-256 em hexadecimal ou null se texto vazio
    */
-  hash(text: string): string {
+  hash(text: string): string | null {
     if (!text) return null;
 
     return crypto
