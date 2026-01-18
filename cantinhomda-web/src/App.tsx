@@ -55,13 +55,13 @@ import { ClubRegionalEvents } from './pages/club/ClubRegionalEvents';
 import { CompleteProfile } from './pages/CompleteProfile';
 // import { SocketProvider } from './contexts/SocketContext';
 
-import { Toaster } from 'sonner';
+import { ToastProvider } from './lib/toast';
 
 function App() {
   console.log("CantinhoMDA Web App v1.1.0 - Refactor Complete");
   return (
     <AuthProvider>
-      <Toaster position="top-center" richColors closeButton />
+      <ToastProvider />
       <BrowserRouter>
         <Routes>
           <Route element={<AuthLayout />}>
