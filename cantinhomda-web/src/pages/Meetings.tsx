@@ -101,22 +101,70 @@ export function Meetings() {
 
     // --- Mutations ---
 
-    const updateMeetingMutation = useMutation({
-        mutationFn: async (data: { id: string, details: string }) => {
-            await api.patch(`/meetings/${data.id}`, { details: data.details });
+    const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
+
+    // ...
+
+    const updateMeetingInfoMutation = useMutation({
+        mutationFn: async (data: { id: string, payload: any }) => {
+            await api.patch(`/meetings/${data.id}`, data.payload);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
-            toast.success('Detalhes da reunião salvos!');
-            if (selectedMeeting) {
-                setSelectedMeeting({ ...selectedMeeting, details });
-            }
+            closeCreateModal();
+            toast.success('Reunião atualizada com sucesso!');
         },
         onError: (error: any) => {
-            console.error('Update Error:', error);
-            toast.error('Erro ao salvar detalhes.');
+            console.error(error);
+            toast.error('Erro ao atualizar reunião.');
         }
     });
+
+    const handleCreateSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (editingMeetingId) {
+            updateMeetingInfoMutation.mutate({
+                id: editingMeetingId,
+                payload: { title, date, type, points: Number(points), isScoring }
+            });
+            return;
+        }
+
+        if (!user?.clubId) {
+            toast.error('Erro: ID do clube não encontrado.');
+            return;
+        }
+        createMeetingMutation.mutate({
+            title,
+            date,
+            type,
+            points: Number(points),
+            isScoring,
+            clubId: user.clubId
+        });
+    };
+
+    const handleEditClick = (meeting: Meeting) => {
+        setEditingMeetingId(meeting.id);
+        setTitle(meeting.title);
+        // Format date simply for input type=date (YYYY-MM-DD)
+        const d = new Date(meeting.date);
+        setDate(d.toISOString().split('T')[0]);
+        setType(meeting.type);
+        setPoints(meeting.points);
+        setIsScoring(meeting.points > 0); // Heuristic
+        setIsCreateModalOpen(true);
+    };
+
+    const closeCreateModal = () => {
+        setIsCreateModalOpen(false);
+        setEditingMeetingId(null);
+        setTitle('');
+        setDate('');
+        setPoints(10);
+        setIsScoring(false);
+    };
 
     // Keep Import mutations on API for now or disable if backend is gone. 
     // Assuming backend might still be used for file processing or user can accept it might break if backend is offline.
@@ -447,6 +495,14 @@ export function Meetings() {
                             </button>
 
                             <button
+                                onClick={() => handleEditClick(meeting)}
+                                className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                title="Editar Reunião"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" /><path d="m15 5 4 4" /></svg>
+                            </button>
+
+                            <button
                                 onClick={() => {
                                     if (window.confirm('Tem certeza que deseja excluir esta reunião? Todos os registros de presença serão apagados.')) {
                                         api.delete(`/meetings/${meeting.id}`)
@@ -480,9 +536,11 @@ export function Meetings() {
             <Modal
                 isOpen={isCreateModalOpen}
                 onClose={closeCreateModal}
-                title="Agendar Reunião"
+                title={editingMeetingId ? "Editar Reunião" : "Agendar Reunião"}
             >
                 <form onSubmit={handleCreateSubmit} className="space-y-4">
+                    {/* ... Inputs ... */}
+                    {/* Simplified for replacement context */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Título</label>
                         <input
@@ -558,10 +616,12 @@ export function Meetings() {
                         </button>
                         <button
                             type="submit"
-                            disabled={createMeetingMutation.isPending}
+                            disabled={createMeetingMutation.isPending || updateMeetingInfoMutation.isPending}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors disabled:opacity-50"
                         >
-                            {createMeetingMutation.isPending ? 'Criando...' : 'Agendar'}
+                            {updateMeetingInfoMutation.isPending || createMeetingMutation.isPending
+                                ? 'Salvando...'
+                                : (editingMeetingId ? 'Salvar Alterações' : 'Agendar')}
                         </button>
                     </div>
                 </form>
