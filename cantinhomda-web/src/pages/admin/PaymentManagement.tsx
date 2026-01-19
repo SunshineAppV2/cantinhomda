@@ -4,23 +4,15 @@ import { api } from '../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
 import {
-    CreditCard,
     CheckCircle,
-    XCircle,
     Clock,
     RefreshCw,
-    Building2,
     Search,
-    Filter,
     DollarSign,
     Trash2,
-    Calendar,
     AlertTriangle,
     ShieldAlert,
     MoreVertical,
-    FileText,
-    ArrowUpRight,
-    ArrowDownRight,
     Receipt,
     Phone
 } from 'lucide-react';
