@@ -7,9 +7,7 @@ async function main() {
     console.log('🧹 Cleaning up duplicate specialties...\n');
 
     // Get all specialties
-    const allSpecialties = await prisma.specialty.findMany({
-        orderBy: { createdAt: 'asc' }
-    });
+    const allSpecialties = await prisma.specialty.findMany();
 
     console.log(`Total specialties found: ${allSpecialties.length}\n`);
 
