@@ -356,6 +356,8 @@ export function Meetings() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['meetings'] });
+            queryClient.invalidateQueries({ queryKey: ['users'] });
+            queryClient.invalidateQueries({ queryKey: ['ranking'] });
             toast.success('Presença registrada e pontos calculados!');
             closeAttendanceModal();
         },

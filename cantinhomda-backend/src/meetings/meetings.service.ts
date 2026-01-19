@@ -74,8 +74,13 @@ export class MeetingsService {
                 ? (attendanceDto as any).userIds.map(id => ({ userId: id, points: meeting.points, requirements: [] }))
                 : attendanceDto.records;
 
+            console.log(`[RegisterAttendance] Processing ${records.length} records for Meeting ${meeting.title} (${meetingId})`);
+
             for (const record of records) {
                 const { userId, points, requirements } = record;
+
+                // DEBUG LOG
+                console.log(`[RegisterAttendance] User: ${userId}, Received Points: ${points}, Reqs: ${requirements?.join(',')}`);
 
                 const exists = await tx.attendance.findUnique({
                     where: { userId_meetingId: { userId, meetingId } }
@@ -114,6 +119,8 @@ export class MeetingsService {
                         if (requirements && requirements.length > 0) {
                             reason += ` (${requirements.join(', ')})`;
                         }
+
+                        console.log(`[RegisterAttendance] Awarding ${pointsToAward} points to ${targetId} (Beneficiary of ${userId})`);
 
                         if (meeting.activityId) {
                             // Direct points update within transaction (faster)
