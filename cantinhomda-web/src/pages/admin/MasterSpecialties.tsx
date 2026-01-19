@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../lib/axios';
-import { Plus, Search, Trash2, Pencil, Image as ImageIcon, Link } from 'lucide-react';
+import { Plus, Search, Trash2, Pencil, Image as ImageIcon, Link, FileText } from 'lucide-react';
 import { Modal } from '../../components/Modal';
 
 // Types
@@ -42,6 +42,10 @@ export function MasterSpecialties() {
     const [isBulkImportModalOpen, setIsBulkImportModalOpen] = useState(false);
     const [isBulkImporting, setIsBulkImporting] = useState(false);
     const [bulkImportResults, setBulkImportResults] = useState<any>(null);
+
+    // Text Import State
+    const [isTextImportModalOpen, setIsTextImportModalOpen] = useState(false);
+    const [importText, setImportText] = useState('');
 
     // Fetch Specialties
     const { data: specialties = [], isLoading } = useQuery<Specialty[]>({
@@ -131,6 +135,44 @@ export function MasterSpecialties() {
             setBulkImportResults(null);
             bulkImportMutation.mutate();
         }
+    };
+
+    const handleTextImport = () => {
+        if (!importText.trim()) {
+            alert('Por favor, cole o texto com os requisitos.');
+            return;
+        }
+
+        // Parse text - aceita vários formatos
+        const lines = importText.split('\n').filter(line => line.trim());
+        const parsedRequirements: { description: string }[] = [];
+
+        lines.forEach(line => {
+            // Remove numeração comum: "1.", "1)", "1 -", etc
+            let cleaned = line.trim()
+                .replace(/^\d+[\.\)\-]\s*/, '') // Remove "1." ou "1)" ou "1-"
+                .replace(/^[•\-\*]\s*/, ''); // Remove bullets
+
+            if (cleaned) {
+                parsedRequirements.push({ description: cleaned });
+            }
+        });
+
+        if (parsedRequirements.length === 0) {
+            alert('Nenhum requisito válido encontrado no texto.');
+            return;
+        }
+
+        // Adicionar aos requisitos existentes ou substituir
+        if (confirm(`Encontrados ${parsedRequirements.length} requisitos.\n\nDeseja ADICIONAR aos existentes (${requirements.length}) ou SUBSTITUIR?\n\nOK = Adicionar | Cancelar = Substituir`)) {
+            setRequirements([...requirements, ...parsedRequirements]);
+        } else {
+            setRequirements(parsedRequirements);
+        }
+
+        setIsTextImportModalOpen(false);
+        setImportText('');
+        alert(`${parsedRequirements.length} requisitos importados com sucesso!`);
     };
 
     const closeModal = () => {
@@ -305,13 +347,22 @@ export function MasterSpecialties() {
                     <div>
                         <div className="flex justify-between items-center mb-2">
                             <label className="block text-sm font-medium text-slate-700">Requisitos</label>
-                            <button
-                                type="button"
-                                onClick={() => setRequirements([...requirements, { description: '' }])}
-                                className="text-xs text-green-600 font-bold hover:text-green-700 flex items-center gap-1"
-                            >
-                                <Plus className="w-3 h-3" /> Adicionar
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsTextImportModalOpen(true)}
+                                    className="text-xs text-blue-600 font-bold hover:text-blue-700 flex items-center gap-1"
+                                >
+                                    <FileText className="w-3 h-3" /> Colar Texto
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setRequirements([...requirements, { description: '' }])}
+                                    className="text-xs text-green-600 font-bold hover:text-green-700 flex items-center gap-1"
+                                >
+                                    <Plus className="w-3 h-3" /> Adicionar
+                                </button>
+                            </div>
                         </div>
                         <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
                             {requirements.map((req, index) => (
@@ -473,8 +524,8 @@ export function MasterSpecialties() {
                                 <div className="space-y-2">
                                     {bulkImportResults.details.map((detail: any, idx: number) => (
                                         <div key={idx} className={`p-2 rounded text-sm ${detail.status === 'success' ? 'bg-green-50 text-green-800' :
-                                                detail.status === 'skipped' ? 'bg-blue-50 text-blue-800' :
-                                                    'bg-red-50 text-red-800'
+                                            detail.status === 'skipped' ? 'bg-blue-50 text-blue-800' :
+                                                'bg-red-50 text-red-800'
                                             }`}>
                                             <p className="font-medium">
                                                 {detail.status === 'success' && '✅'}
@@ -510,6 +561,64 @@ export function MasterSpecialties() {
                             </div>
                         </>
                     )}
+                </div>
+            </Modal>
+
+            {/* Text Import Modal */}
+            <Modal
+                isOpen={isTextImportModalOpen}
+                onClose={() => {
+                    setIsTextImportModalOpen(false);
+                    setImportText('');
+                }}
+                title="Importar Requisitos via Texto"
+            >
+                <div className="space-y-4">
+                    <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm">
+                        <p className="font-bold mb-2">📝 Como usar:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                            <li>Cole uma lista de requisitos (um por linha)</li>
+                            <li>Aceita numeração: "1.", "1)", "1-"</li>
+                            <li>Aceita bullets: "•", "-", "*"</li>
+                            <li>A formatação será removida automaticamente</li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">
+                            Cole o texto aqui:
+                        </label>
+                        <textarea
+                            value={importText}
+                            onChange={(e) => setImportText(e.target.value)}
+                            className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                            rows={12}
+                            placeholder={`Exemplo:\n\n1. Conhecer pelo menos 5 raças de cães.\n2. Identificar características de cada raça.\n3. Demonstrar cuidados básicos.\n...\n\nOu:\n\n• Primeiro requisito\n• Segundo requisito\n• Terceiro requisito`}
+                        />
+                        <p className="text-xs text-slate-500 mt-2">
+                            {importText.split('\n').filter(l => l.trim()).length} linhas detectadas
+                        </p>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsTextImportModalOpen(false);
+                                setImportText('');
+                            }}
+                            className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={handleTextImport}
+                            disabled={!importText.trim()}
+                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            📥 Importar Requisitos
+                        </button>
+                    </div>
                 </div>
             </Modal>
         </div>
