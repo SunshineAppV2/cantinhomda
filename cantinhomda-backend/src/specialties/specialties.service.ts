@@ -233,7 +233,7 @@ export class SpecialtiesService {
     async setRequirementStatus(userId: string, requirementId: string, status: RequirementStatus) {
         // Debug Log
         const fs = require('fs');
-        const logPath = 'g:/Ranking DBV/rankingdbv-backend/debug_xp.txt';
+        const logPath = 'g:/CantinhoMDA/cantinhomda-backend/debug_xp.txt';
         const log = (msg: string) => fs.appendFileSync(logPath, `${new Date().toISOString()} - ${msg}\n`);
 
         log(`[setRequirementStatus] User: ${userId}, Req: ${requirementId}, Status: "${status}" vs ENUM: "${RequirementStatus.APPROVED}"`);
@@ -279,7 +279,7 @@ export class SpecialtiesService {
     private async checkClassCompletion(userId: string, requirementId: string) {
         // Debug Log
         const fs = require('fs');
-        const logPath = 'g:/Ranking DBV/rankingdbv-backend/debug_xp.txt';
+        const logPath = 'g:/CantinhoMDA/cantinhomda-backend/debug_xp.txt';
         const log = (msg: string) => fs.appendFileSync(logPath, `${new Date().toISOString()} - ${msg}\n`);
 
         log(`Checking Class Completion for User ${userId}, Req ${requirementId}`);

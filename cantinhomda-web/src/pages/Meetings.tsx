@@ -2,8 +2,10 @@ import { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import { Calendar, Plus, Users, CheckCircle, ArrowLeft, FileSpreadsheet, FileText, Save, ClipboardList, Pencil, Trash2 } from 'lucide-react';
+import { Calendar, Plus, Users, CheckCircle, ArrowLeft, FileSpreadsheet, FileText, Save, ClipboardList, Pencil, Trash2, Settings } from 'lucide-react';
 import { Modal } from '../components/Modal';
+import { format, startOfQuarter, endOfQuarter, eachDayOfInterval, isSaturday, isSameDay, getQuarter } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 // Firestore removed - using API instead
 import { toast } from 'sonner';
 import { ROLE_TRANSLATIONS } from './members/types';
@@ -31,8 +33,9 @@ export function Meetings() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
 
-    // View State
     const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+    const [selectedQuarter, setSelectedQuarter] = useState<number>(getQuarter(new Date()));
+    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
     // Details State (ATA)
     const [details, setDetails] = useState('');
@@ -98,6 +101,33 @@ export function Meetings() {
             return member.role !== 'PARENT';
         });
     }, [members, selectedMeeting]);
+
+    // --- Quarter Logic ---
+    const saturdaysInfo = useMemo(() => {
+        // Criar data base para o trimestre selecionado
+        const baseDate = new Date(selectedYear, (selectedQuarter - 1) * 3, 1);
+        const start = startOfQuarter(baseDate);
+        const end = endOfQuarter(baseDate);
+
+        const allDays = eachDayOfInterval({ start, end });
+        const saturdays = allDays.filter(day => isSaturday(day));
+
+        return saturdays.map((date, index) => ({
+            date,
+            label: `${index + 1}º Sábado`,
+            month: format(date, 'MMMM', { locale: ptBR }),
+            formattedDate: format(date, "dd 'de' MMMM", { locale: ptBR })
+        }));
+    }, [selectedQuarter, selectedYear]);
+
+    const handleQuickCreate = (date: Date) => {
+        setDate(format(date, 'yyyy-MM-dd'));
+        setTitle('Reunião Regular');
+        setType('REGULAR');
+        setPoints(10);
+        setIsScoring(true);
+        setIsCreateModalOpen(true);
+    };
 
     // --- Mutations ---
 
@@ -172,7 +202,7 @@ export function Meetings() {
         setDate(d.toISOString().split('T')[0]);
         setType(meeting.type);
         setPoints(meeting.points);
-        setIsScoring(meeting.points > 0); // Heuristic
+        setIsScoring(meeting.points > 0);
         setIsCreateModalOpen(true);
     };
 
@@ -307,234 +337,307 @@ export function Meetings() {
         }
     };
 
+
+
     // --- Render: Attendance View ---
     if (selectedMeeting) {
         return (
             <div>
-                <button
-                    onClick={() => setSelectedMeeting(null)}
-                    className="flex items-center gap-2 text-slate-500 hover:text-slate-700 mb-6"
-                >
-                    <ArrowLeft className="w-4 h-4" />
-                    Voltar para Lista
-                </button>
-
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
-                    <div className="flex justify-between items-start">
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-800">{selectedMeeting.title}</h1>
-                            <p className="text-slate-500">
-                                {new Date(selectedMeeting.date).toLocaleDateString()} • {selectedMeeting.points} Pontos
-                            </p>
-                        </div>
+                <div>
+                    <div className="flex justify-between items-center mb-6">
+                        <button
+                            onClick={() => setSelectedMeeting(null)}
+                            className="flex items-center gap-2 text-slate-500 hover:text-slate-700 font-medium"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Voltar
+                        </button>
                         <div className="flex gap-2">
                             <button
-                                onClick={() => setIsAttendanceImportOpen(true)}
-                                className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition-colors font-medium text-sm border border-emerald-200"
+                                onClick={() => handleEditClick(selectedMeeting)}
+                                className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors border border-transparent hover:border-blue-100"
                             >
-                                <FileSpreadsheet className="w-4 h-4" />
-                                Importar Presença
+                                <Pencil className="w-4 h-4" />
+                                Editar
                             </button>
-                            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
-                                {selectedMeeting.type === 'PARENTS' ? 'Reunião de Pais' : selectedMeeting.type}
+                            <button
+                                onClick={() => {
+                                    if (confirm('Tem certeza que deseja excluir esta reunião?')) {
+                                        handleDelete(selectedMeeting.id);
+                                        setSelectedMeeting(null);
+                                    }
+                                }}
+                                className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-2 text-sm font-bold transition-colors border border-transparent hover:border-red-100"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                Excluir
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-6">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h1 className="text-2xl font-bold text-slate-800">{selectedMeeting.title}</h1>
+                                <p className="text-slate-500">
+                                    {new Date(selectedMeeting.date).toLocaleDateString()} • {selectedMeeting.points} Pontos
+                                </p>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setIsAttendanceImportOpen(true)}
+                                    className="flex items-center gap-2 text-emerald-600 hover:bg-emerald-50 px-3 py-1.5 rounded-lg transition-colors font-medium text-sm border border-emerald-200"
+                                >
+                                    <FileSpreadsheet className="w-4 h-4" />
+                                    Importar Presença
+                                </button>
+                                <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
+                                    {selectedMeeting.type === 'PARENTS' ? 'Reunião de Pais' : selectedMeeting.type}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* DETAILS / ATA SECTION */}
+                        <div className="mt-6 pt-6 border-t border-slate-100">
+                            <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                                <FileText className="w-4 h-4" />
+                                Ata / Detalhes da Reunião
+                            </label>
+                            <textarea
+                                value={details}
+                                onChange={(e) => setDetails(e.target.value)}
+                                className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] text-sm"
+                                placeholder="Descreva o que aconteceu na reunião (Ata, decisões, atividades...)"
+                            />
+                            <div className="flex justify-end mt-2">
+                                <button
+                                    onClick={() => updateMeetingMutation.mutate({ id: selectedMeeting.id, details })}
+                                    disabled={updateMeetingMutation.isPending || details === (selectedMeeting.details || '')}
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm flex items-center gap-2 disabled:opacity-50"
+                                >
+                                    <Save className="w-4 h-4" />
+                                    {updateMeetingMutation.isPending ? 'Salvando...' : 'Salvar Detalhes'}
+                                </button>
                             </div>
                         </div>
                     </div>
 
-                    {/* DETAILS / ATA SECTION */}
-                    <div className="mt-6 pt-6 border-t border-slate-100">
-                        <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            Ata / Detalhes da Reunião
-                        </label>
-                        <textarea
-                            value={details}
-                            onChange={(e) => setDetails(e.target.value)}
-                            className="w-full px-4 py-3 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 min-h-[100px] text-sm"
-                            placeholder="Descreva o que aconteceu na reunião (Ata, decisões, atividades...)"
-                        />
-                        <div className="flex justify-end mt-2">
-                            <button
-                                onClick={() => updateMeetingMutation.mutate({ id: selectedMeeting.id, details })}
-                                disabled={updateMeetingMutation.isPending || details === (selectedMeeting.details || '')}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm flex items-center gap-2 disabled:opacity-50"
-                            >
-                                <Save className="w-4 h-4" />
-                                {updateMeetingMutation.isPending ? 'Salvando...' : 'Salvar Detalhes'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-                        <div className="flex items-center gap-3">
-                            <input
-                                type="checkbox"
-                                checked={selectedMemberIds.length === filteredMembers.length && filteredMembers.length > 0}
-                                onChange={toggleAll}
-                                className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
-                            />
-                            <span className="font-medium text-slate-700">Selecionar Todos</span>
-                        </div>
-                        <span className="text-sm text-slate-500">
-                            {selectedMemberIds.length} selecionados
-                        </span>
-                    </div>
-
-                    <div className="divide-y divide-slate-100 max-h-[60vh] overflow-y-auto">
-                        {filteredMembers.map(member => (
-                            <label key={member.id} className="flex items-center gap-4 p-4 hover:bg-slate-50 cursor-pointer">
+                    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
+                            <div className="flex items-center gap-3">
                                 <input
                                     type="checkbox"
-                                    checked={selectedMemberIds.includes(member.id)}
-                                    onChange={() => toggleMember(member.id)}
+                                    checked={selectedMemberIds.length === filteredMembers.length && filteredMembers.length > 0}
+                                    onChange={toggleAll}
                                     className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
                                 />
-                                <div className="flex-1">
-                                    <p className="font-medium text-slate-800">{member.name}</p>
-                                    <p className="text-xs text-slate-500">{ROLE_TRANSLATIONS[member.role] || member.role} • {member.unit?.name || 'Sem Unidade'}</p>
-                                </div>
-                            </label>
-                        ))}
-                    </div>
+                                <span className="font-medium text-slate-700">Selecionar Todos</span>
+                            </div>
+                            <span className="text-sm text-slate-500">
+                                {selectedMemberIds.length} selecionados
+                            </span>
+                        </div>
 
-                    <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
-                        <button
-                            onClick={handleAttendanceSubmit}
-                            disabled={selectedMemberIds.length === 0 || registerAttendanceMutation.isPending}
-                            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                        <div className="divide-y divide-slate-100 max-h-[60vh] overflow-y-auto">
+                            {filteredMembers.map(member => (
+                                <label key={member.id} className="flex items-center gap-4 p-4 hover:bg-slate-50 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedMemberIds.includes(member.id)}
+                                        onChange={() => toggleMember(member.id)}
+                                        className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                                    />
+                                    <div className="flex-1">
+                                        <p className="font-medium text-slate-800">{member.name}</p>
+                                        <p className="text-xs text-slate-500">{ROLE_TRANSLATIONS[member.role] || member.role} • {member.unit?.name || 'Sem Unidade'}</p>
+                                    </div>
+                                </label>
+                            ))}
+                        </div>
+
+                        <div className="p-4 border-t border-slate-200 bg-slate-50 flex justify-end">
+                            <button
+                                onClick={handleAttendanceSubmit}
+                                disabled={selectedMemberIds.length === 0 || registerAttendanceMutation.isPending}
+                                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+                            >
+                                <CheckCircle className="w-5 h-5" />
+                                {registerAttendanceMutation.isPending ? 'Salvando...' : 'Confirmar Presença'}
+                            </button>
+                        </div>
+
+                        {/* Attendance Import Modal */}
+                        <Modal
+                            isOpen={isAttendanceImportOpen}
+                            onClose={() => setIsAttendanceImportOpen(false)}
+                            title={`Importar Presença: ${selectedMeeting.title}`}
                         >
-                            <CheckCircle className="w-5 h-5" />
-                            {registerAttendanceMutation.isPending ? 'Salvando...' : 'Confirmar Presença'}
-                        </button>
-                    </div>
-
-                    {/* Attendance Import Modal */}
-                    <Modal
-                        isOpen={isAttendanceImportOpen}
-                        onClose={() => setIsAttendanceImportOpen(false)}
-                        title={`Importar Presença: ${selectedMeeting.title}`}
-                    >
-                        <div className="space-y-4">
-                            <p className="text-sm text-slate-500">
-                                O arquivo deve conter uma coluna <strong>Email</strong> ou <strong>Nome</strong>.
-                            </p>
-                            <input
-                                type="file"
-                                accept=".xlsx, .xls"
-                                onChange={(e) => {
-                                    if (e.target.files?.[0]) {
-                                        if (window.confirm('Confirmar importação de presença para esta reunião?')) {
-                                            importAttendanceMutation.mutate(e.target.files[0]);
+                            <div className="space-y-4">
+                                <p className="text-sm text-slate-500">
+                                    O arquivo deve conter uma coluna <strong>Email</strong> ou <strong>Nome</strong>.
+                                </p>
+                                <input
+                                    type="file"
+                                    accept=".xlsx, .xls"
+                                    onChange={(e) => {
+                                        if (e.target.files?.[0]) {
+                                            if (window.confirm('Confirmar importação de presença para esta reunião?')) {
+                                                importAttendanceMutation.mutate(e.target.files[0]);
+                                            }
                                         }
-                                    }
-                                }}
-                                className="block w-full text-sm text-slate-500
+                                    }}
+                                    className="block w-full text-sm text-slate-500
                                 file:mr-4 file:py-2 file:px-4
                                 file:rounded-full file:border-0
                                 file:text-sm file:font-semibold
                                 file:bg-emerald-50 file:text-emerald-700
                                 hover:file:bg-emerald-100"
-                            />
-                            {importAttendanceMutation.isPending && (
-                                <p className="text-center text-emerald-600 font-medium">Processando planilha...</p>
-                            )}
-                        </div>
-                    </Modal>
+                                />
+                                {importAttendanceMutation.isPending && (
+                                    <p className="text-center text-emerald-600 font-medium">Processando planilha...</p>
+                                )}
+                            </div>
+                        </Modal>
+                    </div>
                 </div>
             </div>
-
         );
     }
 
-    // --- Render: List View ---
+    // --- Render: List View (Quarter Grid) ---
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold text-slate-800">Reuniões & Chamada</h1>
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                        <ClipboardList className="w-8 h-8 text-blue-600" />
+                        Controle de Chamada
+                    </h1>
+                    <p className="text-slate-500">Marque a presença e atividades semanais.</p>
+                </div>
                 <div className="flex gap-2">
                     <button
-                        onClick={() => setIsImportModalOpen(true)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                        <FileSpreadsheet className="w-5 h-5" />
-                        Importar Excel
-                    </button>
-                    <button
                         onClick={() => setIsCreateModalOpen(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-all hover:scale-105 active:scale-95"
                     >
                         <Plus className="w-5 h-5" />
-                        Nova Reunião
+                        Chamada Avulsa
+                    </button>
+                    <button
+                        className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-lg font-bold flex items-center gap-2 shadow-sm transition-all"
+                    >
+                        <Settings className="w-5 h-5" />
+                        Configurar Pontuação
+                    </button>
+                    <button
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="text-emerald-600 hover:bg-emerald-50 px-3 py-2 rounded-lg font-medium transition-colors"
+                        title="Importar Excel"
+                    >
+                        <FileSpreadsheet className="w-5 h-5" />
                     </button>
                 </div>
             </div>
 
-            <div className="space-y-4">
-                {meetings.map((meeting: Meeting) => (
-                    <div key={meeting.id} className="glass-card p-6 rounded-[2.5rem] premium-shadow flex items-center justify-between group hover:scale-[1.01] transition-all duration-300">
-                        <div className="flex items-center gap-6">
-                            <div className="bg-blue-50 p-4 rounded-2xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm">
-                                <Calendar className="w-8 h-8" />
-                            </div>
-                            <div>
-                                <h3 className="text-xl font-black text-slate-800 tracking-tight">{meeting.title}</h3>
-                                <div className="flex items-center gap-3 mt-1">
-                                    <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest">
-                                        {new Date(meeting.date).toLocaleDateString()}
+            {/* Quarter & Year Navigation */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4 bg-white/50 p-4 rounded-[2rem] border border-slate-200/50 backdrop-blur-sm shadow-xl shadow-slate-200/20 mb-8">
+                <div className="flex bg-slate-100 p-1.5 rounded-2xl">
+                    {[1, 2, 3, 4].map(q => (
+                        <button
+                            key={q}
+                            onClick={() => setSelectedQuarter(q)}
+                            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedQuarter === q
+                                ? 'bg-white text-blue-600 shadow-sm'
+                                : 'text-slate-400 hover:text-slate-600'
+                                }`}
+                        >
+                            {q}º Trim
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex items-center gap-6 bg-slate-900 text-white px-6 py-2.5 rounded-2xl shadow-xl shadow-slate-900/20">
+                    <button
+                        onClick={() => setSelectedYear(prev => prev - 1)}
+                        className="p-1 hover:text-blue-400 transition-colors"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-sm font-black tracking-tighter w-12 text-center">
+                        {selectedYear}
+                    </span>
+                    <button
+                        onClick={() => setSelectedYear(prev => prev + 1)}
+                        className="p-1 hover:text-blue-400 transition-colors rotate-180"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                    </button>
+                </div>
+            </div>
+
+            {/* Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {saturdaysInfo.map((sat) => {
+                    const meeting = meetings.find((m: Meeting) => isSameDay(new Date(m.date), sat.date));
+                    // isFuture logic removed as requested by lint
+
+                    if (meeting) {
+                        // Card de Reunião Existente
+                        return (
+                            <div
+                                key={sat.date.toISOString()}
+                                onClick={() => setSelectedMeeting(meeting)}
+                                className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-300 cursor-pointer transition-all group relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50 rounded-bl-[4rem] -mr-8 -mt-8 z-0 opacity-50 group-hover:bg-blue-100 transition-colors" />
+
+                                <div className="relative z-10 flex items-start gap-4">
+                                    <div className="bg-blue-100 text-blue-600 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                                        <Calendar className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{sat.label}</div>
+                                        <div className="font-bold text-slate-800 text-lg capitalize">{sat.formattedDate}</div>
+                                        <div className="flex items-center gap-1 mt-2 text-xs font-medium text-slate-500">
+                                            <Users className="w-3 h-3" />
+                                            {meeting._count?.attendances || 0} presentes
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex items-center gap-2">
+                                    <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest ${meeting.type === 'PARENTS' ? 'bg-purple-100 text-purple-600' : 'bg-green-100 text-green-600'}`}>
+                                        {meeting.type === 'PARENTS' ? 'Pais' : meeting.type}
                                     </span>
-                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${meeting.type === 'PARENTS' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'}`}>
-                                        {meeting.type === 'PARENTS' ? 'Reunião de Pais' : meeting.type}
-                                    </span>
+                                    {meeting.points > 0 && (
+                                        <span className="text-xs text-slate-400 font-medium">
+                                            {meeting.points} pts
+                                        </span>
+                                    )}
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl">
-                                <Users className="w-4 h-4 text-slate-400" />
-                                <span className="text-sm font-bold text-slate-600">{meeting._count?.attendances || 0} presentes</span>
-                            </div>
-
-                            <div className="flex items-center gap-2 pl-4 border-l border-slate-100">
-                                <button
-                                    onClick={() => {
-                                        setSelectedMeeting(meeting);
-                                    }}
-                                    className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm hover:shadow-md"
-                                    title="Fazer Chamada"
-                                >
-                                    <ClipboardList className="w-5 h-5" />
-                                </button>
-
-                                <button
-                                    onClick={() => handleEditClick(meeting)}
-                                    className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all shadow-sm hover:shadow-md"
-                                    title="Editar"
-                                >
-                                    <Pencil className="w-5 h-5" />
-                                </button>
-
-                                <button
-                                    onClick={() => handleDelete(meeting.id)}
-                                    className="p-3 bg-rose-50 text-rose-600 rounded-2xl hover:bg-rose-600 hover:text-white transition-all shadow-sm hover:shadow-md"
-                                    title="Excluir"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-
-                {meetings.length === 0 && (
-                    <div className="p-10 text-center text-slate-500 glass-card rounded-[2.5rem] border border-dashed border-slate-300/50">
-                        <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="font-bold">Nenhuma reunião agendada.</p>
-                    </div>
-                )}
+                        );
+                    } else {
+                        // Card Vazio (Criar)
+                        return (
+                            <button
+                                key={sat.date.toISOString()}
+                                onClick={() => handleQuickCreate(sat.date)}
+                                className="bg-slate-50 p-5 rounded-2xl border border-slate-200 border-dashed hover:border-blue-400 hover:bg-blue-50/50 cursor-pointer transition-all flex flex-col items-center justify-center text-center h-full min-h-[140px] group"
+                            >
+                                <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 mb-3 group-hover:border-blue-300 group-hover:text-blue-500 transition-colors">
+                                    <Plus className="w-5 h-5" />
+                                </div>
+                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{sat.label}</div>
+                                <div className="font-bold text-slate-600 capitalize">{sat.formattedDate}</div>
+                            </button>
+                        );
+                    }
+                })}
             </div>
+
+
 
             <Modal
                 isOpen={isCreateModalOpen}

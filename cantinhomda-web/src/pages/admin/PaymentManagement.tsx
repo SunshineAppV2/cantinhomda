@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
 import { toast } from 'sonner';
@@ -14,11 +15,14 @@ import {
     ShieldAlert,
     MoreVertical,
     Receipt,
-    Phone
+    Phone,
+    TrendingUp,
+    CreditCard,
+    Filter,
+    User
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Modal } from '../../components/Modal';
 
 // --- Interfaces ---
 
@@ -53,11 +57,11 @@ interface Payment {
 // --- Status Badge Component ---
 const StatusBadge = ({ status }: { status: string }) => {
     const styles: Record<string, string> = {
-        ACTIVE: 'bg-green-100 text-green-700 border-green-200',
+        ACTIVE: 'bg-emerald-100 text-emerald-700 border-emerald-200',
         TRIAL: 'bg-blue-100 text-blue-700 border-blue-200',
         PAYMENT_WARNING: 'bg-orange-100 text-orange-700 border-orange-200',
-        SUSPENDED: 'bg-red-100 text-red-700 border-red-200',
-        BLOCKED: 'bg-red-900 text-white border-red-800',
+        SUSPENDED: 'bg-rose-100 text-rose-700 border-rose-200',
+        BLOCKED: 'bg-slate-900 text-white border-slate-800',
         INACTIVE: 'bg-slate-100 text-slate-700 border-slate-200',
         PENDING_APPROVAL: 'bg-purple-100 text-purple-700 border-purple-200'
     };
@@ -73,7 +77,7 @@ const StatusBadge = ({ status }: { status: string }) => {
     };
 
     return (
-        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
+        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
             {labels[status] || status}
         </span>
     );
@@ -93,26 +97,23 @@ export function PaymentManagement() {
 
     // --- Queries ---
 
-    // 1. Status dos Clubes (Assinaturas)
     const { data: clubsStatus = [], isLoading: loadingClubs } = useQuery<ClubPaymentStatus[]>({
         queryKey: ['admin-clubs-payment-status'],
         queryFn: async () => (await api.get('/clubs/admin/payment-status')).data,
         enabled: user?.role === 'MASTER'
     });
 
-    // 2. Pagamentos Pendentes (Avulsos/PIX)
     const { data: pendingPayments = [], isLoading: loadingPayments } = useQuery<Payment[]>({
         queryKey: ['pending-payments'],
         queryFn: async () => (await api.get('/subscriptions/payments/pending')).data,
         enabled: user?.role === 'MASTER'
     });
 
-    // 3. Métricas (Calculadas no front por enquanto ou endpoint específico)
     const metrics = {
         active: clubsStatus.filter(c => c.status === 'ACTIVE' || c.status === 'TRIAL').length,
         warning: clubsStatus.filter(c => c.status === 'PAYMENT_WARNING').length,
         suspended: clubsStatus.filter(c => ['SUSPENDED', 'BLOCKED'].includes(c.status)).length,
-        monthlyRevenue: clubsStatus.filter(c => c.status === 'ACTIVE').length * 50 // Est. R$50/mês
+        monthlyRevenue: clubsStatus.filter(c => c.status === 'ACTIVE').length * 50
     };
 
     // --- Mutations ---
@@ -163,18 +164,40 @@ export function PaymentManagement() {
     });
 
     return (
-        <div className="space-y-6">
-            {/* Header com Métricas */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-800">Gestão Financeira</h1>
-                    <p className="text-slate-500">Controle de assinaturas, inadimplência e pagamentos.</p>
-                </div>
-                <div className="flex gap-2">
+        <div className="space-y-8 pb-12">
+            {/* Premium Header */}
+            <div className="relative overflow-hidden bg-slate-900 rounded-[3rem] p-8 md:p-12 text-white shadow-2xl shadow-slate-900/20">
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[100px] -mr-64 -mt-64" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-600/10 rounded-full blur-[80px] -ml-32 -mb-32" />
+
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+                    <div>
+                        <div className="flex items-center gap-4 mb-6">
+                            <div className="bg-emerald-500/20 text-emerald-400 p-4 rounded-3xl backdrop-blur-md border border-emerald-500/10">
+                                <DollarSign className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <h1 className="text-4xl font-black tracking-tighter">Financeiro</h1>
+                                <p className="text-slate-400 font-black uppercase text-[10px] tracking-[0.2em] mt-1">Gestão de Receitas e Assinaturas</p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-4">
+                            <div className="bg-white/5 backdrop-blur-md border border-white/10 px-6 py-4 rounded-[2.5rem]">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Receita Est. Mês</p>
+                                <p className="text-2xl font-black text-emerald-400">R$ {metrics.monthlyRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                            </div>
+                            <div className="bg-white/5 backdrop-blur-md border border-white/10 px-6 py-4 rounded-[2.5rem]">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Inadimplência</p>
+                                <p className="text-2xl font-black text-rose-400">{metrics.suspended + metrics.warning}</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <button
                         onClick={() => runCheckMutation.mutate()}
                         disabled={runCheckMutation.isPending}
-                        className="bg-slate-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-900 transition-colors flex items-center gap-2"
+                        className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black transition-all hover:scale-105 active:scale-95 flex items-center gap-3 text-xs uppercase tracking-widest shadow-xl shadow-white/10"
                     >
                         <RefreshCw className={`w-4 h-4 ${runCheckMutation.isPending ? 'animate-spin' : ''}`} />
                         Verificar Vencimentos
@@ -182,301 +205,334 @@ export function PaymentManagement() {
                 </div>
             </div>
 
-            {/* Cards de Métricas */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-green-100 text-green-600 rounded-lg">
-                        <CheckCircle className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-sm text-slate-500 font-medium">Clubes Ativos</p>
-                        <h3 className="text-2xl font-bold text-slate-800">{metrics.active}</h3>
-                    </div>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-orange-100 text-orange-600 rounded-lg">
-                        <AlertTriangle className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-sm text-slate-500 font-medium">Em Aviso</p>
-                        <h3 className="text-2xl font-bold text-slate-800">{metrics.warning}</h3>
-                    </div>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-red-100 text-red-600 rounded-lg">
-                        <ShieldAlert className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-sm text-slate-500 font-medium">Suspensos</p>
-                        <h3 className="text-2xl font-bold text-slate-800">{metrics.suspended}</h3>
-                    </div>
-                </div>
-                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
-                    <div className="p-3 bg-blue-100 text-blue-600 rounded-lg">
-                        <DollarSign className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <p className="text-sm text-slate-500 font-medium">Receita Estimada (Mês)</p>
-                        <h3 className="text-2xl font-bold text-slate-800">R$ {metrics.monthlyRevenue.toFixed(2)}</h3>
-                    </div>
-                </div>
+            {/* Quick Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                    { label: 'Clubes Ativos', val: metrics.active, icon: CheckCircle, color: 'emerald' },
+                    { label: 'Em Aviso', val: metrics.warning, icon: AlertTriangle, color: 'amber' },
+                    { label: 'Suspensos', val: metrics.suspended, icon: ShieldAlert, color: 'rose' },
+                    { label: 'Aguard. PIX', val: pendingPayments.length, icon: Clock, color: 'blue' }
+                ].map((m, idx) => (
+                    <motion.div
+                        key={m.label}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="glass-card p-6 rounded-[2rem] premium-shadow flex items-center gap-5"
+                    >
+                        <div className={`p-4 rounded-2xl bg-${m.color}-50 text-${m.color}-600`}>
+                            <m.icon className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{m.label}</p>
+                            <h3 className="text-2xl font-black text-slate-800">{m.val}</h3>
+                        </div>
+                    </motion.div>
+                ))}
             </div>
 
-            {/* Tabs e Filtros */}
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="border-b border-slate-200 flex flex-col sm:flex-row justify-between items-center p-2 gap-4">
-                    <div className="flex bg-slate-100 p-1 rounded-lg w-full sm:w-auto">
+            {/* Tabs & List Section */}
+            <div className="space-y-6">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div className="flex bg-slate-100 p-1.5 rounded-[2rem] w-full md:w-auto">
                         <button
                             onClick={() => setActiveTab('CLUBS')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex-1 sm:flex-none ${activeTab === 'CLUBS' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'CLUBS' ? 'bg-white text-blue-600 shadow-xl shadow-blue-600/10' : 'text-slate-400 hover:text-slate-600'}`}
                         >
-                            Assinaturas de Clubes
+                            Assinaturas
                         </button>
                         <button
                             onClick={() => setActiveTab('PAYMENTS')}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex-1 sm:flex-none ${activeTab === 'PAYMENTS' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all inline-flex items-center gap-2 ${activeTab === 'PAYMENTS' ? 'bg-white text-blue-600 shadow-xl shadow-blue-600/10' : 'text-slate-400 hover:text-slate-600'}`}
                         >
-                            Pagamentos Avulsos {pendingPayments.length > 0 && <span className="ml-2 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">{pendingPayments.length}</span>}
+                            PIX Pendentes
+                            {pendingPayments.length > 0 && <span className="bg-rose-500 text-white text-[8px] px-1.5 py-0.5 rounded-full">{pendingPayments.length}</span>}
                         </button>
                     </div>
 
                     {activeTab === 'CLUBS' && (
-                        <div className="flex gap-2 w-full sm:w-auto">
-                            <div className="relative flex-1 sm:w-64">
-                                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <div className="relative flex-1 md:w-64">
+                                <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                                 <input
                                     type="text"
                                     placeholder="Buscar clube..."
                                     value={searchTerm}
                                     onChange={e => setSearchTerm(e.target.value)}
-                                    className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full pl-11 pr-6 py-3.5 bg-white rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-slate-700"
                                 />
                             </div>
-                            <select
-                                value={statusFilter}
-                                onChange={e => setStatusFilter(e.target.value)}
-                                className="px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="ALL">Todos Status</option>
-                                <option value="ACTIVE">Ativos</option>
-                                <option value="PAYMENT_WARNING">Em Aviso</option>
-                                <option value="SUSPENDED">Suspensos</option>
-                                <option value="TRIAL">Em Teste</option>
-                            </select>
+                            <div className="relative">
+                                <Filter className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <select
+                                    value={statusFilter}
+                                    onChange={e => setStatusFilter(e.target.value)}
+                                    className="pl-11 pr-8 py-3.5 bg-white rounded-2xl border border-slate-200 outline-none focus:ring-4 focus:ring-blue-500/10 transition-all font-black text-[10px] uppercase tracking-widest appearance-none text-slate-600"
+                                >
+                                    <option value="ALL">Todos Status</option>
+                                    <option value="ACTIVE">Ativos</option>
+                                    <option value="PAYMENT_WARNING">Em Aviso</option>
+                                    <option value="SUSPENDED">Suspensos</option>
+                                    <option value="TRIAL">Em Teste</option>
+                                </select>
+                            </div>
                         </div>
                     )}
                 </div>
 
-                {/* Content - CLUBS TAB */}
-                {activeTab === 'CLUBS' && (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left text-sm text-slate-600">
-                            <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500">
-                                <tr>
-                                    <th className="px-6 py-4">Clube</th>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4">Plano</th>
-                                    <th className="px-6 py-4">Próx. Vencimento</th>
-                                    <th className="px-6 py-4 text-right">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {loadingClubs ? (
-                                    <tr><td colSpan={5} className="p-8 text-center text-slate-400">Carregando clubes...</td></tr>
-                                ) : filteredClubs.length === 0 ? (
-                                    <tr><td colSpan={5} className="p-8 text-center text-slate-400">Nenhum clube encontrado.</td></tr>
-                                ) : (
-                                    filteredClubs.map(club => (
-                                        <tr key={club.id} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="font-bold text-slate-800">{club.name}</div>
-                                                {club.director && (
-                                                    <div className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
-                                                        <span>{club.director.name}</span>
-                                                        {club.director.phone && (
-                                                            <span className="flex items-center gap-0.5 text-blue-400">
-                                                                • <Phone className="w-3 h-3" /> {club.director.phone}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <StatusBadge status={club.status} />
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {club.subscriptionPlan ? (
-                                                    <span className="font-medium text-slate-700">
-                                                        {club.subscriptionPlan === 'MONTHLY' ? 'Mensal' :
-                                                            club.subscriptionPlan === 'QUARTERLY' ? 'Trimestral' : 'Anual'}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-slate-400">-</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {club.nextPaymentDue ? (
-                                                    <div className={`flex items-center gap-1.5 font-medium ${new Date(club.nextPaymentDue) < new Date() ? 'text-red-500' : 'text-slate-600'
-                                                        }`}>
-                                                        <Clock className="w-4 h-4" />
-                                                        {format(new Date(club.nextPaymentDue), "dd 'de' MMM, yyyy", { locale: ptBR })}
-                                                        {new Date(club.nextPaymentDue) < new Date() && (
-                                                            <span className="text-xs bg-red-100 text-red-600 px-1.5 rounded">Vencido</span>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-slate-400">-</span>
-                                                )}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    {(['SUSPENDED', 'BLOCKED', 'PAYMENT_WARNING'].includes(club.status)) && (
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedClub(club);
-                                                                setReactivateModalOpen(true);
-                                                            }}
-                                                            className="text-xs font-bold bg-green-50 text-green-700 px-3 py-1.5 rounded-lg border border-green-200 hover:bg-green-100 transition-colors"
-                                                        >
-                                                            Reativar / Pagar
-                                                        </button>
-                                                    )}
-                                                    <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded">
-                                                        <MoreVertical className="w-4 h-4" />
-                                                    </button>
-                                                </div>
-                                            </td>
+                <AnimatePresence mode="wait">
+                    {activeTab === 'CLUBS' ? (
+                        <motion.div
+                            key="clubs-tab"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/20 overflow-hidden"
+                        >
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-slate-50/50">
+                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Clube & Diretor</th>
+                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Status</th>
+                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Ciclo</th>
+                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Próx. Renovação</th>
+                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-right">Ações</th>
                                         </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {loadingClubs ? (
+                                            <tr><td colSpan={5} className="py-20 text-center"><RefreshCw className="w-8 h-8 animate-spin mx-auto text-slate-300" /></td></tr>
+                                        ) : filteredClubs.length === 0 ? (
+                                            <tr><td colSpan={5} className="py-20 text-center font-bold text-slate-400">Nenhum clube encontrado.</td></tr>
+                                        ) : (
+                                            filteredClubs.map(club => (
+                                                <tr key={club.id} className="group hover:bg-slate-50 transition-colors">
+                                                    <td className="px-8 py-6">
+                                                        <div className="font-black text-slate-800 text-lg tracking-tight group-hover:text-blue-600 transition-colors uppercase">{club.name}</div>
+                                                        {club.director && (
+                                                            <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 mt-1">
+                                                                <User className="w-3 h-3" />
+                                                                {club.director.name}
+                                                                {club.director.phone && (
+                                                                    <span className="flex items-center gap-1 text-blue-400 ml-2">
+                                                                        <Phone className="w-3 h-3" /> {club.director.phone}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-8 py-6">
+                                                        <StatusBadge status={club.status} />
+                                                    </td>
+                                                    <td className="px-8 py-6">
+                                                        {club.subscriptionPlan ? (
+                                                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-lg">
+                                                                <CreditCard className="w-3 h-3 text-slate-400" />
+                                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+                                                                    {club.subscriptionPlan === 'MONTHLY' ? 'Mensal' :
+                                                                        club.subscriptionPlan === 'QUARTERLY' ? 'Trimestral' : 'Anual'}
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-300">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-8 py-6">
+                                                        {club.nextPaymentDue ? (
+                                                            <div className={`flex flex-col ${new Date(club.nextPaymentDue) < new Date() ? 'text-rose-500' : 'text-slate-600'}`}>
+                                                                <span className="text-xs font-black">{format(new Date(club.nextPaymentDue), "dd 'de' MMMM", { locale: ptBR })}</span>
+                                                                <span className="text-[10px] uppercase font-bold opacity-60 tracking-widest">{format(new Date(club.nextPaymentDue), "yyyy", { locale: ptBR })}</span>
+                                                                {new Date(club.nextPaymentDue) < new Date() && (
+                                                                    <span className="text-[8px] font-black uppercase bg-rose-50 text-rose-500 px-1.5 py-0.5 rounded mt-1 w-fit">Inadimplente</span>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-slate-300">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-8 py-6 text-right">
+                                                        <div className="flex justify-end gap-3 translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all">
+                                                            {(['SUSPENDED', 'BLOCKED', 'PAYMENT_WARNING'].includes(club.status)) && (
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedClub(club);
+                                                                        setReactivateModalOpen(true);
+                                                                    }}
+                                                                    className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-emerald-600/20"
+                                                                >
+                                                                    Regularizar
+                                                                </button>
+                                                            )}
+                                                            <button className="p-2.5 text-slate-400 hover:text-slate-900 bg-white rounded-xl border border-slate-100">
+                                                                <MoreVertical className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="payments-tab"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/20 overflow-hidden"
+                        >
+                            <div className="px-10 py-8 bg-slate-900 text-white flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-2xl font-black tracking-tight flex items-center gap-3">
+                                        <TrendingUp className="text-emerald-400" /> Confirmações de PIX
+                                    </h3>
+                                    <p className="text-slate-400 text-xs font-medium mt-1">Valide os comprovantes recebidos manualmente.</p>
+                                </div>
+                                <div className="bg-white/10 px-6 py-3 rounded-2xl backdrop-blur-md">
+                                    <span className="text-emerald-400 font-black text-xl">{pendingPayments.length}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Pendentes</span>
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-10">
+                                {loadingPayments ? (
+                                    <div className="col-span-full py-20 text-center"><RefreshCw className="w-8 h-8 animate-spin mx-auto text-slate-200" /></div>
+                                ) : pendingPayments.length === 0 ? (
+                                    <div className="col-span-full py-20 text-center glass-card rounded-[2rem]">
+                                        <div className="bg-emerald-100 text-emerald-600 p-4 rounded-2xl inline-block mb-4">
+                                            <CheckCircle className="w-8 h-8" />
+                                        </div>
+                                        <h3 className="text-xl font-black text-slate-800">Tudo limpo!</h3>
+                                        <p className="text-slate-400 text-sm">Não há solicitações de pagamento pendentes.</p>
+                                    </div>
+                                ) : (
+                                    pendingPayments.map(payment => (
+                                        <motion.div
+                                            key={payment.id}
+                                            layout
+                                            className="bg-slate-50 border border-slate-100 rounded-3xl p-6 hover:border-emerald-300 transition-all group"
+                                        >
+                                            <div className="flex justify-between items-start mb-6">
+                                                <div>
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{format(new Date(payment.created_at || new Date()), "dd 'de' MMMM", { locale: ptBR })}</p>
+                                                    <h4 className="text-lg font-black text-slate-800 uppercase leading-tight">{payment.club?.name}</h4>
+                                                </div>
+                                                <div className="bg-white p-2 rounded-xl border border-slate-200 text-emerald-600 font-black text-sm">
+                                                    R$ {payment.amount.toFixed(2)}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4 mb-8">
+                                                <div className="flex items-center gap-3">
+                                                    <Receipt className="w-4 h-4 text-slate-400" />
+                                                    <span className="text-xs font-bold text-slate-600">{payment.description}</span>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <CreditCard className="w-4 h-4 text-slate-400" />
+                                                    <span className="text-[10px] uppercase font-black tracking-widest text-slate-400 bg-white px-3 py-1 rounded-lg border border-slate-200">{payment.paymentMethod}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm('Confirma o recebimento de R$ ' + payment.amount + '?')) {
+                                                            confirmPaymentMutation.mutate(payment.id);
+                                                        }
+                                                    }}
+                                                    className="flex-1 bg-slate-900 text-white py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <CheckCircle className="w-4 h-4" /> Validar
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm('Remover este registro?')) {
+                                                            deletePaymentMutation.mutate(payment.id);
+                                                        }
+                                                    }}
+                                                    className="p-3 text-rose-400 hover:text-white hover:bg-rose-500 rounded-2xl transition-all border border-slate-200"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </motion.div>
                                     ))
                                 )}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-
-                {/* Content - PAYMENTS TAB */}
-                {activeTab === 'PAYMENTS' && (
-                    <div>
-                        <div className="p-4 bg-slate-50 border-b border-slate-200">
-                            <h3 className="font-bold text-slate-700 flex items-center gap-2">
-                                <Receipt className="w-4 h-4" /> Pagamentos Pendentes (PIX/Transferência)
-                            </h3>
-                            <p className="text-sm text-slate-500 mt-1">Confirme os pagamentos manuais para liberar o acesso ou créditos.</p>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm text-slate-600">
-                                <thead className="bg-slate-50 text-xs uppercase font-semibold text-slate-500">
-                                    <tr>
-                                        <th className="px-6 py-4">Data</th>
-                                        <th className="px-6 py-4">Clube</th>
-                                        <th className="px-6 py-4">Descrição</th>
-                                        <th className="px-6 py-4">Valor</th>
-                                        <th className="px-6 py-4 text-right">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {loadingPayments ? (
-                                        <tr><td colSpan={5} className="p-8 text-center text-slate-400">Carregando pagamentos...</td></tr>
-                                    ) : pendingPayments.length === 0 ? (
-                                        <tr><td colSpan={5} className="p-8 text-center text-slate-400">Nenhum pagamento pendente.</td></tr>
-                                    ) : (
-                                        pendingPayments.map(payment => (
-                                            <tr key={payment.id} className="hover:bg-slate-50 transition-colors">
-                                                <td className="px-6 py-4 text-slate-500">
-                                                    {format(new Date(payment.created_at || new Date()), "dd/MMM HH:mm", { locale: ptBR })}
-                                                </td>
-                                                <td className="px-6 py-4 font-bold text-slate-700">
-                                                    {payment.club?.name || 'Clube removido'}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div>{payment.description}</div>
-                                                    <div className="text-xs text-slate-400">{payment.paymentMethod}</div>
-                                                </td>
-                                                <td className="px-6 py-4 font-bold text-slate-800">
-                                                    R$ {payment.amount.toFixed(2)}
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <button
-                                                            onClick={() => {
-                                                                if (confirm('Confirma o recebimento deste pagamento?')) {
-                                                                    confirmPaymentMutation.mutate(payment.id);
-                                                                }
-                                                            }}
-                                                            className="flex items-center gap-1 bg-green-50 text-green-700 px-3 py-1.5 rounded border border-green-200 hover:bg-green-100 text-xs font-bold"
-                                                        >
-                                                            <CheckCircle className="w-3 h-3" /> Confirmar
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                if (confirm('Remover este registro de pagamento?')) {
-                                                                    deletePaymentMutation.mutate(payment.id);
-                                                                }
-                                                            }}
-                                                            className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                                        >
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
-            {/* Modal de Reativação */}
-            <Modal
-                isOpen={reactivateModalOpen}
-                onClose={() => setReactivateModalOpen(false)}
-                title="Reativar Clube / Registrar Pagamento"
-            >
-                <div className="space-y-4">
-                    <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm">
-                        <p>Ao confirmar, o status do clube mudará para <strong>ACTIVE</strong> e a data de vencimento será atualizada conforme o plano selecionado.</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Clube</label>
-                        <div className="w-full px-4 py-2 bg-slate-100 border border-slate-200 rounded-lg text-slate-600 font-bold">
-                            {selectedClub?.name}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Plano Renovado</label>
-                        <select
-                            value={reactivatePlan}
-                            onChange={(e) => setReactivatePlan(e.target.value as any)}
-                            className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        >
-                            <option value="MONTHLY">Mensal</option>
-                            <option value="QUARTERLY">Trimestral</option>
-                            <option value="ANNUAL">Anual</option>
-                        </select>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-4 border-t border-slate-100 mt-4">
-                        <button
+            {/* Premium Modal for Reactivation */}
+            <AnimatePresence>
+                {reactivateModalOpen && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
                             onClick={() => setReactivateModalOpen(false)}
-                            className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium"
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            exit={{ scale: 0.9, y: 20, opacity: 0 }}
+                            className="bg-white rounded-[3rem] p-10 max-w-lg w-full relative z-10 shadow-2xl space-y-8"
                         >
-                            Cancelar
-                        </button>
-                        <button
-                            onClick={() => reactivateMutation.mutate()}
-                            disabled={reactivateMutation.isPending}
-                            className="bg-green-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-green-700 transition-colors disabled:opacity-70 flex items-center gap-2"
-                        >
-                            {reactivateMutation.isPending ? 'Processando...' : 'Confirmar Pagamento e Reativar'}
-                        </button>
+                            <div className="text-center">
+                                <div className="bg-emerald-100 text-emerald-600 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-600/10">
+                                    <TrendingUp className="w-8 h-8" />
+                                </div>
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tight">Regularizar Clube</h2>
+                                <p className="text-slate-500 mt-2 font-medium">Registrar pagamento para <span className="text-blue-600 font-black">{selectedClub?.name}</span></p>
+                            </div>
+
+                            <div className="bg-blue-50/50 p-6 rounded-[2rem] border border-blue-100/50">
+                                <p className="text-xs text-blue-700 font-bold leading-relaxed flex items-start gap-3">
+                                    <CreditCard className="w-5 h-5 shrink-0" />
+                                    Isso mudará o status para Ativo e renovará a data de validade com base no plano.
+                                </p>
+                            </div>
+
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2 font-medium">Selecione o Plano Pago</p>
+                                <div className="space-y-2">
+                                    {[
+                                        { id: 'MONTHLY', label: 'Mensal', price: '+30 dias' },
+                                        { id: 'QUARTERLY', label: 'Trimestral', price: '+90 dias' },
+                                        { id: 'ANNUAL', label: 'Anual', price: '+365 dias' }
+                                    ].map(p => (
+                                        <button
+                                            key={p.id}
+                                            onClick={() => setReactivatePlan(p.id as any)}
+                                            className={`w-full flex justify-between items-center p-5 rounded-[1.5rem] border-2 transition-all ${reactivatePlan === p.id ? 'bg-slate-900 border-slate-900 text-white shadow-xl px-8' : 'bg-white border-slate-100 text-slate-600 hover:border-slate-200'}`}
+                                        >
+                                            <span className="font-black text-xs uppercase tracking-widest">{p.label}</span>
+                                            <span className={`text-[10px] font-bold ${reactivatePlan === p.id ? 'text-emerald-400' : 'text-slate-400'}`}>{p.price}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button onClick={() => setReactivateModalOpen(false)} className="flex-1 py-4 bg-slate-50 text-slate-400 rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-slate-100 transition-colors">Voltar</button>
+                                <button
+                                    onClick={() => reactivateMutation.mutate()}
+                                    disabled={reactivateMutation.isPending}
+                                    className="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-emerald-600/20 disabled:opacity-50"
+                                >
+                                    {reactivateMutation.isPending ? 'Gravando...' : 'Confirmar e Reativar'}
+                                </button>
+                            </div>
+                        </motion.div>
                     </div>
-                </div>
-            </Modal>
+                )}
+            </AnimatePresence>
+
         </div>
     );
 }
