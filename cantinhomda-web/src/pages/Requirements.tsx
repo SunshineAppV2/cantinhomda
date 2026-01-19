@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { Circle, Plus, BookOpen, Award, Search, Trash2, Pencil, RotateCcw, ShieldCheck } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { RequirementAnswerModal } from '../components/RequirementAnswerModal';
-import { Combobox } from '../components/Combobox';
 import { useSearchParams } from 'react-router-dom';
 
 // Types
@@ -40,6 +39,20 @@ const DBV_CLASSES = [
     'PIONEIRO', 'EXCURSIONISTA', 'GUIA'
 ];
 
+const SPECIALTY_AREAS = [
+    'Todas as Áreas',
+    'ADRA',
+    'Artes e Habilidades Manuais',
+    'Atividades Agrícolas',
+    'Atividades Missionárias e Comunitárias',
+    'Atividades Profissionais',
+    'Atividades Recreativas',
+    'Ciência e Saúde',
+    'Estudos da Natureza',
+    'Habilidades Domésticas',
+    'Mestrados'
+];
+
 export function Requirements() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
@@ -47,7 +60,7 @@ export function Requirements() {
 
     const [activeTab, setActiveTab] = useState<'CLASSES' | 'SPECIALTIES' | 'MY_CLUB'>('CLASSES');
     const [selectedClass, setSelectedClass] = useState<string>(searchParams.get('class') || 'AMIGO');
-    const [selectedSpecialtyId, setSelectedSpecialtyId] = useState<string>('');
+    const [selectedSpecialtyArea, setSelectedSpecialtyArea] = useState('Todas as Áreas');
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -91,27 +104,41 @@ export function Requirements() {
     // Search State
     const [search, setSearch] = useState('');
 
-    // Fetch Specialties for dropdown
-    const { data: specialties = [] } = useQuery<Specialty[]>({
-        queryKey: ['specialties'],
-        queryFn: async () => (await api.get('/specialties')).data
+    // Fetch Specialties (for especialidades tab display)
+    const { data: specialties = [], isLoading: isLoadingSpecialties } = useQuery<Specialty[]>({
+        queryKey: ['specialties', selectedSpecialtyArea, search],
+        queryFn: async () => {
+            const res = await api.get('/specialties');
+            let filtered = res.data;
+
+            // Filter by specialty area if not "Todas as Áreas"
+            if (selectedSpecialtyArea !== 'Todas as Áreas') {
+                filtered = filtered.filter((s: Specialty) => s.area === selectedSpecialtyArea);
+            }
+
+            // Filter by search
+            if (search) {
+                filtered = filtered.filter((s: Specialty) =>
+                    s.name.toLowerCase().includes(search.toLowerCase())
+                );
+            }
+
+            return filtered;
+        },
+        enabled: activeTab === 'SPECIALTIES'
     });
 
     // Fetch Requirements
     const { data: requirements = [], isLoading } = useQuery<Requirement[]>({
-        queryKey: ['requirements', activeTab, selectedClass, selectedSpecialtyId],
+        queryKey: ['requirements', activeTab, selectedClass],
         queryFn: async () => {
             const params: any = {};
             if (activeTab === 'CLASSES') params.class = selectedClass;
-            if (activeTab === 'SPECIALTIES') {
-                if (!selectedSpecialtyId) return [];
-                params.specialtyId = selectedSpecialtyId;
-            }
             // For MY_CLUB, we fetch general/all (backend default) and filter in frontend
             const res = await api.get('/requirements', { params });
             return res.data;
         },
-        enabled: activeTab === 'CLASSES' || !!selectedSpecialtyId || activeTab === 'MY_CLUB'
+        enabled: activeTab === 'CLASSES' || activeTab === 'MY_CLUB'
     });
 
     // Create Mutation
@@ -283,8 +310,8 @@ export function Requirements() {
                 if (isUniversal) payload.dbvClass = existingReq.dbvClass || selectedClass;
             }
             else if (activeTab === 'SPECIALTIES') {
-                payload.specialtyId = selectedSpecialtyId;
-                if (isUniversal) payload.specialtyId = existingReq.specialtyId || selectedSpecialtyId;
+                // Specialties don't create requirements here anymore
+                return;
             }
 
             // Backend will assign clubId from User Token
@@ -294,33 +321,41 @@ export function Requirements() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-bold text-slate-800">Requisitos</h1>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800">Requisitos</h1>
+                    <p className="text-slate-500">Acompanhe seu progresso nas classes e especialidades.</p>
+                </div>
+            </div>
 
-            {/* Tabs */}
-            <div className="flex gap-4 border-b border-slate-200 pb-2 overflow-x-auto">
+            {/* Tab Navigation */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-1 flex gap-1">
                 <button
                     onClick={() => setActiveTab('CLASSES')}
-                    className={`flex items-center gap-2 px-4 py-2 font-medium shrink-0 ${activeTab === 'CLASSES' ? 'text-green-600 border-b-2 border-green-600' : 'text-slate-500'
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'CLASSES'
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-50'
                         }`}
                 >
-                    <BookOpen className="w-5 h-5" />
-                    Classes
+                    📚 Classes
                 </button>
                 <button
                     onClick={() => setActiveTab('SPECIALTIES')}
-                    className={`flex items-center gap-2 px-4 py-2 font-medium shrink-0 ${activeTab === 'SPECIALTIES' ? 'text-green-600 border-b-2 border-green-600' : 'text-slate-500'
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'SPECIALTIES'
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-50'
                         }`}
                 >
-                    <Award className="w-5 h-5" />
-                    Especialidades
+                    ⭐ Especialidades
                 </button>
                 <button
                     onClick={() => setActiveTab('MY_CLUB')}
-                    className={`flex items-center gap-2 px-4 py-2 font-medium shrink-0 ${activeTab === 'MY_CLUB' ? 'text-green-600 border-b-2 border-green-600' : 'text-slate-500'
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'MY_CLUB'
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-50'
                         }`}
                 >
-                    <Award className="w-5 h-5" />
-                    Meu Clube
+                    🏠 Meu Clube
                 </button>
             </div>
 
@@ -337,25 +372,38 @@ export function Requirements() {
             </div>
 
             {/* Filters */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex gap-4 items-center">
-                {activeTab === 'CLASSES' ? (
-                    <select
-                        value={selectedClass}
-                        onChange={(e) => setSelectedClass(e.target.value)}
-                        className="px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-                    >
-                        {DBV_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                ) : activeTab === 'SPECIALTIES' ? (
-                    <Combobox
-                        options={specialties.map(s => ({ value: s.id, label: s.name }))}
-                        value={selectedSpecialtyId}
-                        onChange={setSelectedSpecialtyId}
-                        placeholder="Selecione uma especialidade..."
-                        className="min-w-[300px]"
-                    />
-                ) : (
-                    <span className="text-slate-500 font-medium">Requisitos Personalizados do Clube</span>
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <div className="flex flex-wrap gap-4 items-center">
+                    {activeTab === 'CLASSES' && (
+                        <select
+                            value={selectedClass}
+                            onChange={(e) => setSelectedClass(e.target.value)}
+                            className="px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
+                        >
+                            {DBV_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                    )}
+                    {activeTab === 'MY_CLUB' && (
+                        <span className="text-slate-500 font-medium">Requisitos Personalizados do Clube</span>
+                    )}
+                </div>
+
+                {/* Specialty Area Filter - Only show for Especialidades tab */}
+                {activeTab === 'SPECIALTIES' && (
+                    <div className="flex flex-wrap gap-2">
+                        {SPECIALTY_AREAS.map(area => (
+                            <button
+                                key={area}
+                                onClick={() => setSelectedSpecialtyArea(area)}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedSpecialtyArea === area
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    }`}
+                            >
+                                {area}
+                            </button>
+                        ))}
+                    </div>
                 )}
 
                 {/* Progress Bar */}
@@ -398,7 +446,7 @@ export function Requirements() {
                         )}
                         <button
                             onClick={openCreateModal}
-                            disabled={activeTab === 'SPECIALTIES' && !selectedSpecialtyId}
+                            disabled={activeTab === 'SPECIALTIES'}
                             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-2 disabled:opacity-50"
                         >
                             <Plus className="w-5 h-5" />
@@ -410,10 +458,36 @@ export function Requirements() {
 
             {/* List */}
             <div className="space-y-6">
-                {isLoading ? (
+                {(activeTab === 'SPECIALTIES' ? isLoadingSpecialties : isLoading) ? (
                     <div className="flex items-center justify-center py-12">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
                     </div>
+                ) : activeTab === 'SPECIALTIES' ? (
+                    // Render Specialties
+                    specialties.length === 0 ? (
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+                            <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Award className="w-8 h-8 text-slate-400" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-slate-700 mb-2">Nenhuma especialidade encontrada</h3>
+                            <p className="text-slate-500">
+                                Selecione uma área para ver as especialidades disponíveis.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {specialties.map((spec: Specialty) => (
+                                <div key={spec.id} className="group bg-white p-4 rounded-lg border border-slate-200 hover:border-green-300 hover:shadow-md transition-all">
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-slate-800 mb-1">{spec.name}</h4>
+                                            <p className="text-xs text-slate-500">{spec.area}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )
                 ) : requirements.length === 0 ? (
                     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
                         <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -421,9 +495,7 @@ export function Requirements() {
                         </div>
                         <h3 className="text-lg font-semibold text-slate-700 mb-2">Nenhum requisito encontrado</h3>
                         <p className="text-slate-500">
-                            {activeTab === 'SPECIALTIES' && !selectedSpecialtyId
-                                ? 'Selecione uma especialidade para ver os requisitos'
-                                : 'Não há requisitos cadastrados nesta seção.'}
+                            Não há requisitos cadastrados nesta seção.
                         </p>
                     </div>
                 ) : (
@@ -467,23 +539,23 @@ export function Requirements() {
                                             key={req.id}
                                             onClick={() => handleReqClick(req)}
                                             className={`group relative p-4 rounded-lg border transition-all duration-200 cursor-pointer flex items-start gap-3 ${isCompleted
-                                                    ? 'bg-green-50 border-green-200 hover:shadow-md'
-                                                    : isPending
-                                                        ? hasAnswer
-                                                            ? 'bg-yellow-50 border-yellow-200 hover:shadow-md'
-                                                            : 'bg-blue-50 border-blue-200 hover:shadow-md'
-                                                        : 'bg-white border-slate-200 hover:border-green-300 hover:shadow-md'
+                                                ? 'bg-green-50 border-green-200 hover:shadow-md'
+                                                : isPending
+                                                    ? hasAnswer
+                                                        ? 'bg-yellow-50 border-yellow-200 hover:shadow-md'
+                                                        : 'bg-blue-50 border-blue-200 hover:shadow-md'
+                                                    : 'bg-white border-slate-200 hover:border-green-300 hover:shadow-md'
                                                 }`}
                                         >
                                             {/* Checkbox/Status Icon */}
                                             <div className="shrink-0 mt-0.5">
                                                 <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${isCompleted
-                                                        ? 'bg-green-500 border-green-500'
-                                                        : isPending
-                                                            ? hasAnswer
-                                                                ? 'bg-yellow-100 border-yellow-400'
-                                                                : 'bg-blue-100 border-blue-400'
-                                                            : 'border-slate-300 group-hover:border-green-400'
+                                                    ? 'bg-green-500 border-green-500'
+                                                    : isPending
+                                                        ? hasAnswer
+                                                            ? 'bg-yellow-100 border-yellow-400'
+                                                            : 'bg-blue-100 border-blue-400'
+                                                        : 'border-slate-300 group-hover:border-green-400'
                                                     }`}>
                                                     {isCompleted && <Circle className="w-3.5 h-3.5 text-white fill-current" />}
                                                     {isPending && <Circle className={`w-3 h-3 ${hasAnswer ? 'text-yellow-600' : 'text-blue-600'}`} />}
@@ -496,10 +568,10 @@ export function Requirements() {
                                                     {/* Code Badge */}
                                                     {req.code && (
                                                         <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded ${isCompleted
-                                                                ? 'bg-green-200 text-green-800'
-                                                                : isPending
-                                                                    ? hasAnswer ? 'bg-yellow-200 text-yellow-800' : 'bg-blue-200 text-blue-800'
-                                                                    : 'bg-slate-200 text-slate-700'
+                                                            ? 'bg-green-200 text-green-800'
+                                                            : isPending
+                                                                ? hasAnswer ? 'bg-yellow-200 text-yellow-800' : 'bg-blue-200 text-blue-800'
+                                                                : 'bg-slate-200 text-slate-700'
                                                             }`}>
                                                             {req.code}
                                                         </span>

@@ -50,11 +50,27 @@ const AREAS = [
     "X. CLASSE AVANÇADA"
 ];
 
+const SPECIALTY_AREAS = [
+    'Todas as Áreas',
+    'ADRA',
+    'Artes e Habilidades Manuais',
+    'Atividades Agrícolas',
+    'Atividades Missionárias e Comunitárias',
+    'Atividades Profissionais',
+    'Atividades Recreativas',
+    'Ciência e Saúde',
+    'Estudos da Natureza',
+    'Habilidades Domésticas',
+    'Mestrados'
+];
+
 export function MasterRequirements() {
     const queryClient = useQueryClient();
 
     const [selectedClass, setSelectedClass] = useState<string>('AMIGO');
     const [search, setSearch] = useState('');
+    const [selectedSpecialtyArea, setSelectedSpecialtyArea] = useState('Todas as Áreas');
+    const [activeTab, setActiveTab] = useState<'classes' | 'especialidades' | 'clube'>('classes');
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -97,19 +113,60 @@ export function MasterRequirements() {
         setQuestions(questions.filter((_, i) => i !== index));
     };
 
-    // Fetch Requirements (Only Global/Class ones usually, but backend returns what matches query)
-    const { data: requirements = [], isLoading } = useQuery<Requirement[]>({
-        queryKey: ['master-requirements', selectedClass],
+    // Fetch Specialties (for especialidades tab)
+    const { data: specialties = [], isLoading: isLoadingSpecialties } = useQuery({
+        queryKey: ['specialties', selectedSpecialtyArea, search],
         queryFn: async () => {
-            const res = await api.get('/requirements', { params: { class: selectedClass } });
-            // Filter client-side to be sure we only show what we want?
-            // Backend `findAll` might return club specifics if user has clubId.
-            // But Master usually doesn't have clubId or has special viewing rights.
-            // For this page, we probably want to see *Universal* requirements primarily.
-            // Let's rely on filter by class.
-            return res.data;
-        }
+            const res = await api.get('/specialties');
+            let filtered = res.data;
+
+            // Filter by specialty area if not "Todas as Áreas"
+            if (selectedSpecialtyArea !== 'Todas as Áreas') {
+                filtered = filtered.filter((s: any) => s.area === selectedSpecialtyArea);
+            }
+
+            // Filter by search
+            if (search) {
+                filtered = filtered.filter((s: any) =>
+                    s.name.toLowerCase().includes(search.toLowerCase())
+                );
+            }
+
+            return filtered;
+        },
+        enabled: activeTab === 'especialidades' // Only fetch when on especialidades tab
     });
+
+    // Fetch Requirements (for classes and clube tabs)
+    const { data: requirements = [], isLoading: isLoadingRequirements } = useQuery<Requirement[]>({
+        queryKey: ['master-requirements', selectedClass, search, activeTab],
+        queryFn: async () => {
+            const res = await api.get('/requirements');
+            let filtered = res.data;
+
+            // Filter based on active tab
+            if (activeTab === 'classes') {
+                // Show only requirements with dbvClass (class requirements)
+                filtered = filtered.filter((r: Requirement) => r.dbvClass === selectedClass);
+            } else if (activeTab === 'clube') {
+                // Show only club-specific requirements
+                filtered = filtered.filter((r: Requirement) => r.clubId !== null);
+            }
+
+            // Filter by search
+            if (search) {
+                filtered = filtered.filter((r: Requirement) =>
+                    r.description.toLowerCase().includes(search.toLowerCase()) ||
+                    r.code?.toLowerCase().includes(search.toLowerCase())
+                );
+            }
+
+            return filtered;
+        },
+        enabled: activeTab !== 'especialidades' // Only fetch when NOT on especialidades tab
+    });
+
+    const isLoading = activeTab === 'especialidades' ? isLoadingSpecialties : isLoadingRequirements;
 
     // Create Mutation
     const createMutation = useMutation({
@@ -307,29 +364,83 @@ export function MasterRequirements() {
                 </div>
             </div>
 
+            {/* Tab Navigation */}
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-1 flex gap-1">
+                <button
+                    onClick={() => setActiveTab('classes')}
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'classes'
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-50'
+                        }`}
+                >
+                    📚 Classes
+                </button>
+                <button
+                    onClick={() => setActiveTab('especialidades')}
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'especialidades'
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-50'
+                        }`}
+                >
+                    ⭐ Especialidades
+                </button>
+                <button
+                    onClick={() => setActiveTab('clube')}
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-all ${activeTab === 'clube'
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-slate-50'
+                        }`}
+                >
+                    🏠 Requisitos do Clube
+                </button>
+            </div>
+
             {/* Filters */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center">
-                <div className="flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-slate-400" />
-                    <select
-                        value={selectedClass}
-                        onChange={(e) => setSelectedClass(e.target.value)}
-                        className="px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 font-medium text-slate-700"
-                    >
-                        {DBV_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <div className="flex flex-wrap gap-4 items-center">
+                    {/* Class Selector - Only show for Classes tab */}
+                    {activeTab === 'classes' && (
+                        <div className="flex items-center gap-2">
+                            <BookOpen className="w-5 h-5 text-slate-400" />
+                            <select
+                                value={selectedClass}
+                                onChange={(e) => setSelectedClass(e.target.value)}
+                                className="px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500 font-medium text-slate-700"
+                            >
+                                {DBV_CLASSES.map(c => <option key={c} value={c}>{c}</option>)}
+                            </select>
+                        </div>
+                    )}
+
+                    <div className="flex-1 relative min-w-[200px]">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                        <input
+                            type="text"
+                            placeholder="Filtrar requisitos..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-green-500 text-sm"
+                        />
+                    </div>
                 </div>
 
-                <div className="flex-1 relative min-w-[200px]">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <input
-                        type="text"
-                        placeholder="Filtrar requisitos..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 rounded-lg border border-slate-200 outline-none focus:ring-2 focus:ring-green-500 text-sm"
-                    />
-                </div>
+                {/* Specialty Area Filter - Only show for Especialidades tab */}
+                {activeTab === 'especialidades' && (
+                    <div className="flex flex-wrap gap-2">
+                        {SPECIALTY_AREAS.map(area => (
+                            <button
+                                key={area}
+                                onClick={() => setSelectedSpecialtyArea(area)}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${selectedSpecialtyArea === area
+                                    ? 'bg-green-600 text-white'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                    }`}
+                            >
+                                {area}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* List */}
@@ -338,67 +449,102 @@ export function MasterRequirements() {
                     <div className="flex justify-center p-12">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                     </div>
-                ) : requirements.length === 0 ? (
-                    <div className="text-center p-12 bg-white rounded-xl border border-dashed border-slate-300">
-                        <p className="text-slate-500">Nenhum requisito cadastrado para esta classe.</p>
-                    </div>
-                ) : (
-                    sortedAreas.map(area => (
-                        <div key={area} className="space-y-3">
-                            <h3 className="font-bold text-slate-700 text-lg border-b border-slate-200 pb-2 flex items-center gap-2">
-                                <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-sm">{groupedRequirements[area].length}</span>
-                                {area}
-                            </h3>
-                            <div className="grid grid-cols-1 gap-3">
-                                {groupedRequirements[area]
-                                    .filter(req => !search || req.description.toLowerCase().includes(search.toLowerCase()) || (req.code && req.code.toLowerCase().includes(search.toLowerCase())))
-                                    .map(req => (
-                                        <div key={req.id} className="group bg-white p-4 rounded-lg border border-slate-200 hover:border-green-300 hover:shadow-md transition-all flex items-start gap-4">
-                                            <div className="mt-1 shrink-0">
-                                                {req.code ? (
-                                                    <span className="font-mono font-bold text-xs bg-slate-800 text-white px-2 py-1 rounded">
-                                                        {req.code}
-                                                    </span>
-                                                ) : (
-                                                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-                                                        <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-slate-800 font-medium leading-relaxed">{req.description}</p>
-                                                {req.clubId === null && (
-                                                    <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100">
-                                                        Universal
-                                                    </span>
-                                                )}
-                                                {req.clubId && (
-                                                    <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
-                                                        Clube Específico
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => openEditModal(req)}
-                                                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                    title="Editar"
-                                                >
-                                                    <Pencil className="w-4 h-4" />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(req.id)}
-                                                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                    title="Excluir"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                            </div>
+                ) : activeTab === 'especialidades' ? (
+                    // Render Specialties
+                    specialties.length === 0 ? (
+                        <div className="text-center p-12 bg-white rounded-xl border border-dashed border-slate-300">
+                            <p className="text-slate-500">Nenhuma especialidade encontrada.</p>
                         </div>
-                    ))
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {specialties.map((spec: any) => (
+                                <div key={spec.id} className="group bg-white p-4 rounded-lg border border-slate-200 hover:border-green-300 hover:shadow-md transition-all">
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex-1">
+                                            <h4 className="font-bold text-slate-800 mb-1">{spec.name}</h4>
+                                            <p className="text-xs text-slate-500">{spec.area}</p>
+                                        </div>
+                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => {
+                                                    // TODO: Open specialty details/edit modal
+                                                    console.log('Edit specialty:', spec.id);
+                                                }}
+                                                className="p-1.5 hover:bg-blue-50 rounded text-blue-600"
+                                                title="Editar"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )
+                ) : (
+                    // Render Requirements (for classes and clube tabs)
+                    requirements.length === 0 ? (
+                        <div className="text-center p-12 bg-white rounded-xl border border-dashed border-slate-300">
+                            <p className="text-slate-500">Nenhum requisito cadastrado para esta classe.</p>
+                        </div>
+                    ) : (
+                        sortedAreas.map(area => (
+                            <div key={area} className="space-y-3">
+                                <h3 className="font-bold text-slate-700 text-lg border-b border-slate-200 pb-2 flex items-center gap-2">
+                                    <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-sm">{groupedRequirements[area].length}</span>
+                                    {area}
+                                </h3>
+                                <div className="grid grid-cols-1 gap-3">
+                                    {groupedRequirements[area]
+                                        .filter(req => !search || req.description.toLowerCase().includes(search.toLowerCase()) || (req.code && req.code.toLowerCase().includes(search.toLowerCase())))
+                                        .map(req => (
+                                            <div key={req.id} className="group bg-white p-4 rounded-lg border border-slate-200 hover:border-green-300 hover:shadow-md transition-all flex items-start gap-4">
+                                                <div className="mt-1 shrink-0">
+                                                    {req.code ? (
+                                                        <span className="font-mono font-bold text-xs bg-slate-800 text-white px-2 py-1 rounded">
+                                                            {req.code}
+                                                        </span>
+                                                    ) : (
+                                                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                                                            <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-slate-800 font-medium leading-relaxed">{req.description}</p>
+                                                    {req.clubId === null && (
+                                                        <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider text-green-600 bg-green-50 px-2 py-0.5 rounded border border-green-100">
+                                                            Universal
+                                                        </span>
+                                                    )}
+                                                    {req.clubId && (
+                                                        <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100">
+                                                            Clube Específico
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => openEditModal(req)}
+                                                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                        title="Editar"
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(req.id)}
+                                                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="Excluir"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+                        ))
+                    )
                 )}
             </div>
 
