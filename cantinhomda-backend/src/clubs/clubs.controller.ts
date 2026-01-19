@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Patch, Body, Param, Query, UseGuards, Request, Req } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Patch, Body, Param, Query, UseGuards, Request, Req, ForbiddenException } from '@nestjs/common';
 import { ClubsService } from './clubs.service';
 import { ClubApprovalService } from './club-approval.service';
 import { ClubPaymentService } from './club-payment.service';
@@ -219,15 +219,27 @@ export class ClubsController {
     @UseGuards(JwtAuthGuard)
     @Patch('hierarchy/rename')
     async renameHierarchyNode(@Body() body: { level: 'union' | 'mission' | 'region', oldName: string, newName: string }, @Request() req) {
-        if (req.user.email !== 'master@cantinhomda.com') throw new Error('Acesso negado');
-        return this.clubsService.renameHierarchyNode(body.level, body.oldName, body.newName);
+        const isMaster = req.user.email === 'master@cantinhomda.com' || req.user.role === 'MASTER';
+        if (!isMaster) throw new ForbiddenException('Acesso negado'); // Use proper exception
+        try {
+            return await this.clubsService.renameHierarchyNode(body.level, body.oldName, body.newName);
+        } catch (error) {
+            console.error('Error renaming hierarchy node:', error);
+            throw error;
+        }
     }
 
     @UseGuards(JwtAuthGuard)
     @Delete('hierarchy')
     async deleteHierarchyNode(@Query('level') level: 'union' | 'mission' | 'region', @Query('name') name: string, @Request() req) {
-        if (req.user.email !== 'master@cantinhomda.com') throw new Error('Acesso negado');
-        return this.clubsService.deleteHierarchyNode(level, name);
+        const isMaster = req.user.email === 'master@cantinhomda.com' || req.user.role === 'MASTER';
+        if (!isMaster) throw new ForbiddenException('Acesso negado');
+        try {
+            return await this.clubsService.deleteHierarchyNode(level, name);
+        } catch (error) {
+            console.error('Error deleting hierarchy node:', error);
+            throw error;
+        }
     }
 
     @UseGuards(JwtAuthGuard)
