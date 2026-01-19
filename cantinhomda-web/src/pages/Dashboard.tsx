@@ -372,27 +372,27 @@ function DirectorDashboard() {
                         <div className="flex gap-4 items-start">
                             <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 font-bold shrink-0">1</div>
                             <div>
-                                <h5 className="font-bold text-slate-800">20% de Desconto</h5>
-                                <p className="text-sm text-slate-500">A cada 3 indicações confirmadas, você ganha 20% de desconto na sua próxima mensalidade.</p>
+                                <h5 className="font-bold text-slate-800">Acumule 3 Indicações</h5>
+                                <p className="text-sm text-slate-500">Convide outros diretores. Quando 3 indicados confirmarem a assinatura, você atinge a meta.</p>
                             </div>
                         </div>
                         <div className="flex gap-4 items-start">
                             <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 font-bold shrink-0">2</div>
                             <div>
-                                <h5 className="font-bold text-slate-800">Acumulativo</h5>
-                                <p className="text-sm text-slate-500">Você pode acumular descontos indicando mais clubes. O céu é o limite!</p>
+                                <h5 className="font-bold text-slate-800">Ganhe 20% OFF</h5>
+                                <p className="text-sm text-slate-500">Ao completar as 3 indicações, você recebe 20% de desconto na sua próxima mensalidade (desconto único).</p>
                             </div>
                         </div>
                     </div>
-
-                    <button
-                        onClick={() => setShowReferralRules(false)}
-                        className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors"
-                    >
-                        Entendi
-                    </button>
                 </div>
-            </Modal>
+
+                <button
+                    onClick={() => setShowReferralRules(false)}
+                    className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors"
+                >
+                    Entendi
+                </button>
+            </Modal >
         </div >
     );
 }
