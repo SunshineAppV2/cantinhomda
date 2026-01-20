@@ -62,7 +62,6 @@ export function SystemUsers() {
                 email: editingUser.email,
                 role: editingUser.role,
                 status: editingUser.status,
-                status: editingUser.status,
                 clubId: editingUser.clubId,
                 region: editingUser.region,
                 district: editingUser.district,
