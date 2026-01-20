@@ -327,7 +327,7 @@ export class ClubsService implements OnModuleInit {
 
         const clubs = await this.prisma.club.findMany({
             where,
-            orderBy: { name: 'asc' }
+            orderBy: { createdAt: 'desc' }
         });
 
         // Group active users by club and role type (broadly) is hard in one go.

@@ -133,11 +133,8 @@ export function Hierarchy() {
 
         return true;
     }).sort((a: any, b: any) => {
-        // Sort by expiration date (closest to today first)
-        // Null dates go last
-        if (!a.nextBillingDate) return 1;
-        if (!b.nextBillingDate) return -1;
-        return new Date(a.nextBillingDate).getTime() - new Date(b.nextBillingDate).getTime();
+        // Sort by creation date (newest first) as requested
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
     // Stats
