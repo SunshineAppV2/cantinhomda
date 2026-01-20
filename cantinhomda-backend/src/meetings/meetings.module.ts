@@ -8,5 +8,6 @@ import { ActivitiesModule } from '../activities/activities.module';
     imports: [PrismaModule, ActivitiesModule],
     controllers: [MeetingsController],
     providers: [MeetingsService],
+    exports: [MeetingsService]
 })
 export class MeetingsModule { }
