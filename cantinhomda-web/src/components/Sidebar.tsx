@@ -76,7 +76,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
         const defaultPermissions = {
             SECRETARY: ['SECRETARY', 'MEMBERS', 'ATTENDANCE', 'EVENTS'],
             TREASURER: ['TREASURY'],
-            COUNSELOR: ['MEMBERS', 'ATTENDANCE', 'EVENTS'],
+            COUNSELOR: ['MEMBERS', 'ATTENDANCE', 'EVENTS', 'CLASSES'],
             INSTRUCTOR: ['CLASSES', 'MEMBERS', 'EVENTS', 'ATTENDANCE'],
         };
 
