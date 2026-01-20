@@ -579,6 +579,29 @@ export class UsersService {
       if (!isMaster && !isSelf && !isClubAdmin) {
         throw new UnauthorizedException('Permissão negada para editar este usuário.');
       }
+
+      // 3.1 ROLE HIERARCHY CHECK
+      // Prevent editing superior roles (e.g. Director cannot edit Owner/Admin, Helper cannot edit Director)
+      if (!isMaster && !isSelf) {
+        const roleHierarchy: Record<string, number> = {
+          'MASTER': 100,
+          'OWNER': 90,
+          'ADMIN': 85,
+          'DIRECTOR': 70, // Diretor Associado
+          'INSTRUCTOR': 60,
+          'COUNSELOR': 50,
+          'SECRETARY': 50,
+          'TREASURER': 50,
+          'PARENT': 40,
+          'PATHFINDER': 10
+        };
+        const myLevel = roleHierarchy[currentUser.role] || 0;
+        const targetLevel = roleHierarchy[userToUpdate.role] || 0;
+
+        if (myLevel < targetLevel) {
+          throw new ForbiddenException(`Você não possui permissão para editar usuários com cargo superior (${userToUpdate.role}).`);
+        }
+      }
     }
 
     // 4. PREPARE DATA
