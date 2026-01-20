@@ -22,6 +22,7 @@ import {
     CreditCard,
     ChevronRight,
     UserPlus,
+    UserCog,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../lib/axios';
@@ -234,6 +235,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
             configSubItems.push({ id: 'settings', label: 'Configurações', icon: Settings, path: '/dashboard/settings' });
 
             if (isMaster) {
+                configSubItems.push({ id: 'system-users', label: 'Gestão de Usuários', icon: UserCog, path: '/dashboard/admin/users' });
                 configSubItems.push({ id: 'user-approvals', label: 'Aprovação Cadastros', icon: Users, path: '/dashboard/user-approvals' });
                 configSubItems.push({ id: 'club-approvals', label: 'Aprovações de Clubes', icon: Building2, path: '/dashboard/admin/club-approvals' });
                 configSubItems.push({ id: 'payment-management', label: 'Gestão Pagamentos', icon: CreditCard, path: '/dashboard/payment-management' });

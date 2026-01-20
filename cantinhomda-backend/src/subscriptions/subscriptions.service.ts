@@ -5,7 +5,7 @@ import { PaymentStatus, PaymentType } from '@prisma/client';
 // Configuração de preços
 export const SUBSCRIPTION_CONFIG = {
     PRICE_PER_MEMBER_MONTHLY: 2.00, // R$ 2,00 por membro/mês
-    WHATSAPP_NUMBER: '5591983295005',
+    WHATSAPP_NUMBER: '5591983292005',
     WHATSAPP_MESSAGE: 'Olá! Gostaria de regularizar minha assinatura do Cantinho DBV.',
     WARNING_DAYS: [7, 3, 1], // Dias antes do vencimento para alertar
     GRACE_PERIOD_DAYS: 5, // Dias de carência após vencimento

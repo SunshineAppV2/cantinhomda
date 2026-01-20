@@ -62,7 +62,13 @@ export function SystemUsers() {
                 email: editingUser.email,
                 role: editingUser.role,
                 status: editingUser.status,
-                clubId: editingUser.clubId // Now updating clubId
+                status: editingUser.status,
+                clubId: editingUser.clubId,
+                region: editingUser.region,
+                district: editingUser.district,
+                mission: editingUser.mission,
+                association: editingUser.association,
+                union: editingUser.union
             });
             toast.success('Usuário atualizado!');
             setEditingUser(null);
@@ -223,6 +229,44 @@ export function SystemUsers() {
                                         <option key={c.id} value={c.id}>{c.name}</option>
                                     ))}
                                 </select>
+                            </div>
+
+                            <div className="border-t pt-4 mt-4">
+                                <h4 className="text-xs font-bold text-slate-400 uppercase mb-2">Hierarquia (Coordenação)</h4>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">União</label>
+                                        <input
+                                            value={editingUser.union || ''}
+                                            onChange={e => setEditingUser({ ...editingUser, union: e.target.value })}
+                                            className="w-full border rounded p-1.5 text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Associação/Missão</label>
+                                        <input
+                                            value={editingUser.association || editingUser.mission || ''}
+                                            onChange={e => setEditingUser({ ...editingUser, association: e.target.value, mission: e.target.value })}
+                                            className="w-full border rounded p-1.5 text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Região</label>
+                                        <input
+                                            value={editingUser.region || ''}
+                                            onChange={e => setEditingUser({ ...editingUser, region: e.target.value })}
+                                            className="w-full border rounded p-1.5 text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Distrito</label>
+                                        <input
+                                            value={editingUser.district || ''}
+                                            onChange={e => setEditingUser({ ...editingUser, district: e.target.value })}
+                                            className="w-full border rounded p-1.5 text-sm"
+                                        />
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-4">

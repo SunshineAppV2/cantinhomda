@@ -20,7 +20,7 @@ export function SubscriptionPage() {
     const handleWhatsAppCheckout = () => {
         if (!clubData) return;
         const message = `Desejo regularizar o acesso do clube ${clubData.name || ''} ASSOCIAÇÃO ${clubData.association || ''}, ENVIADO POR MENSAGEM`;
-        const url = `https://wa.me/5591983295005?text=${encodeURIComponent(message)}`;
+        const url = `https://wa.me/5591983292005?text=${encodeURIComponent(message)}`;
         window.open(url, '_blank');
     };
 

@@ -70,7 +70,7 @@ export function Hierarchy() {
     const [bulkGracePeriod, setBulkGracePeriod] = useState(5);
     const [bulkUpdating, setBulkUpdating] = useState(false);
 
-    const DEFAULT_PAYMENT_MSG = `Olá! Sua assinatura do Cantinho DBV está vencendo. Para renovar, faça um PIX para a chave: 91983295005 (Alex Oliveira Seabra) e envie o comprovante.`;
+    const DEFAULT_PAYMENT_MSG = `Olá! Sua assinatura do Cantinho DBV está vencendo. Para renovar, faça um PIX para a chave: 91983292005 (Alex Oliveira Seabra) e envie o comprovante.`;
 
     const openPaymentModal = (club: any) => {
         setSelectedClubForPayment(club);

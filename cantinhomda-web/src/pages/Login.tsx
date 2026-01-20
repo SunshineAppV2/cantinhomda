@@ -226,7 +226,7 @@ export function Login() {
 
           <div className="pt-2">
             <a
-              href="https://wa.me/5591983295005?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20com%20a%20assinatura%20do%20meu%20clube%20no%20Cantinho%20DBV."
+              href="https://wa.me/5591983292005?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20com%20a%20assinatura%20do%20meu%20clube%20no%20Cantinho%20DBV."
               target="_blank"
               rel="noopener noreferrer"
               className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg flex items-center justify-center gap-2 transition-colors mb-3"

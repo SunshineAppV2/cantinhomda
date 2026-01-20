@@ -6,7 +6,7 @@ export function RegistrationSuccess() {
     const { clubName, ownerName, union, region, mission, isNewClub, paymentPeriod, clubSize } = location.state || {};
 
     // Support Number (Alex Seabra / Master)
-    const SUPPORT_NUMBER = "5591983295005";
+    const SUPPORT_NUMBER = "5591983292005";
 
     // Calculate estimated amount
     const months = paymentPeriod === 'TRIMESTRAL' ? 3 : paymentPeriod === 'ANUAL' ? 12 : 1;

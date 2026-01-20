@@ -384,7 +384,7 @@ function MembersContent() {
                         <p className="text-sm">
                             Você atingiu o limite de {clubStatus?.memberLimit} usuários ativos do seu plano atual.
                             Novos cadastros estão bloqueados. <br />
-                            <a href="https://wa.me/5591983295005" target="_blank" rel="noreferrer" className="underline font-bold hover:text-amber-900">
+                            <a href="https://wa.me/5591983292005" target="_blank" rel="noreferrer" className="underline font-bold hover:text-amber-900">
                                 Fale com o suporte para fazer upgrade.
                             </a>
                         </p>

@@ -3,7 +3,7 @@ import { api } from './axios';
 // Configurações de assinatura
 export const SUBSCRIPTION_CONFIG = {
     PRICE_PER_MEMBER_MONTHLY: 2.00,
-    WHATSAPP_NUMBER: '5591983295005',
+    WHATSAPP_NUMBER: '5591983292005',
     GRACE_PERIOD_DAYS: 5,
 };
 

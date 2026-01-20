@@ -166,7 +166,7 @@ export function Approvals() {
 
                                         const formattedTotal = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(total);
 
-                                        const msg = encodeURIComponent(`Olá ${user.name}, tudo bem? Aqui é da Administração do CantinhoMDA.\n\nRecebemos seu cadastro! \n\n*Resumo do Plano:*\n- Ciclo: ${cycle}\n- Membros: ${limit}\n- Valor Total: *${formattedTotal}*\n\nSegue a chave PIX para pagamento:\n\n*91983295005* (Alex Oliveira Seabra)\n\nPor favor, envie o comprovante por aqui para liberarmos seu acesso.`);
+                                        const msg = encodeURIComponent(`Olá ${user.name}, tudo bem? Aqui é da Administração do CantinhoMDA.\n\nRecebemos seu cadastro! \n\n*Resumo do Plano:*\n- Ciclo: ${cycle}\n- Membros: ${limit}\n- Valor Total: *${formattedTotal}*\n\nSegue a chave PIX para pagamento:\n\n*91983292005* (Alex Oliveira Seabra)\n\nPor favor, envie o comprovante por aqui para liberarmos seu acesso.`);
                                         window.open(`https://wa.me/55${cleanPhone}?text=${msg}`, '_blank');
                                     }}
                                     className="p-2 text-green-600 bg-green-50 hover:bg-green-100 rounded-lg transition-colors border border-green-200"

@@ -114,6 +114,11 @@ export class UsersService {
         club: { select: { name: true, settings: true, phoneNumber: true } },
         unitId: true,
         dbvClass: true,
+        region: true,
+        district: true,
+        mission: true,
+        association: true,
+        union: true,
 
         isActive: true, // Needed for frontend edit
         status: true, // Needed for approvals
@@ -584,7 +589,7 @@ export class UsersService {
 
     // Role Security Check
     if (dataToUpdate.role === 'OWNER' || dataToUpdate.role === 'COORDINATOR_REGIONAL' || dataToUpdate.role === 'COORDINATOR_AREA' || dataToUpdate.role === 'COORDINATOR_DISTRICT') {
-      const isMaster = currentUser?.email === 'master@cantinhomda.com';
+      const isMaster = currentUser?.email === 'master@cantinhomda.com' || currentUser?.role === 'MASTER';
       if (!isMaster) {
         // If not Master, prevent escalation to OWNER/COORDINATORS if the role is changing
         if (userToUpdate.role !== dataToUpdate.role) {

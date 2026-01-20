@@ -12,9 +12,9 @@ interface BlockedScreenProps {
 
 export function BlockedScreen({ clubStatus }: BlockedScreenProps) {
     const isSuspended = clubStatus.status === 'SUSPENDED';
-    const supportPhone = '+5591983295005';
-    const supportPhoneFormatted = '(91) 98329-5005';
-    const pixKey = '+5591983295005';
+    const supportPhone = '+5591983292005';
+    const supportPhoneFormatted = '(91) 98329-2005';
+    const pixKey = '+5591983292005';
 
     const openWhatsApp = () => {
         const cleanPhone = supportPhone.replace(/\D/g, '');

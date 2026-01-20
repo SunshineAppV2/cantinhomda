@@ -332,7 +332,7 @@ export class AuthService {
         union: 'UNB',
         district: 'Central',
         settings: { memberLimit: 50 },
-        phoneNumber: '5591983295005'
+        phoneNumber: '5591983292005'
       });
     } else {
       console.log('Fix: Club Sunshine found:', club.id);
@@ -367,7 +367,7 @@ export class AuthService {
         clubId: club.id,
         status: 'ACTIVE',
         isActive: true,
-        mobile: '5591983295005'
+        mobile: '5591983292005'
       });
     }
 
