@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, Search, Pencil, Trash2, KeyRound, ShieldAlert } from 'lucide-react';
+import { Loader2, Search, Pencil, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function SystemUsers() {
@@ -28,14 +28,14 @@ export function SystemUsers() {
     };
 
     useEffect(() => {
-        if (user?.role === 'MASTER' || user?.email === 'master@cantinhomda.com') {
+        if (user?.role === 'MASTER' || user?.role === 'OWNER' || user?.email === 'master@cantinhomda.com') {
             fetchUsers();
         }
     }, [user]);
 
     // Permissions Check
-    if (user?.role !== 'MASTER' && user?.email !== 'master@cantinhomda.com') {
-        return <div className="p-8 text-center text-red-500 font-bold">Acesso Negado. Apenas Master.</div>;
+    if (user?.role !== 'MASTER' && user?.role !== 'OWNER' && user?.email !== 'master@cantinhomda.com') {
+        return <div className="p-8 text-center text-red-500 font-bold">Acesso Negado. Apenas Master/Owner.</div>;
     }
 
     // Filter Logic
@@ -46,22 +46,7 @@ export function SystemUsers() {
     ).slice(0, 100); // Limit display for performance
 
     // Handlers
-    const handleResetPassword = async (userId: string, userName: string) => {
-        if (!confirm(`Tem certeza que deseja resetar a senha de ${userName} para a senha padrão ("muda123")?`)) return;
 
-        try {
-            await api.post(`/auth/admin/reset-password`, { userId, newPassword: 'changeme123' }); // Adjust endpoint if needed
-            // Actually, we usually use a specific endpoint or update user directly.
-            // Let's assume generic update for now or check if we implemented reset endpoint.
-            // The user asked to "edit users", but password reset is common.
-            // Let's use the PATCH /users/:id endpoint to set password if allowed, 
-            // BUT usually password is protected.
-            // Alternatively, use the new Master Password Reset if implemented.
-            toast.info('Funcionalidade de reset em desenvolvimento (backend dependent).');
-        } catch (e) {
-            toast.error('Erro ao resetar senha.');
-        }
-    };
 
     const handleUpdateUser = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -142,7 +127,7 @@ export function SystemUsers() {
                                     </td>
                                     <td className="p-4">
                                         <span className={`px-2 py-1 rounded text-xs font-bold ${u.status === 'ACTIVE' ? 'bg-green-100 text-green-700' :
-                                                u.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                            u.status === 'PENDING' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
                                             }`}>
                                             {u.status}
                                         </span>

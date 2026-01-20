@@ -163,6 +163,7 @@ function App() {
                 <Route path="master-treasury" element={<MasterTreasury />} />
                 <Route path="club-assignment" element={<ClubAssignment />} />
                 <Route path="achievements" element={<AdminAchievements />} />
+                <Route path="admin/users" element={<SystemUsers />} />
               </Route>
               <Route element={<ProtectedRoute allowedRoles={['MASTER']} />}>
                 <Route path="master-requirements" element={<MasterRequirements />} />
@@ -170,7 +171,7 @@ function App() {
                 <Route path="referrals" element={<ReferralControl />} />
                 <Route path="user-approvals" element={<UserApprovals />} />
                 <Route path="payment-management" element={<PaymentManagement />} />
-                <Route path="admin/users" element={<SystemUsers />} />
+                <Route path="payment-management" element={<PaymentManagement />} />
               </Route>
             </Route>
           </Route>
