@@ -125,8 +125,8 @@ export class ActivitiesController {
 
     @UseGuards(JwtAuthGuard)
     @Post('submissions/:id/approve')
-    approveSubmission(@Param('id') id: string) {
-        return this.activitiesService.approveSubmission(id);
+    approveSubmission(@Param('id') id: string, @Request() req) {
+        return this.activitiesService.approveSubmission(id, req.user.id);
     }
 
     @UseGuards(JwtAuthGuard)

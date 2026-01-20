@@ -4,13 +4,15 @@ import { CreateActivityDto } from './dto/create-activity.dto';
 import { ScoreDto } from './dto/score.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ClubsService } from '../clubs/clubs.service';
+import { RequirementsService } from '../requirements/requirements.service';
 
 @Injectable()
 export class ActivitiesService {
     constructor(
         private prisma: PrismaService,
         private notificationsService: NotificationsService,
-        @Inject(forwardRef(() => ClubsService)) private clubsService: ClubsService
+        @Inject(forwardRef(() => ClubsService)) private clubsService: ClubsService,
+        @Inject(forwardRef(() => RequirementsService)) private requirementsService: RequirementsService
     ) { }
 
     // Criar Atividade
@@ -370,24 +372,14 @@ export class ActivitiesService {
     }
 
     // Approve a submission
-    async approveSubmission(id: string) {
-        return this.prisma.userRequirement.update({
-            where: { id },
-            data: {
-                status: 'APPROVED',  // Changed from COMPLETED
-                completedAt: new Date()
-            }
-        });
+    // Approve a submission (Delegates to RequirementsService for scoring logic)
+    async approveSubmission(id: string, approverId: string) {
+        return this.requirementsService.approveAssignment(id, approverId);
     }
 
-    // Reject a submission (revert to PENDING)
+    // Reject a submission (Delegates to RequirementsService)
     async rejectSubmission(id: string) {
-        return this.prisma.userRequirement.update({
-            where: { id },
-            data: {
-                status: 'REJECTED'  // Changed from PENDING
-            }
-        });
+        return this.requirementsService.rejectAssignment(id);
     }
 }
 
