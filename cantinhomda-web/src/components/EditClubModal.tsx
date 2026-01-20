@@ -3,7 +3,7 @@ import { api } from '../lib/axios';
 import { useQuery } from '@tanstack/react-query';
 import { Modal } from './Modal';
 import { toast } from 'sonner';
-import { User as UserIcon, Lock, Shield, Pencil, Save, X, Key, Globe, Building2, Search } from 'lucide-react';
+import { User as UserIcon, Lock, Shield, Pencil, Save, X, Key, Globe, Building2, Search, AlertTriangle } from 'lucide-react';
 import { ROLE_TRANSLATIONS } from '../pages/members/types';
 
 interface User {
@@ -57,6 +57,7 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
     const [searchEmail, setSearchEmail] = useState('');
     const [foundUser, setFoundUser] = useState<User | null>(null);
     const [searching, setSearching] = useState(false);
+    const [resetting, setResetting] = useState(false);
 
     useEffect(() => {
         if (club) {
@@ -202,6 +203,22 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
             toast.error('Erro ao associar.');
         }
     }
+
+    const handleResetClub = async () => {
+        if (!confirm('ATENÇÃO: Você tem certeza ABSOLUTA que deseja zerar este clube?')) return;
+        if (!confirm('Esta ação NÃO PODE ser desfeita. Todo o histórico financeiro, de reuniões e pontuações será APAGADO. Continuar?')) return;
+
+        setResetting(true);
+        try {
+            await api.post(`/clubs/${club.id}/reset-data`);
+            toast.success('Clube resetado com sucesso! Todo o histórico foi apagado.');
+            fetchMembers();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Erro ao resetar clube.');
+        } finally {
+            setResetting(false);
+        }
+    };
 
     // Find the Director (OWNER)
     const director = members.find(m => m.role === 'OWNER');
@@ -499,13 +516,37 @@ export function EditClubModal({ club, onClose, onSave }: EditClubModalProps) {
                         ))}
                     </div>
                 </div>
+            </div>
 
-                <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
-                    <button onClick={onClose} className="px-6 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition-colors">
-                        Fechar
+            {/* --- SEÇÃO ZONA DE PERIGO --- */}
+            <div className="border-t border-rose-100 mt-6 pt-6">
+                <h4 className="text-xs font-bold text-rose-500 uppercase tracking-wider flex items-center gap-2 mb-4">
+                    <AlertTriangle className="w-4 h-4" /> Zona de Perigo
+                </h4>
+
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-center justify-between gap-4">
+                    <div>
+                        <h5 className="font-bold text-rose-900 text-sm">Resetar Dados e Histórico</h5>
+                        <p className="text-xs text-rose-700 mt-1">
+                            Esta ação <strong>APAGARÁ PERMANENTEMENTE</strong> todas as transações financeiras, reuniões, presenças e zerará a pontuação/XP de todos os membros deste clube. Use com extrema cautela.
+                        </p>
+                    </div>
+                    <button
+                        onClick={handleResetClub}
+                        disabled={resetting}
+                        className="bg-white border-2 border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white hover:border-rose-600 px-4 py-2 rounded-lg text-xs font-bold transition-all uppercase tracking-wider whitespace-nowrap"
+                    >
+                        {resetting ? 'Resetando...' : 'Resetar Clube'}
                     </button>
                 </div>
-            </div >
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6 pt-4 border-t">
+                <button onClick={onClose} className="px-6 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg hover:bg-slate-200 transition-colors">
+                    Fechar
+                </button>
+            </div>
+        </div >
         </Modal >
     );
 }

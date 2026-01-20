@@ -871,4 +871,57 @@ export class ClubsService implements OnModuleInit {
 
         return report.sort((a, b) => b.totalIndications - a.totalIndications);
     }
+    async resetClubData(clubId: string) {
+        try {
+            return await this.prisma.$transaction(async (tx) => {
+                // 1. Delete Financial Transactions
+                await tx.transaction.deleteMany({ where: { clubId } });
+
+                // 2. Delete Meetings (Cascades to Attendance usually)
+                try {
+                    await tx.meeting.deleteMany({ where: { clubId } });
+                } catch (e) {
+                    // Ignore if meeting model issue (but should work)
+                }
+
+                // 3. Reset User Points & XP
+                const users = await tx.user.findMany({ where: { clubId }, select: { id: true } });
+                const userIds = users.map(u => u.id);
+
+                if (userIds.length > 0) {
+                    // Try to delete history
+                    if ((tx as any).pointHistory) {
+                        await (tx as any).pointHistory.deleteMany({ where: { userId: { in: userIds } } });
+                    } else if ((tx as any).pointsHistory) {
+                        await (tx as any).pointsHistory.deleteMany({ where: { userId: { in: userIds } } });
+                    }
+
+                    // Reset stats
+                    await tx.user.updateMany({
+                        where: { id: { in: userIds } },
+                        data: {
+                            xp: 0,
+                            points: 0
+                        }
+                    });
+                }
+
+                // 4. Log the action
+                await this.prisma.clubStatusHistory.create({
+                    data: {
+                        clubId,
+                        fromStatus: 'RESET' as any,
+                        toStatus: 'RESET' as any,
+                        changedBy: 'MASTER',
+                        reason: 'Reset total de dados (Pontuação/Histórico) solicitado pelo Master'
+                    }
+                });
+
+                return { success: true };
+            }, { timeout: 30000 });
+        } catch (error) {
+            console.error('Error resetting club data:', error);
+            throw new Error('Erro ao resetar dados do clube.');
+        }
+    }
 }

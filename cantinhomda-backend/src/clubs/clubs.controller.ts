@@ -299,4 +299,12 @@ export class ClubsController {
     delete(@Param('id') id: string) {
         return this.clubsService.delete(id);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Post(':id/reset-data')
+    async resetData(@Param('id') id: string, @Request() req) {
+        const isMaster = req.user.email === 'master@cantinhomda.com' || req.user.role === 'MASTER';
+        if (!isMaster) throw new ForbiddenException('Acesso negado.');
+        return this.clubsService.resetClubData(id);
+    }
 }
