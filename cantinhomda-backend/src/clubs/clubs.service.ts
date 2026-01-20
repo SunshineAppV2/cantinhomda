@@ -707,7 +707,7 @@ export class ClubsService implements OnModuleInit {
 
             // Use interactive transaction to safely update settings (JSON)
             const result = await this.prisma.$transaction(async (tx) => {
-                const updatePromises = [];
+                const updatePromises: Promise<any>[] = [];
 
                 for (const clubId of clubIds) {
                     // Prepare basic update data
