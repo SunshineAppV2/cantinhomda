@@ -8,20 +8,24 @@ import { toast } from 'sonner';
 export function SystemUsers() {
     const { user } = useAuth();
     const [users, setUsers] = useState<any[]>([]);
+    const [clubs, setClubs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingUser, setEditingUser] = useState<any | null>(null);
 
-    // Fetch Users
-    const fetchUsers = async () => {
+    // Fetch Data
+    const fetchData = async () => {
         setLoading(true);
         try {
-            // No clubId param = fetch all (backend handles permission)
-            const response = await api.get('/users');
-            setUsers(response.data);
+            const [usersRes, clubsRes] = await Promise.all([
+                api.get('/users'),
+                api.get('/clubs')
+            ]);
+            setUsers(usersRes.data);
+            setClubs(clubsRes.data);
         } catch (error) {
-            console.error('Error fetching users:', error);
-            toast.error('Erro ao carregar usuários.');
+            console.error('Error fetching data:', error);
+            toast.error('Erro ao carregar dados.');
         } finally {
             setLoading(false);
         }
@@ -29,7 +33,7 @@ export function SystemUsers() {
 
     useEffect(() => {
         if (user?.role === 'MASTER' || user?.role === 'OWNER' || user?.email === 'master@cantinhomda.com') {
-            fetchUsers();
+            fetchData();
         }
     }, [user]);
 
@@ -57,12 +61,12 @@ export function SystemUsers() {
                 name: editingUser.name,
                 email: editingUser.email,
                 role: editingUser.role,
-                status: editingUser.status
-                // clubId: editingUser.clubId // Moving clubs is tricky, maybe later
+                status: editingUser.status,
+                clubId: editingUser.clubId // Now updating clubId
             });
             toast.success('Usuário atualizado!');
             setEditingUser(null);
-            fetchUsers();
+            fetchData();
         } catch (error) {
             toast.error('Erro ao atualizar usuário.');
         }
@@ -92,7 +96,7 @@ export function SystemUsers() {
                         className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                     />
                 </div>
-                <button onClick={fetchUsers} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg">
+                <button onClick={fetchData} className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg">
                     Atualizar Lista
                 </button>
             </div>
@@ -205,6 +209,20 @@ export function SystemUsers() {
                                         <option value="BLOCKED">BLOCKED</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Clube</label>
+                                <select
+                                    value={editingUser.clubId || ''}
+                                    onChange={e => setEditingUser({ ...editingUser, clubId: e.target.value || null })}
+                                    className="w-full border rounded p-2 bg-white"
+                                >
+                                    <option value="">Sem Clube</option>
+                                    {clubs.map((c: any) => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-4">
