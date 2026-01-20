@@ -38,6 +38,9 @@ interface ClubPaymentStatus {
         name: string;
         phone: string;
     };
+    _count?: {
+        users: number;
+    };
 }
 
 interface Payment {
@@ -113,7 +116,9 @@ export function PaymentManagement() {
         active: clubsStatus.filter(c => c.status === 'ACTIVE' || c.status === 'TRIAL').length,
         warning: clubsStatus.filter(c => c.status === 'PAYMENT_WARNING').length,
         suspended: clubsStatus.filter(c => ['SUSPENDED', 'BLOCKED'].includes(c.status)).length,
-        monthlyRevenue: clubsStatus.filter(c => c.status === 'ACTIVE').length * 50
+        monthlyRevenue: clubsStatus
+            .filter(c => c.status === 'ACTIVE')
+            .reduce((acc, curr) => acc + ((curr._count?.users || 0) * 2.00), 0)
     };
 
     // --- Mutations ---
@@ -295,6 +300,7 @@ export function PaymentManagement() {
                                         <tr className="bg-slate-50/50">
                                             <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Clube & Diretor</th>
                                             <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Status</th>
+                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Membros</th>
                                             <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Ciclo</th>
                                             <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Próx. Renovação</th>
                                             <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-right">Ações</th>
@@ -324,6 +330,11 @@ export function PaymentManagement() {
                                                     </td>
                                                     <td className="px-8 py-6">
                                                         <StatusBadge status={club.status} />
+                                                    </td>
+                                                    <td className="px-8 py-6">
+                                                        <span className="font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-lg text-xs">
+                                                            {club._count?.users || 0}
+                                                        </span>
                                                     </td>
                                                     <td className="px-8 py-6">
                                                         {club.subscriptionPlan ? (

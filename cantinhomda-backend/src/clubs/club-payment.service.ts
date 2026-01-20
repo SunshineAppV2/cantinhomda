@@ -314,6 +314,9 @@ export class ClubPaymentService {
                 users: {
                     where: { role: 'OWNER' },
                     select: { name: true, email: true, phone: true }
+                },
+                _count: {
+                    select: { users: true }
                 }
             },
             orderBy: { nextPaymentDue: 'asc' }
