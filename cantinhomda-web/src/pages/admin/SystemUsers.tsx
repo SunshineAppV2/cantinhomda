@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
-import { Loader2, Search, Pencil, KeyRound } from 'lucide-react';
+import { Loader2, Search, Pencil, KeyRound, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function SystemUsers() {
@@ -12,6 +12,7 @@ export function SystemUsers() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [editingUser, setEditingUser] = useState<any | null>(null);
+    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
 
     // Fetch Data
     const fetchData = async () => {
@@ -43,11 +44,39 @@ export function SystemUsers() {
     }
 
     // Filter Logic
-    const filteredUsers = users.filter(u =>
+    // Filter & Sort Logic
+    let processedUsers = users.filter(u =>
         u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (u.club?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-    ).slice(0, 100); // Limit display for performance
+    );
+
+    if (sortConfig) {
+        processedUsers.sort((a, b) => {
+            const getValue = (obj: any, key: string) => {
+                if (key === 'club') return (obj.club?.name || '').toLowerCase();
+                return (obj[key] || '').toString().toLowerCase();
+            };
+
+            const valA = getValue(a, sortConfig.key);
+            const valB = getValue(b, sortConfig.key);
+
+            if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+
+    const displayedUsers = processedUsers.slice(0, 100);
+
+    // Handlers
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
 
     // Handlers
 
@@ -114,15 +143,35 @@ export function SystemUsers() {
                     <table className="w-full text-left text-sm">
                         <thead className="bg-slate-50 border-b border-slate-200 uppercase text-xs text-slate-500">
                             <tr>
-                                <th className="p-4">Nome / Email</th>
-                                <th className="p-4">Clube</th>
-                                <th className="p-4">Cargo</th>
-                                <th className="p-4">Status</th>
+                                <th className="p-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('name')}>
+                                    <div className="flex items-center gap-2">
+                                        Nome / Email
+                                        {sortConfig?.key === 'name' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}
+                                    </div>
+                                </th>
+                                <th className="p-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('club')}>
+                                    <div className="flex items-center gap-2">
+                                        Clube
+                                        {sortConfig?.key === 'club' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}
+                                    </div>
+                                </th>
+                                <th className="p-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('role')}>
+                                    <div className="flex items-center gap-2">
+                                        Cargo
+                                        {sortConfig?.key === 'role' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}
+                                    </div>
+                                </th>
+                                <th className="p-4 cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('status')}>
+                                    <div className="flex items-center gap-2">
+                                        Status
+                                        {sortConfig?.key === 'status' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}
+                                    </div>
+                                </th>
                                 <th className="p-4 text-right">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredUsers.map(u => (
+                            {displayedUsers.map(u => (
                                 <tr key={u.id} className="hover:bg-slate-50">
                                     <td className="p-4">
                                         <div className="font-bold text-slate-800">{u.name}</div>
@@ -159,7 +208,7 @@ export function SystemUsers() {
                                     </td>
                                 </tr>
                             ))}
-                            {filteredUsers.length === 0 && (
+                            {displayedUsers.length === 0 && (
                                 <tr><td colSpan={5} className="p-8 text-center text-slate-500">Nenhum usuário encontrado.</td></tr>
                             )}
                         </tbody>

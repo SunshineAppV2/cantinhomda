@@ -19,7 +19,10 @@ import {
     TrendingUp,
     CreditCard,
     Filter,
-    User
+    User,
+    ArrowUpDown,
+    ArrowUp,
+    ArrowDown
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -99,6 +102,7 @@ export function PaymentManagement() {
     const [activeTab, setActiveTab] = useState<'CLUBS' | 'PAYMENTS'>('CLUBS');
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('ALL');
+    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
 
     // Modals
     const [reactivateModalOpen, setReactivateModalOpen] = useState(false);
@@ -124,7 +128,7 @@ export function PaymentManagement() {
         warning: clubsStatus.filter(c => c.status === 'PAYMENT_WARNING').length,
         suspended: clubsStatus.filter(c => ['SUSPENDED', 'BLOCKED'].includes(c.status)).length,
         monthlyRevenue: clubsStatus
-            .filter(c => c.status === 'ACTIVE' && c.lastPaymentDate)
+            .filter(c => c.status === 'ACTIVE')
             .reduce((acc, curr) => acc + ((curr._count?.users || 0) * 2.00), 0)
     };
 
@@ -173,7 +177,29 @@ export function PaymentManagement() {
         const matchesSearch = club.name.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesFilter = statusFilter === 'ALL' || club.status === statusFilter;
         return matchesSearch && matchesFilter;
+    }).sort((a, b) => {
+        if (!sortConfig) return 0;
+        const getValue = (obj: any, key: string) => {
+            if (key === 'members') return obj._count?.users || 0;
+            if (key === 'director') return (obj.director?.name || '').toLowerCase();
+            return (obj[key] || '').toString().toLowerCase();
+        };
+
+        const valA = getValue(a, sortConfig.key);
+        const valB = getValue(b, sortConfig.key);
+
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
     });
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
 
     return (
         <div className="space-y-8 pb-12">
@@ -305,11 +331,21 @@ export function PaymentManagement() {
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="bg-slate-50/50">
-                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Clube & Diretor</th>
-                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Status</th>
-                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Membros</th>
-                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Ciclo</th>
-                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Próx. Renovação</th>
+                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => handleSort('name')}>
+                                                <div className="flex items-center gap-1">Clube & Diretor {sortConfig?.key === 'name' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}</div>
+                                            </th>
+                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => handleSort('status')}>
+                                                <div className="flex items-center gap-1">Status {sortConfig?.key === 'status' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}</div>
+                                            </th>
+                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => handleSort('members')}>
+                                                <div className="flex items-center gap-1">Membros {sortConfig?.key === 'members' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}</div>
+                                            </th>
+                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => handleSort('subscriptionPlan')}>
+                                                <div className="flex items-center gap-1">Ciclo {sortConfig?.key === 'subscriptionPlan' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}</div>
+                                            </th>
+                                            <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 cursor-pointer hover:text-blue-600 transition-colors" onClick={() => handleSort('nextPaymentDue')}>
+                                                <div className="flex items-center gap-1">Próx. Renovação {sortConfig?.key === 'nextPaymentDue' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}</div>
+                                            </th>
                                             <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-right">Ações</th>
                                         </tr>
                                     </thead>
