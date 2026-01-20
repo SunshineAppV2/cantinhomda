@@ -1,4 +1,4 @@
-import { IsArray, IsDateString, IsNotEmpty } from 'class-validator';
+import { IsArray, IsDateString, IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
 
 export class BulkUpdateBillingDateDto {
     @IsArray()
@@ -11,4 +11,16 @@ export class BulkUpdateBillingDateDto {
 
     @IsNotEmpty()
     gracePeriodDays: number;
+
+    @IsOptional()
+    @IsString()
+    subscriptionPlan?: 'MONTHLY' | 'QUARTERLY' | 'ANNUAL';
+
+    @IsOptional()
+    @IsNumber()
+    memberLimit?: number;
+
+    @IsOptional()
+    @IsString()
+    status?: 'ACTIVE' | 'TRIAL' | 'SUSPENDED';
 }

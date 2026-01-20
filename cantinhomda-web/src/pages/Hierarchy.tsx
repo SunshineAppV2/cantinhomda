@@ -68,6 +68,9 @@ export function Hierarchy() {
     const [bulkDateModalOpen, setBulkDateModalOpen] = useState(false);
     const [bulkNewDate, setBulkNewDate] = useState('');
     const [bulkGracePeriod, setBulkGracePeriod] = useState(5);
+    const [bulkPlan, setBulkPlan] = useState('');
+    const [bulkStatus, setBulkStatus] = useState('');
+    const [bulkMemberLimit, setBulkMemberLimit] = useState('');
     const [bulkUpdating, setBulkUpdating] = useState(false);
 
     const DEFAULT_PAYMENT_MSG = `Olá! Sua assinatura do Cantinho DBV está vencendo. Para renovar, faça um PIX para a chave: 91983292005 (Alex Oliveira Seabra) e envie o comprovante.`;
@@ -241,12 +244,18 @@ export function Hierarchy() {
             await api.patch('/clubs/bulk-update-billing-date', {
                 clubIds: Array.from(selectedClubIds),
                 nextBillingDate: bulkNewDate,
-                gracePeriodDays: bulkGracePeriod
+                gracePeriodDays: bulkGracePeriod,
+                subscriptionPlan: bulkPlan || undefined,
+                status: bulkStatus || undefined,
+                memberLimit: bulkMemberLimit ? Number(bulkMemberLimit) : undefined
             });
             toast.success(`${selectedClubIds.size} clube(s) atualizado(s) com sucesso!`);
             setBulkDateModalOpen(false);
             setBulkNewDate('');
             setBulkGracePeriod(5);
+            setBulkPlan('');
+            setBulkStatus('');
+            setBulkMemberLimit('');
             clearSelection();
             refetchClubs();
         } catch (error) {
@@ -820,6 +829,48 @@ export function Hierarchy() {
                                     placeholder="Ex: 5"
                                 />
                                 <p className="text-[10px] text-slate-400 mt-1">O clube continuará ativo por este número de dias após o vencimento.</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Status</label>
+                                    <select
+                                        value={bulkStatus}
+                                        onChange={e => setBulkStatus(e.target.value)}
+                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm text-slate-700 bg-white"
+                                    >
+                                        <option value="">Não Alterar</option>
+                                        <option value="ACTIVE">Ativo</option>
+                                        <option value="TRIAL">Trial / Teste</option>
+                                        <option value="SUSPENDED">Suspenso</option>
+                                        <option value="PENDING_APPROVAL">Pendente</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-semibold text-slate-700 mb-2">Plano</label>
+                                    <select
+                                        value={bulkPlan}
+                                        onChange={e => setBulkPlan(e.target.value)}
+                                        className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm text-slate-700 bg-white"
+                                    >
+                                        <option value="">Não Alterar</option>
+                                        <option value="MONTHLY">Mensal</option>
+                                        <option value="QUARTERLY">Trimestral</option>
+                                        <option value="ANNUAL">Anual</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-semibold text-slate-700 mb-2">Limite de Membros (Acessos)</label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={bulkMemberLimit}
+                                    onChange={e => setBulkMemberLimit(e.target.value)}
+                                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none shadow-sm text-slate-700"
+                                    placeholder="Não Alterar"
+                                />
                             </div>
                         </div>
 

@@ -248,7 +248,16 @@ export class ClubsController {
         if (req.user.email !== 'master@cantinhomda.com' && req.user.role !== 'MASTER') {
             throw new Error('Acesso negado. Apenas o Master pode atualizar datas em massa.');
         }
-        return this.clubsService.bulkUpdateBillingDate(dto.clubIds, dto.nextBillingDate, dto.gracePeriodDays);
+        return this.clubsService.bulkUpdateBillingDate(
+            dto.clubIds,
+            dto.nextBillingDate,
+            dto.gracePeriodDays,
+            {
+                subscriptionPlan: dto.subscriptionPlan,
+                memberLimit: dto.memberLimit,
+                status: dto.status
+            }
+        );
     }
 
     @UseGuards(JwtAuthGuard)

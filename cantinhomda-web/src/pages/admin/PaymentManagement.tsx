@@ -58,9 +58,15 @@ interface Payment {
 }
 
 // --- Status Badge Component ---
-const StatusBadge = ({ status }: { status: string }) => {
+const StatusBadge = ({ club }: { club: ClubPaymentStatus }) => {
+    let effectiveStatus = club.status;
+    if (club.status === 'ACTIVE' && !club.lastPaymentDate) {
+        effectiveStatus = 'NO_PAYMENT' as any;
+    }
+
     const styles: Record<string, string> = {
         ACTIVE: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+        NO_PAYMENT: 'bg-indigo-100 text-indigo-700 border-indigo-200',
         TRIAL: 'bg-blue-100 text-blue-700 border-blue-200',
         PAYMENT_WARNING: 'bg-orange-100 text-orange-700 border-orange-200',
         SUSPENDED: 'bg-rose-100 text-rose-700 border-rose-200',
@@ -71,6 +77,7 @@ const StatusBadge = ({ status }: { status: string }) => {
 
     const labels: Record<string, string> = {
         ACTIVE: 'Em Dia',
+        NO_PAYMENT: 'Aguardando Pagto.',
         TRIAL: 'Período de Teste',
         PAYMENT_WARNING: 'Aviso de Pagamento',
         SUSPENDED: 'Suspenso',
@@ -80,8 +87,8 @@ const StatusBadge = ({ status }: { status: string }) => {
     };
 
     return (
-        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${styles[status] || 'bg-gray-100 text-gray-700'}`}>
-            {labels[status] || status}
+        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${styles[effectiveStatus] || 'bg-gray-100 text-gray-700'}`}>
+            {labels[effectiveStatus] || effectiveStatus}
         </span>
     );
 };
@@ -117,7 +124,7 @@ export function PaymentManagement() {
         warning: clubsStatus.filter(c => c.status === 'PAYMENT_WARNING').length,
         suspended: clubsStatus.filter(c => ['SUSPENDED', 'BLOCKED'].includes(c.status)).length,
         monthlyRevenue: clubsStatus
-            .filter(c => c.status === 'ACTIVE')
+            .filter(c => c.status === 'ACTIVE' && c.lastPaymentDate)
             .reduce((acc, curr) => acc + ((curr._count?.users || 0) * 2.00), 0)
     };
 
@@ -329,7 +336,7 @@ export function PaymentManagement() {
                                                         )}
                                                     </td>
                                                     <td className="px-8 py-6">
-                                                        <StatusBadge status={club.status} />
+                                                        <StatusBadge club={club} />
                                                     </td>
                                                     <td className="px-8 py-6">
                                                         <span className="font-bold text-slate-600 bg-slate-100 px-3 py-1 rounded-lg text-xs">

@@ -696,22 +696,52 @@ export class ClubsService implements OnModuleInit {
         return result;
     }
 
-    async bulkUpdateBillingDate(clubIds: string[], nextBillingDate: string, gracePeriodDays: number) {
+    async bulkUpdateBillingDate(
+        clubIds: string[],
+        nextBillingDate: string,
+        gracePeriodDays: number,
+        options?: { subscriptionPlan?: 'MONTHLY' | 'QUARTERLY' | 'ANNUAL', memberLimit?: number, status?: string }
+    ) {
         try {
             const date = new Date(nextBillingDate);
 
-            // Use transaction to ensure all updates succeed or none do
-            const result = await this.prisma.$transaction(
-                clubIds.map(clubId =>
-                    this.prisma.club.update({
+            // Use interactive transaction to safely update settings (JSON)
+            const result = await this.prisma.$transaction(async (tx) => {
+                const updatePromises = [];
+
+                for (const clubId of clubIds) {
+                    // Prepare basic update data
+                    const data: any = {
+                        nextBillingDate: date,
+                        gracePeriodDays: Number(gracePeriodDays)
+                    };
+
+                    // Add optional fields if provided
+                    if (options?.subscriptionPlan) data.subscriptionPlan = options.subscriptionPlan;
+                    if (options?.status) data.status = options.status;
+
+                    // Handle memberLimit (inside settings JSON)
+                    if (options?.memberLimit !== undefined) {
+                        const currentClub = await tx.club.findUnique({
+                            where: { id: clubId },
+                            select: { settings: true }
+                        });
+
+                        const currentSettings = (currentClub?.settings as any) || {};
+                        data.settings = { ...currentSettings, memberLimit: Number(options.memberLimit) };
+                    }
+
+                    updatePromises.push(tx.club.update({
                         where: { id: clubId },
-                        data: {
-                            nextBillingDate: date,
-                            gracePeriodDays: Number(gracePeriodDays)
-                        }
-                    })
-                )
-            );
+                        data
+                    }));
+                }
+
+                return Promise.all(updatePromises);
+            }, {
+                maxWait: 10000, // 10s max wait for transaction
+                timeout: 20000  // 20s timeout
+            });
 
             return {
                 success: true,
@@ -720,7 +750,7 @@ export class ClubsService implements OnModuleInit {
             };
         } catch (error) {
             console.error('Error in bulk update:', error);
-            throw new Error('Erro ao atualizar datas em massa. Verifique os IDs dos clubes.');
+            throw new Error('Erro ao atualizar clubes em massa.');
         }
     }
 
