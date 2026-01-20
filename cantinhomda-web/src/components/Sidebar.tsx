@@ -77,7 +77,7 @@ export function Sidebar({ mobileOpen, setMobileOpen }: { mobileOpen: boolean, se
             SECRETARY: ['SECRETARY', 'MEMBERS', 'ATTENDANCE', 'EVENTS'],
             TREASURER: ['TREASURY'],
             COUNSELOR: ['MEMBERS', 'ATTENDANCE', 'EVENTS'],
-            INSTRUCTOR: ['CLASSES', 'MEMBERS', 'EVENTS'],
+            INSTRUCTOR: ['CLASSES', 'MEMBERS', 'EVENTS', 'ATTENDANCE'],
         };
 
         const perms = (clubData?.settings?.permissions && Object.keys(clubData.settings.permissions).length > 0)

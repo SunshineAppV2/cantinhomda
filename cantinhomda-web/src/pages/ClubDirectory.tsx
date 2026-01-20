@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../lib/axios';
 import { useAuth } from '../contexts/AuthContext';
-import { Loader2, Search, UserCircle, Users, MessageCircle } from 'lucide-react';
+import { Loader2, Search, UserCircle, Users, MessageCircle, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Club {
@@ -22,6 +22,7 @@ export function ClubDirectory() {
     const [clubs, setClubs] = useState<Club[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
 
     useEffect(() => {
         const fetchClubs = async () => {
@@ -42,7 +43,30 @@ export function ClubDirectory() {
     const filteredClubs = clubs.filter(club =>
         club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         club.directorName?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    ).sort((a, b) => {
+        if (!sortConfig) return 0;
+        const getValue = (obj: any, key: string) => {
+            if (key === 'activeMembers') return obj.activeMembers > 0 ? 'ACTIVE' : 'PENDING';
+            if (key === 'subscriptionStatus') return (obj.subscriptionStatus || '').toLowerCase();
+            if (key === 'totalMembers') return obj.totalMembers;
+            return (obj[key] || '').toString().toLowerCase();
+        };
+
+        const valA = getValue(a, sortConfig.key);
+        const valB = getValue(b, sortConfig.key);
+
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -115,11 +139,21 @@ export function ClubDirectory() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 border-b border-slate-200">
-                                <th className="p-4 font-semibold text-slate-700 text-sm">Clube</th>
-                                <th className="p-4 font-semibold text-slate-700 text-sm">Diretoria</th>
-                                <th className="p-4 font-semibold text-slate-700 text-sm text-center">Membros</th>
-                                <th className="p-4 font-semibold text-slate-700 text-sm text-center">Status</th>
-                                <th className="p-4 font-semibold text-slate-700 text-sm text-center">Financeiro</th>
+                                <th className="p-4 font-semibold text-slate-700 text-sm cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('name')}>
+                                    <div className="flex items-center gap-1">Clube {sortConfig?.key === 'name' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}</div>
+                                </th>
+                                <th className="p-4 font-semibold text-slate-700 text-sm cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('directorName')}>
+                                    <div className="flex items-center gap-1">Diretoria {sortConfig?.key === 'directorName' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}</div>
+                                </th>
+                                <th className="p-4 font-semibold text-slate-700 text-sm text-center cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('totalMembers')}>
+                                    <div className="flex items-center justify-center gap-1">Membros {sortConfig?.key === 'totalMembers' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}</div>
+                                </th>
+                                <th className="p-4 font-semibold text-slate-700 text-sm text-center cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('activeMembers')}>
+                                    <div className="flex items-center justify-center gap-1">Status {sortConfig?.key === 'activeMembers' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}</div>
+                                </th>
+                                <th className="p-4 font-semibold text-slate-700 text-sm text-center cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => handleSort('subscriptionStatus')}>
+                                    <div className="flex items-center justify-center gap-1">Financeiro {sortConfig?.key === 'subscriptionStatus' ? (sortConfig.direction === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 text-slate-300" />}</div>
+                                </th>
                                 <th className="p-4 font-semibold text-slate-700 text-sm text-center">Ações</th>
                             </tr>
                         </thead>
