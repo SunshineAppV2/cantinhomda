@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Users, Trophy, Calendar, DollarSign, ArrowRight, Stars, Share2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -51,6 +51,8 @@ function DirectorDashboard() {
     const [showReferralPopup, setShowReferralPopup] = useState(false);
     const [showReferralRules, setShowReferralRules] = useState(false);
 
+    const queryClient = useQueryClient(); // Added queryClient
+
     const { data: stats } = useQuery({
         queryKey: ['dashboard-stats', user?.clubId],
         queryFn: async () => {
@@ -82,6 +84,18 @@ function DirectorDashboard() {
         enabled: ['OWNER', 'ADMIN', 'DIRECTOR'].includes(user?.role || ''),
         staleTime: 1000 * 60 * 30
     });
+
+    // Check hierarchy completeness
+    useEffect(() => {
+        if (user?.role === 'OWNER' && clubStatus) {
+            const isComplete = clubStatus.union && (clubStatus.mission || clubStatus.association) && clubStatus.region;
+            if (!isComplete) {
+                setShowProfileUpdate(true);
+            } else {
+                setShowProfileUpdate(false);
+            }
+        }
+    }, [clubStatus, user?.role]);
 
     const { data: systemConfig } = useQuery({
         queryKey: ['system-config'],
@@ -338,6 +352,7 @@ function DirectorDashboard() {
                     club={clubStatus}
                     onUpdate={async () => {
                         await refreshUser();
+                        await queryClient.invalidateQueries({ queryKey: ['club-status-api'] });
                         setShowProfileUpdate(false);
                         if (!localStorage.getItem('referralPopupDismissed')) {
                             setShowReferralPopup(true);
