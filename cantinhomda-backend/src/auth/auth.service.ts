@@ -124,7 +124,14 @@ export class AuthService {
         email: user.email,
         clubId: user.clubId,
         unitId: user.unitId, // Include unitId
-        role: user.role
+        role: user.role,
+        mustChangePassword: user.mustChangePassword,
+        // Hierarchy Data
+        union: user.union || (club as any)?.union,
+        association: user.association || (club as any)?.association,
+        mission: user.mission || (club as any)?.mission,
+        region: user.region || (club as any)?.region,
+        district: user.district || (club as any)?.district
       }
     };
   }
