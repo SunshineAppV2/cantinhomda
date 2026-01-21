@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Printer, Home, Users, RefreshCw, Plus, Trophy } from 'lucide-react';
+import { Printer, Home, Users, RefreshCw, Plus, Trophy, Shield, ShieldCheck } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { generatePathfinderCard } from '../lib/pdf-generator';
 import { Modal } from '../components/Modal';
@@ -52,6 +52,12 @@ export function Profile() {
 
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+    // MFA States
+    const [isMfaModalOpen, setIsMfaModalOpen] = useState(false);
+    const [mfaData, setMfaData] = useState<{ secret: string, qrCodeUrl: string } | null>(null);
+    const [mfaCode, setMfaCode] = useState('');
+    const [isMfaEnabled, setIsMfaEnabled] = useState(false);
+
     // Fetch Full User Data from Backend
     const { data: fullUser, isLoading: isLoadingProfile, refetch: refetchProfile } = useQuery({
         queryKey: ['user-profile', user?.id],
@@ -78,6 +84,7 @@ export function Profile() {
             setAssociation(fullUser.association || '');
             setRegion(fullUser.region || '');
             setDistrict(fullUser.district || '');
+            setIsMfaEnabled(fullUser.isMfaEnabled || false);
             if (fullUser.birthDate) {
                 const date = new Date(fullUser.birthDate);
                 setBirthDate(date.toISOString().split('T')[0]);
@@ -223,6 +230,33 @@ export function Profile() {
 
         updateProfileMutation.mutate(payload);
     };
+
+    const startMfaSetup = async () => {
+        try {
+            const res = await api.post('/auth/mfa/generate');
+            setMfaData(res.data);
+            setIsMfaModalOpen(true);
+        } catch (e) {
+            toast.error('Erro ao gerar MFA. Tente novamente.');
+        }
+    }
+
+    const confirmMfaSetup = async () => {
+        if (!mfaData || mfaCode.length < 6) return;
+        try {
+            await api.post('/auth/mfa/enable', {
+                secret: mfaData.secret,
+                code: mfaCode
+            });
+            toast.success('Autenticação de dois fatores ativada!');
+            setIsMfaEnabled(true);
+            setIsMfaModalOpen(false);
+            setMfaData(null);
+            setMfaCode('');
+        } catch (e: any) {
+            toast.error(e.response?.data?.message || 'Código inválido.');
+        }
+    }
 
     return (
         <>
@@ -464,6 +498,36 @@ export function Profile() {
                                     className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-green-500"
                                 />
                             </div>
+
+                            <div className="pt-4 border-t">
+                                <h4 className="text-sm font-medium text-slate-700 mb-3">Autenticação de Dois Fatores (MFA / 2FA)</h4>
+                                {isMfaEnabled ? (
+                                    <div className="flex items-center gap-3 bg-green-50 p-4 rounded-lg border border-green-200 text-green-700">
+                                        <ShieldCheck className="w-6 h-6" />
+                                        <div>
+                                            <p className="font-bold">Proteção Ativada</p>
+                                            <p className="text-xs opacity-80">Sua conta está protegida com verificação em duas etapas.</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                        <div className="flex items-start gap-3 mb-3">
+                                            <Shield className="w-5 h-5 text-slate-500 mt-1" />
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-700">Adicionar camada extra de segurança</p>
+                                                <p className="text-xs text-slate-500 mt-1">Proteja sua conta exigindo um código do seu celular ao fazer login.</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={startMfaSetup}
+                                            className="ml-8 text-blue-600 hover:text-blue-800 text-sm font-bold hover:underline"
+                                        >
+                                            Configurar Agora
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
 
@@ -492,6 +556,7 @@ export function Profile() {
                 onClose={() => setIsClubModalOpen(false)}
                 title="Novo Clube"
             >
+                {/* ... existing modal content ... */}
                 <div className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Nome do Clube</label>
@@ -546,6 +611,56 @@ export function Profile() {
                             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
                         >
                             {createUnitMutation.isPending ? 'Criando...' : 'Criar Unidade'}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* MFA Setup Modal */}
+            <Modal isOpen={isMfaModalOpen} onClose={() => setIsMfaModalOpen(false)} title="Configurar Autenticação de Dois Fatores">
+                <div className="space-y-6 text-center">
+                    <p className="text-sm text-slate-600">
+                        1. Baixe o <strong>Google Authenticator</strong> ou <strong>Authy</strong> no seu celular.<br />
+                        2. Escaneie o QR Code abaixo com o aplicativo.
+                    </p>
+
+                    {mfaData?.qrCodeUrl ? (
+                        <div className="flex justify-center p-4 bg-white rounded-lg border border-slate-200">
+                            <img src={mfaData.qrCodeUrl} alt="QR Code MFA" className="w-48 h-48 mix-blend-multiply" />
+                        </div>
+                    ) : (
+                        <div className="animate-pulse flex justify-center p-4">
+                            <div className="h-48 w-48 bg-slate-200 rounded"></div>
+                        </div>
+                    )}
+
+                    <div className="text-left bg-slate-50 p-4 rounded-lg">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">3. Digite o código de 6 dígitos gerado pelo app:</label>
+                        <input
+                            type="text"
+                            inputMode="numeric"
+                            autoFocus
+                            maxLength={6}
+                            value={mfaCode}
+                            onChange={e => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                            className="w-full text-center text-3xl tracking-[0.5em] font-mono py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            placeholder="000000"
+                        />
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => setIsMfaModalOpen(false)}
+                            className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-lg transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            onClick={confirmMfaSetup}
+                            disabled={mfaCode.length < 6}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                            Verificar e Ativar
                         </button>
                     </div>
                 </div>
@@ -671,4 +786,3 @@ function MyAchievementsList() {
         </div>
     );
 }
-

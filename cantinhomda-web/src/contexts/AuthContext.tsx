@@ -35,7 +35,8 @@ interface User {
 interface AuthContextType {
     user: User | null;
     loading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<any>;
+    verifyMfa: (tempToken: string, code: string) => Promise<void>;
     loginWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
     signOut: () => Promise<void>; // Alias for logout
@@ -148,6 +149,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => unsubscribe();
     }, []);
 
+    const handleLoginSuccess = async (access_token: string, backendUser: any) => {
+        safeLocalStorage.setItem('token', access_token);
+        console.log('[Auth] Token stored');
+
+        // SYNC FIRESTORE: Background task, non-blocking
+        const userRef = doc(db, 'users', auth.currentUser?.uid || backendUser.id);
+
+        // Don't await this, let it happen in background
+        setDoc(userRef, {
+            role: backendUser.role,
+            clubId: backendUser.clubId || null,
+            unitId: backendUser.unitId || null,
+            email: backendUser.email
+        }, { merge: true })
+            .then(() => console.log('[Auth] Firestore Sync Success (Background)'))
+            .catch(e => console.warn('[Auth] Firestore Sync Failed (Non-critical):', e));
+
+        console.log('[Auth] Setting User State...');
+        setUser({
+            id: backendUser.id,
+            uid: auth.currentUser?.uid,
+            name: backendUser.name,
+            email: backendUser.email,
+            role: backendUser.role,
+            clubId: backendUser.clubId,
+            unitId: backendUser.unitId,
+            mustChangePassword: backendUser.mustChangePassword,
+            // Hierarchy Data
+            union: backendUser.union,
+            association: backendUser.association || backendUser.mission,
+            mission: backendUser.mission || backendUser.association,
+            region: backendUser.region,
+            district: backendUser.district
+        });
+        console.log('[Auth] Login/Verify Complete');
+    };
+
     const login = async (email: string, password: string) => {
         console.log('[Login] Starting login flow for:', email);
 
@@ -166,41 +204,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.log('[Login] 2. Requesting Backend Token...');
             const res = await api.post('/auth/login', { email, password });
             console.log('[Login] 2. Backend Response Received');
-            const { access_token, user: backendUser } = res.data;
+            const responseData = res.data;
+
+            if (responseData.mfaRequired) {
+                return responseData; // { mfaRequired: true, tempToken: '...' }
+            }
+
+            const { access_token, user: backendUser } = responseData;
 
             if (access_token) {
-                safeLocalStorage.setItem('token', access_token);
-                console.log('[Login] 3. Token stored');
-
-                // SYNC FIRESTORE: Background task, non-blocking
-                const userRef = doc(db, 'users', auth.currentUser?.uid || backendUser.id);
-                setDoc(userRef, {
-                    role: backendUser.role,
-                    clubId: backendUser.clubId || null,
-                    unitId: backendUser.unitId || null,
-                    email: backendUser.email
-                }, { merge: true })
-                    .then(() => console.log('[Login] 4. Firestore Sync Success (Background)'))
-                    .catch(e => console.warn('[Login] 4. Firestore Sync Failed (Non-critical):', e));
-
-                console.log('[Login] 5. Setting User State...');
-                setUser({
-                    id: backendUser.id,
-                    uid: auth.currentUser?.uid,
-                    name: backendUser.name,
-                    email: backendUser.email,
-                    role: backendUser.role,
-                    clubId: backendUser.clubId,
-                    unitId: backendUser.unitId,
-                    mustChangePassword: backendUser.mustChangePassword,
-                    // Hierarchy Data
-                    union: backendUser.union,
-                    association: backendUser.association || backendUser.mission,
-                    mission: backendUser.mission || backendUser.association,
-                    region: backendUser.region,
-                    district: backendUser.district
-                });
-                console.log('[Login] 6. Login Complete');
+                await handleLoginSuccess(access_token, backendUser);
             }
         } catch (error: any) {
             console.error("Backend login failed.", error);
@@ -218,24 +231,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     if (syncRes.data?.access_token) {
                         console.log('[Login] 2b. Sync Success!');
                         const { access_token, user: backendUser } = syncRes.data;
-                        safeLocalStorage.setItem('token', access_token);
-
-                        setUser({
-                            id: backendUser.id,
-                            uid: auth.currentUser.uid,
-                            name: backendUser.name,
-                            email: backendUser.email,
-                            role: backendUser.role,
-                            clubId: backendUser.clubId,
-                            unitId: backendUser.unitId,
-                            mustChangePassword: backendUser.mustChangePassword,
-                            // Hierarchy Data
-                            union: backendUser.union,
-                            association: backendUser.association || backendUser.mission,
-                            mission: backendUser.mission || backendUser.association,
-                            region: backendUser.region,
-                            district: backendUser.district
-                        });
+                        await handleLoginSuccess(access_token, backendUser);
                         return; // Successfully recovered!
                     }
                 } catch (syncErr) {
@@ -249,6 +245,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             await signOut(auth);
             throw new Error(error.response?.data?.message || 'Falha na autenticação com o servidor. Verifique seu login.');
+        }
+    };
+
+    const verifyMfa = async (tempToken: string, code: string) => {
+        console.log('[MFA] Verifying code...');
+        try {
+            const res = await api.post('/auth/mfa/validate-login', { code }, {
+                headers: { Authorization: `Bearer ${tempToken}` }
+            });
+            const { access_token, user: backendUser } = res.data;
+            await handleLoginSuccess(access_token, backendUser);
+        } catch (error: any) {
+            console.error('[MFA] Verify Failed:', error);
+            throw new Error(error.response?.data?.message || 'Código inválido');
         }
     };
 
@@ -267,33 +277,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if (res.data?.access_token) {
                 const { access_token, user: backendUser } = res.data;
-                safeLocalStorage.setItem('token', access_token);
-
-                // SYNC FIRESTORE (Background)
-                const userRef = doc(db, 'users', user.uid || backendUser.id);
-                setDoc(userRef, {
-                    role: backendUser.role,
-                    clubId: backendUser.clubId || null,
-                    unitId: backendUser.unitId || null,
-                    email: backendUser.email
-                }, { merge: true }).catch(console.warn);
-
-                setUser({
-                    id: backendUser.id,
-                    uid: user.uid,
-                    name: backendUser.name,
-                    email: backendUser.email,
-                    role: backendUser.role,
-                    clubId: backendUser.clubId,
-                    unitId: backendUser.unitId,
-                    mustChangePassword: backendUser.mustChangePassword,
-                    // Hierarchy Data
-                    union: backendUser.union,
-                    association: backendUser.association || backendUser.mission,
-                    mission: backendUser.mission || backendUser.association,
-                    region: backendUser.region,
-                    district: backendUser.district
-                });
+                await handleLoginSuccess(access_token, backendUser);
             }
         } catch (error: any) {
             console.error('[LoginGoogle] Error:', error);
@@ -335,6 +319,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             user,
             loading,
             login,
+            verifyMfa,
             loginWithGoogle,
             logout,
             signOut: logout,

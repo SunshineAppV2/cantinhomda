@@ -1,7 +1,7 @@
 ﻿
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, ArrowRight, Eye, EyeOff, UserPlus } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Eye, EyeOff, UserPlus, ShieldCheck } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../lib/firebase';
@@ -10,13 +10,20 @@ import { toast } from 'sonner';
 
 export function Login() {
   const navigate = useNavigate();
-  const { login, loginWithGoogle } = useAuth();
+  const { login, verifyMfa, loginWithGoogle } = useAuth();
+
+  // Login standard state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isSuspended, setIsSuspended] = useState(false);
+
+  // MFA State
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [tempToken, setTempToken] = useState('');
 
   // Forgot Password State
   const [showForgotModal, setShowForgotModal] = useState(false);
@@ -55,7 +62,17 @@ export function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      const response = await login(email, password);
+
+      // Check MFA
+      if (response && response.mfaRequired) {
+        setTempToken(response.tempToken);
+        setMfaRequired(true);
+        setLoading(false);
+        toast.info('Autenticação de dois fatores necessária.');
+        return;
+      }
+
       toast.success(`Login realizado com sucesso!`);
       navigate('/dashboard');
 
@@ -104,6 +121,33 @@ export function Login() {
         setError(`${err.message}`);
       }
     } finally {
+      // Only stop loading if NOT transferring to MFA
+      if (!mfaRequired) {
+        // We can't access updated state immediately here due to closures, but the logic above handles the returns.
+        // Effectively we want setLoading(false) unless we just switched to MFA mode (which handles it above)
+        // Actually, if we switched to MFA, we already set loading false inside the if block.
+        // If we are here, it means we either succeeded (navigate) or failed (catched).
+        // So it is safe to set loading(false) if we didn't redirect.
+        // But navigate happens async-ish.
+        setLoading(false);
+      }
+    }
+  }
+
+  async function handleMfaSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await verifyMfa(tempToken, mfaCode);
+      toast.success('Login verificado com sucesso!');
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Código inválido');
+      toast.error('Código inválido. Tente novamente.');
+      setMfaCode('');
+    } finally {
       setLoading(false);
     }
   }
@@ -134,6 +178,72 @@ export function Login() {
     }
   }
 
+  // --- RENDERING ---
+
+  // MFA VIEW
+  if (mfaRequired) {
+    return (
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden relative z-[100]" translate="no">
+        <div className="bg-indigo-600 p-8 text-center relative">
+          <div className="mx-auto bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mb-4 backdrop-blur-sm">
+            <ShieldCheck className="text-white w-8 h-8" />
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-1">Verificação em Duas Etapas</h1>
+          <p className="text-indigo-100 text-sm">Digite o código de 6 dígitos do seu app autenticador</p>
+        </div>
+
+        <div className="p-8">
+          <form onSubmit={handleMfaSubmit} className="space-y-6">
+            {error && (
+              <div className="p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg text-sm flex items-center gap-2">
+                <span className="font-bold">Erro:</span> {error}
+              </div>
+            )}
+
+            <div>
+              <div className="relative">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  required
+                  autoFocus
+                  value={mfaCode}
+                  onChange={e => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full text-center text-3xl tracking-[0.5em] font-mono py-4 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                  placeholder="000000"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading || mfaCode.length < 6}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Verificando...' : 'Confirmar'}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setMfaRequired(false);
+                setMfaCode('');
+                setError('');
+                setLoading(false);
+              }}
+              className="w-full text-slate-500 hover:text-slate-700 text-sm font-medium pt-2"
+            >
+              Voltar para login
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // STANDARD LOGIN VIEW
   return (
     <>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden relative z-[100]" translate="no">
