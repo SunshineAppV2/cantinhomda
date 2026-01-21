@@ -14,6 +14,9 @@ import { join } from 'path';
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+    // Configuração para Proxy (Render, etc) - Importante para Rate Limiting funcionar por IP real
+    app.set('trust proxy', 1);
+
     // Serve Static Assets (Uploads)
     // Using process.cwd() is safer usually if running from root
     app.useStaticAssets(join(process.cwd(), 'uploads'), {
@@ -43,7 +46,7 @@ async function bootstrap() {
     app.use(
         rateLimit({
             windowMs: 1 * 60 * 1000,
-            max: 500,
+            max: 1000,
             standardHeaders: true,
             legacyHeaders: false,
         }),
