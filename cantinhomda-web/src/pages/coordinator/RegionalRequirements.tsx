@@ -155,6 +155,11 @@ export function RegionalRequirements() {
             queryClient.invalidateQueries({ queryKey: ['regional-requirements'] });
             closeModal();
             import('sonner').then(({ toast }) => toast.success('Atualizado com sucesso!'));
+        },
+        onError: (err: any) => {
+            console.error('[RegionalRequirements] Update error:', err);
+            const msg = err.response?.data?.message || 'Erro ao atualizar requisito.';
+            import('sonner').then(({ toast }) => toast.error(msg));
         }
     });
 
@@ -235,26 +240,49 @@ export function RegionalRequirements() {
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
+
+        console.log('[RegionalRequirements] Preparing to save...');
+        console.log('[RegionalRequirements] Editing ID:', editingReqId);
+        console.log('[RegionalRequirements] Selected Class:', selectedClass);
+        console.log('[RegionalRequirements] Req Type:', reqType);
+        console.log('[RegionalRequirements] Req Scope:', reqScope);
+
         const payload: any = {
             description: reqDescription,
-            code: reqCode,
-            title: reqTitle,
-            area: reqArea,
-            points: reqPoints,
-            startDate: reqStart ? new Date(reqStart).toISOString() : null,
-            endDate: reqEnd ? new Date(reqEnd).toISOString() : null,
-
-            type: reqType === 'NONE' ? undefined : reqType,
-            questions: reqType === 'QUESTIONNAIRE' ? questions : undefined,
+            code: reqCode || undefined,
+            title: reqTitle || undefined,
+            area: reqArea || undefined,
+            points: reqPoints || 0,
+            startDate: reqStart ? new Date(reqStart).toISOString() : undefined,
+            endDate: reqEnd ? new Date(reqEnd).toISOString() : undefined,
             dbvClass: selectedClass,
-
-            clubId: reqScope === 'SPECIFIC' ? selectedTargetClub : null // Send null for 'ALL'
-            // Region is handled by backend
+            clubId: reqScope === 'SPECIFIC' ? selectedTargetClub : undefined
         };
 
+        // Only add type if it's not NONE
+        if (reqType && reqType !== 'NONE') {
+            payload.type = reqType;
+        }
+
+        // Only add questions if it's a questionnaire
+        if (reqType === 'QUESTIONNAIRE' && questions.length > 0) {
+            payload.questions = questions;
+        }
+
+        // Remove undefined values to avoid sending them
+        Object.keys(payload).forEach(key => {
+            if (payload[key] === undefined) {
+                delete payload[key];
+            }
+        });
+
+        console.log('[RegionalRequirements] Final payload:', JSON.stringify(payload, null, 2));
+
         if (editingReqId) {
+            console.log('[RegionalRequirements] Calling UPDATE mutation...');
             updateMutation.mutate({ id: editingReqId, payload });
         } else {
+            console.log('[RegionalRequirements] Calling CREATE mutation...');
             createMutation.mutate(payload);
         }
     };

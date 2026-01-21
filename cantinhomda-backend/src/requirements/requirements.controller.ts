@@ -217,7 +217,33 @@ export class RequirementsController {
 
     @UseGuards(JwtAuthGuard)
     @Patch(':id')
-    update(@Param('id') id: string, @Body() updateDto: UpdateRequirementDto) {
+    async update(@Param('id') id: string, @Body() updateDto: UpdateRequirementDto, @Request() req) {
+        console.log('[RequirementsController] Received update request for ID:', id);
+        console.log('[RequirementsController] Update payload:', JSON.stringify(updateDto));
+        console.log('[RequirementsController] User:', req.user.email, req.user.role);
+
+        const userRole = req.user.role;
+        const isRegionalCoordinator = userRole === 'COORDINATOR_REGIONAL';
+        const isDistrictCoordinator = userRole === 'COORDINATOR_DISTRICT';
+        const isMaster = req.user.email === 'master@cantinhomda.com' || userRole === 'MASTER';
+
+        // If Regional Coordinator is updating, ensure region is preserved
+        if (isRegionalCoordinator && !isMaster) {
+            if (!req.user.region) {
+                throw new BadRequestException('Seu perfil de Coordenador Regional não possui uma Região definida.');
+            }
+            // Preserve the region in the update
+            updateDto.region = req.user.region;
+        }
+
+        // If District Coordinator is updating, ensure district is preserved
+        if (isDistrictCoordinator && !isMaster) {
+            if (!req.user.district) {
+                throw new BadRequestException('Seu perfil de Coordenador Distrital não possui um Distrito definido.');
+            }
+            updateDto.district = req.user.district;
+        }
+
         return this.requirementsService.update(id, updateDto);
     }
     @UseGuards(JwtAuthGuard)
