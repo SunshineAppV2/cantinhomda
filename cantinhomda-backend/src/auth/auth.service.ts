@@ -155,27 +155,57 @@ export class AuthService {
 
   async validateMfaLogin(tempToken: string, code: string) {
     try {
-      console.log(`[MFA] Validating login. Code length: ${code?.length}`);
+      console.log(`[MFA] Validate Request. TokenPrefix: ${tempToken?.substring(0, 15)}... Code: ${code}`);
 
-      let decoded: any;
-      try {
-        decoded = this.jwtService.verify(tempToken, { secret: jwtConstants.secret });
-      } catch (jwtError: any) {
-        console.error(`[MFA] JWT Verify Error: ${jwtError.message}`);
-        throw new UnauthorizedException(`Token Error: ${jwtError.message}`);
+      if (!tempToken) {
+        throw new UnauthorizedException('Token MFA não fornecido.');
       }
 
-      console.log(`[MFA] Token verified. Sub: ${decoded.sub}, Pending: ${decoded.isMfaPending}`);
+      // Check format (basic debugging)
+      const parts = tempToken.split('.');
+      if (parts.length !== 3) {
+        console.error(`[MFA] Malformed Token. Parts: ${parts.length}`);
+        throw new UnauthorizedException('Token malformado.');
+      }
 
-      if (!decoded.isMfaPending) throw new UnauthorizedException('Token inválido');
+      // Decode without verification to inspect header
+      const decodedUnverified = this.jwtService.decode(tempToken, { complete: true }) as any;
+      console.log(`[MFA] Token Header Strategy: ${decodedUnverified?.header?.alg}`);
+
+      let decoded: any;
+      try { // Trust the global module configuration
+        decoded = this.jwtService.verify(tempToken);
+      } catch (innerVerifyErr: any) {
+        console.warn(`[MFA] Standard verify failed: ${innerVerifyErr.message}. Retrying with explicit secret fallback.`);
+        // Fallback manual just in case global injection is somehow acting up
+        try {
+          decoded = this.jwtService.verify(tempToken, { secret: jwtConstants.secret });
+        } catch (fallbackErr) {
+          console.error(`[MFA] Fallback also failed: ${fallbackErr.message}`);
+          throw innerVerifyErr; // Throw original error
+        }
+      }
+
+      console.log(`[MFA] Token Verified. Payload:`, JSON.stringify(decoded));
+
+      if (!decoded.isMfaPending) {
+        console.warn('[MFA] Token is not a pending MFA token.');
+        throw new UnauthorizedException('Token inválido (não é pendente).');
+      }
 
       const user = await this.usersService.findOne(decoded.sub);
       const userAny = user as any;
 
-      if (!user || !userAny.isMfaEnabled || !userAny.mfaSecret) throw new UnauthorizedException('MFA não configurado');
+      if (!user || !userAny.isMfaEnabled || !userAny.mfaSecret) {
+        console.warn('[MFA] User not ready for MFA validation.');
+        throw new UnauthorizedException('MFA não configurado para este usuário.');
+      }
 
       const isValid = this.verifyMfaCode(code, userAny.mfaSecret);
-      if (!isValid) throw new UnauthorizedException('Código inválido');
+      if (!isValid) {
+        console.warn(`[MFA] Code invalid. User: ${user.email}`);
+        throw new UnauthorizedException('Código inválido. Tente novamente.');
+      }
 
       let club: any = {};
       if (user.clubId) {
@@ -209,7 +239,10 @@ export class AuthService {
         }
       };
     } catch (e) {
-      throw new UnauthorizedException('Falha na validação MFA: ' + e.message);
+      console.error(`[MFA] CRITICAL ERROR:`, e);
+      // Ensure we return 401 so frontend handles it
+      if (e instanceof UnauthorizedException) throw e;
+      throw new UnauthorizedException(`MFA Fail: ${e.message}`);
     }
   }
 
