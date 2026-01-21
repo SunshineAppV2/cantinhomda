@@ -192,7 +192,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     role: backendUser.role,
                     clubId: backendUser.clubId,
                     unitId: backendUser.unitId,
-                    mustChangePassword: backendUser.mustChangePassword
+                    mustChangePassword: backendUser.mustChangePassword,
+                    // Hierarchy Data
+                    union: backendUser.union,
+                    association: backendUser.association || backendUser.mission,
+                    mission: backendUser.mission || backendUser.association,
+                    region: backendUser.region,
+                    district: backendUser.district
                 });
                 console.log('[Login] 6. Login Complete');
             }
@@ -222,7 +228,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                             role: backendUser.role,
                             clubId: backendUser.clubId,
                             unitId: backendUser.unitId,
-                            mustChangePassword: backendUser.mustChangePassword
+                            mustChangePassword: backendUser.mustChangePassword,
+                            // Hierarchy Data
+                            union: backendUser.union,
+                            association: backendUser.association || backendUser.mission,
+                            mission: backendUser.mission || backendUser.association,
+                            region: backendUser.region,
+                            district: backendUser.district
                         });
                         return; // Successfully recovered!
                     }
@@ -274,7 +286,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     role: backendUser.role,
                     clubId: backendUser.clubId,
                     unitId: backendUser.unitId,
-                    mustChangePassword: backendUser.mustChangePassword
+                    mustChangePassword: backendUser.mustChangePassword,
+                    // Hierarchy Data
+                    union: backendUser.union,
+                    association: backendUser.association || backendUser.mission,
+                    mission: backendUser.mission || backendUser.association,
+                    region: backendUser.region,
+                    district: backendUser.district
                 });
             }
         } catch (error: any) {
