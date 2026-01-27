@@ -877,42 +877,37 @@ export class ClubsService implements OnModuleInit {
                 // 1. Delete Financial Transactions
                 await tx.transaction.deleteMany({ where: { clubId } });
 
-                // 2. Delete Meetings (Cascades to Attendance usually)
-                try {
-                    await tx.meeting.deleteMany({ where: { clubId } });
-                } catch (e) {
-                    // Ignore if meeting model issue (but should work)
-                }
+                // 2. Delete Meetings (Cascades to Attendances due to onDelete: Cascade in schema)
+                await tx.meeting.deleteMany({ where: { clubId } });
 
                 // 3. Reset User Points & XP
                 const users = await tx.user.findMany({ where: { clubId }, select: { id: true } });
                 const userIds = users.map(u => u.id);
 
                 if (userIds.length > 0) {
-                    // Try to delete history
-                    if ((tx as any).pointHistory) {
-                        await (tx as any).pointHistory.deleteMany({ where: { userId: { in: userIds } } });
-                    } else if ((tx as any).pointsHistory) {
-                        await (tx as any).pointsHistory.deleteMany({ where: { userId: { in: userIds } } });
-                    }
+                    // Delete history
+                    await tx.pointHistory.deleteMany({ where: { userId: { in: userIds } } });
 
                     // Reset stats
                     await tx.user.updateMany({
                         where: { id: { in: userIds } },
                         data: {
-                            points: 0
+                            points: 0,
+                            // Optionally reset other stats if needed, but points is main one
                         }
                     });
                 }
 
-                // 4. Log the action
-                await this.prisma.clubStatusHistory.create({
+                // 4. Log the action (Using AuditLog because 'RESET' is not a valid ClubStatus)
+                await tx.auditLog.create({
                     data: {
-                        clubId,
-                        fromStatus: 'RESET' as any,
-                        toStatus: 'RESET' as any,
-                        changedBy: 'MASTER',
-                        reason: 'Reset total de dados (Pontuação/Histórico) solicitado pelo Master'
+                        action: 'RESET_DATA',
+                        resource: 'Club',
+                        resourceId: clubId,
+                        clubId: clubId,
+                        details: { reason: 'Reset total de dados (Pontuação/Histórico) solicitado pelo Master' },
+                        status: 'SUCCESS',
+                        authorId: null // Processo de sistema ou pegar do Contexto se passíssemos
                     }
                 });
 
@@ -920,7 +915,7 @@ export class ClubsService implements OnModuleInit {
             }, { timeout: 30000 });
         } catch (error) {
             console.error('Error resetting club data:', error);
-            throw new Error('Erro ao resetar dados do clube.');
+            throw new Error('Erro ao resetar dados do clube: ' + error.message);
         }
     }
 }

@@ -35,6 +35,7 @@ import { EncryptionModule } from './common/encryption/encryption.module';
 
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { SystemSettingsModule } from './system-settings/system-settings.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { join } from 'path';
     AuditModule,
     RankingModule,
     SystemModule,
+    SystemSettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -2,11 +2,10 @@ import axios from 'axios';
 import { safeLocalStorage } from './storage';
 
 export const api = axios.create({
-    // Prioritize Env Var, then LocalStorage, then Hardcoded Localhost (SAFE DEFAULT for now)
-    // The previous window.location.hostname logic fails on production domain if backend is local
-    baseURL: import.meta.env.VITE_API_URL || safeLocalStorage.getItem('api_url') || 'http://localhost:3000',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001',
 });
 
+console.log('[Axios] Env VITE_API_URL:', import.meta.env.VITE_API_URL);
 console.log('[Axios] API BaseURL:', api.defaults.baseURL);
 
 import { auth } from './firebase';

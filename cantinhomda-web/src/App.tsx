@@ -56,6 +56,7 @@ import { ClubApprovals } from './pages/admin/ClubApprovals';
 
 import { CompleteProfile } from './pages/CompleteProfile';
 import SystemUsers from './pages/admin/SystemUsers';
+import { AdminFeatures } from './pages/admin/AdminFeatures';
 // import { SocketProvider } from './contexts/SocketContext';
 
 import { ToastProvider } from './lib/toast';
@@ -163,7 +164,9 @@ function App() {
                 <Route path="master-treasury" element={<MasterTreasury />} />
                 <Route path="club-assignment" element={<ClubAssignment />} />
                 <Route path="achievements" element={<AdminAchievements />} />
+                <Route path="achievements" element={<AdminAchievements />} />
                 <Route path="admin/users" element={<SystemUsers />} />
+                <Route path="admin/features" element={<AdminFeatures />} />
               </Route>
               <Route element={<ProtectedRoute allowedRoles={['MASTER']} />}>
                 <Route path="master-requirements" element={<MasterRequirements />} />
