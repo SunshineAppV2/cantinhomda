@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Users, Trophy, Calendar, DollarSign, ArrowRight, Stars, Share2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Skeleton } from '../components/Skeleton';
 import { Modal } from '../components/Modal';
-import { ProfileUpdateModal } from '../components/ProfileUpdateModal';
+
 import { ReferralPopup } from '../components/ReferralPopup';
 
 import { ROLE_TRANSLATIONS } from './members/types';
@@ -44,14 +44,14 @@ export function Dashboard() {
 }
 
 function DirectorDashboard() {
-    const { user, refreshUser } = useAuth();
+    const { user } = useAuth();
     const navigate = useNavigate();
     const [showBirthdaysModal, setShowBirthdaysModal] = useState(false);
-    const [showProfileUpdate, setShowProfileUpdate] = useState(false);
+
     const [showReferralPopup, setShowReferralPopup] = useState(false);
     const [showReferralRules, setShowReferralRules] = useState(false);
 
-    const queryClient = useQueryClient(); // Added queryClient
+
 
     const { data: stats } = useQuery({
         queryKey: ['dashboard-stats', user?.clubId],
@@ -85,7 +85,8 @@ function DirectorDashboard() {
         staleTime: 1000 * 60 * 30
     });
 
-    // Check hierarchy completeness
+    // Check hierarchy completeness - Disabled as requested
+    /*
     useEffect(() => {
         if (user?.role === 'OWNER' && clubStatus) {
             const isComplete = clubStatus.union && (clubStatus.mission || clubStatus.association) && clubStatus.region;
@@ -96,6 +97,7 @@ function DirectorDashboard() {
             }
         }
     }, [clubStatus, user?.role]);
+    */
 
     const { data: systemConfig } = useQuery({
         queryKey: ['system-config'],
@@ -345,7 +347,8 @@ function DirectorDashboard() {
                 )}
             </Modal>
 
-            {/* Incomplete Profile Logic (kept as is) */}
+            {/* Incomplete Profile Logic - Disabled as requested */}
+            {/* 
             {showProfileUpdate && user?.role === 'OWNER' && (
                 <ProfileUpdateModal
                     user={user}
@@ -360,6 +363,7 @@ function DirectorDashboard() {
                     }}
                 />
             )}
+            */}
 
             {/* Referral Popup Logic (kept as is) */}
             {showReferralPopup && clubStatus?.referralCode && (

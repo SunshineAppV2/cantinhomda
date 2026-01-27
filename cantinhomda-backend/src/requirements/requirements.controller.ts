@@ -134,8 +134,15 @@ export class RequirementsController {
 
     @UseGuards(JwtAuthGuard)
     @Post('respond')
-    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024 } })) // 10MB
-    async respond(
+    @UseInterceptors(FileInterceptor('file', {
+        limits: { fileSize: 1 * 1024 * 1024 }, // 1MB limit
+        fileFilter: (req, file, cb) => {
+            if (!file.mimetype.match(/\/(jpg|jpeg|pdf)$/)) {
+                return cb(new BadRequestException('Apenas arquivos JPEG, JPG e PDF são permitidos'), false);
+            }
+            cb(null, true);
+        }
+    })) async respond(
         @UploadedFile() file: Express.Multer.File,
         @Body() body: any,
         @Request() req

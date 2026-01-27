@@ -38,6 +38,7 @@ export class AppController {
 
   @Post('uploads')
   @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: 1 * 1024 * 1024 }, // 1MB limit
     storage: diskStorage({
       destination: (req, file, cb) => {
         const uploadPath = './uploads';
@@ -51,6 +52,12 @@ export class AppController {
         cb(null, `${uniqueSuffix}${extname(file.originalname)}`);
       },
     }),
+    fileFilter: (req, file, cb) => {
+      if (!file.mimetype.match(/\/(jpg|jpeg|pdf)$/)) {
+        return cb(new BadRequestException('Apenas arquivos JPEG, JPG e PDF são permitidos'), false);
+      }
+      cb(null, true);
+    }
   }))
   uploadFile(@UploadedFile() file: Express.Multer.File) {
     return {

@@ -75,6 +75,7 @@ export class TreasuryController {
 
     @Post(':id/pay')
     @UseInterceptors(FileInterceptor('file', {
+        limits: { fileSize: 1 * 1024 * 1024 }, // 1MB limit
         storage: diskStorage({
             destination: './uploads',
             filename: (req, file, cb) => {
@@ -82,7 +83,13 @@ export class TreasuryController {
                 const ext = extname(file.originalname);
                 cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
             }
-        })
+        }),
+        fileFilter: (req, file, cb) => {
+            if (!file.mimetype.match(/\/(jpg|jpeg|pdf)$/)) {
+                return cb(new BadRequestException('Apenas arquivos JPEG, JPG e PDF são permitidos'), false);
+            }
+            cb(null, true);
+        }
     }))
     pay(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @Body('proofUrl') proofUrl?: string) {
         const finalUrl = file ? `/uploads/${file.filename}` : proofUrl;
