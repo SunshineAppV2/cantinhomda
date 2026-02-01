@@ -246,8 +246,16 @@ export class RankingRegionalService {
     }
 
     private getEventScopeWhere(scope: any, startDate: Date, endDate: Date) {
+        // Limit events to those that have started by "now" (or the reference date context) to ensure "Year To Date" ranking.
+        // If we include future events in the denominator, clubs will have low percentages early in the year.
+        const ceilingDate = new Date(); // Always use real-time "now" for "Ranking Atual" logic, or fallback to end of period if looking at past.
+
+        // However, if we are looking at a past year (e.g. 2024), "now" (2025) is > endDate (Dec 2024), so we take endDate.
+        // If we are looking at current year (2025), "now" (Feb) is < endDate (Dec 2025), so we take "now".
+        const effectiveEndDate = endDate < ceilingDate ? endDate : ceilingDate;
+
         const eventWhere: any = {
-            startDate: { gte: startDate, lte: endDate }
+            startDate: { gte: startDate, lte: effectiveEndDate }
         };
 
         const scopeConditions: any[] = [];
