@@ -3,6 +3,7 @@ import { Controller, Post, UseInterceptors, UploadedFile, BadRequestException } 
 import { FileInterceptor } from '@nestjs/platform-express';
 
 // const uploadDir = 'G:/Ranking DBV/IMAGENS'; // Removed logic
+import { firebaseAdmin } from '../firebase-admin';
 
 @Controller('uploads')
 export class UploadsController {
@@ -22,30 +23,24 @@ export class UploadsController {
         }
 
         try {
-            const admin = await import('firebase-admin');
-            if (admin.apps.length === 0) {
-                throw new Error('Firebase Admin not initialized');
-            }
-
-            const bucket = admin.storage().bucket();
+            const bucket = firebaseAdmin.storage().bucket();
             const filename = `${Date.now()}_${Math.round(Math.random() * 10000)}_${file.originalname}`;
             const fileUpload = bucket.file(`uploads/${filename}`);
 
             await fileUpload.save(file.buffer, {
                 contentType: file.mimetype,
-                public: true, // Make public for now (simplest for migration)
+                public: true, // Make public
             });
 
             // Construct public URL
-            // Format: https://storage.googleapis.com/[BUCKET_NAME]/[PATH]
-            // Or use getSignedUrl if private.
-            // For now, assuming standard Firebase Storage bucket access
-            const publicUrl = `https://storage.googleapis.com/${bucket.name}/uploads/${filename}`;
+            // If storageBucket is configured properly, we can use the default domain
+            // Otherwise, we construct it manually assuming standard pattern
+            const bucketName = bucket.name;
+            const publicUrl = `https://storage.googleapis.com/${bucketName}/uploads/${filename}`;
 
+            // Frontend expects { url: ... }
             return {
                 url: publicUrl,
-                filename: filename,
-                originalName: file.originalname,
             };
         } catch (error) {
             console.error('Upload Error:', error);

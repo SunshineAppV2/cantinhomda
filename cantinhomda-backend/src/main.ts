@@ -10,6 +10,8 @@ import { Reflector } from '@nestjs/core';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { join } from 'path';
+import './firebase-admin'; // Initialize Firebase
+
 
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
