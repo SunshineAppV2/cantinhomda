@@ -211,7 +211,8 @@ export class RankingRegionalService {
             requirementTitle: r.requirement.title,
             points: r.requirement.points,
             date: r.completedAt || r.createdAt,
-            answerFileUrl: r.answerFileUrl
+            answerFileUrl: r.answerFileUrl,
+            eventId: r.requirement.regionalEventId
         }));
     }
 

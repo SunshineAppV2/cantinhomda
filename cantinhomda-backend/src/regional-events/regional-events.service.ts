@@ -289,4 +289,10 @@ export class RegionalEventsService {
             }
         });
     }
+
+    async deleteResponse(responseId: string, coordinatorId: string) {
+        return this.prisma.eventResponse.delete({
+            where: { id: responseId }
+        });
+    }
 }

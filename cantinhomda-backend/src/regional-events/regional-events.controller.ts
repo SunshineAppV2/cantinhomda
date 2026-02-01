@@ -143,4 +143,10 @@ export class RegionalEventsController {
     revokeResponse(@Param('respId') respId: string, @Request() req) {
         return this.regionalEventsService.revokeResponse(respId, req.user.userId || req.user.id);
     }
+
+    @UseGuards(JwtAuthGuard)
+    @Delete(':id/responses/:respId')
+    deleteResponse(@Param('respId') respId: string, @Request() req) {
+        return this.regionalEventsService.deleteResponse(respId, req.user.userId || req.user.id);
+    }
 }
