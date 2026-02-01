@@ -3,7 +3,7 @@ import { Modal } from './Modal';
 import { api } from '../lib/axios';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Loader2, Calendar } from 'lucide-react';
+import { Loader2, Calendar, Paperclip, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface ClubRankingDetailsModalProps {
@@ -27,6 +27,7 @@ interface RankingDetail {
     requirementTitle: string;
     points: number;
     date: string;
+    answerFileUrl?: string | null;
 }
 
 export function ClubRankingDetailsModal({ clubId, clubName, isOpen, onClose, filters }: ClubRankingDetailsModalProps) {
@@ -90,6 +91,7 @@ export function ClubRankingDetailsModal({ clubId, clubName, isOpen, onClose, fil
                                     <th className="px-4 py-3">Data</th>
                                     <th className="px-4 py-3">Evento</th>
                                     <th className="px-4 py-3">Requisito</th>
+                                    <th className="px-4 py-3 text-center">Anexo</th>
                                     <th className="px-4 py-3 text-right">Pontos</th>
                                 </tr>
                             </thead>
@@ -107,6 +109,21 @@ export function ClubRankingDetailsModal({ clubId, clubName, isOpen, onClose, fil
                                         </td>
                                         <td className="px-4 py-3 text-slate-600">
                                             {item.requirementTitle}
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            {item.answerFileUrl ? (
+                                                <a
+                                                    href={item.answerFileUrl.startsWith('http') ? item.answerFileUrl : `${'https://cantinhomda-backend.onrender.com'}${item.answerFileUrl}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                                                    title="Ver anexo"
+                                                >
+                                                    <Paperclip className="w-4 h-4" />
+                                                </a>
+                                            ) : (
+                                                <span className="text-slate-300">-</span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-3 text-right font-bold text-slate-800">
                                             {item.points}

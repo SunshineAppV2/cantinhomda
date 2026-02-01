@@ -210,7 +210,8 @@ export class RankingRegionalService {
             eventName: r.requirement.regionalEvent?.title || 'Evento Desconhecido',
             requirementTitle: r.requirement.title,
             points: r.requirement.points,
-            date: r.completedAt || r.createdAt
+            date: r.completedAt || r.createdAt,
+            answerFileUrl: r.answerFileUrl
         }));
     }
 
