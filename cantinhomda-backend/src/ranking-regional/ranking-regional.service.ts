@@ -122,19 +122,64 @@ export class RankingRegionalService {
                 }
             };
 
-            // Apply geographic scope to events as well? 
-            // Usually events are regional/district specific, so we should filter events that match the user's scope.
-            // However, a club participates in events of its region/district.
-            // Let's filter events that are applicable to the requested scope.
-            if (scope.union) eventWhere.union = scope.union;
-            if (scope.association) {
-                eventWhere.OR = [
-                    { association: scope.association },
-                    { mission: scope.association }
-                ];
+            // Apply geographic scope to events with hierarchy support
+            // We want to include events that are specific to the scope OR apply to a broader scope (e.g. Regional Event applies to District)
+
+            const scopeConditions: any[] = [];
+
+            // 1. Logic for District View (Most specific)
+            if (scope.district && scope.region) {
+                scopeConditions.push(
+                    { district: scope.district }, // Events for this district
+                    { region: scope.region, district: null }, // Events for the region (all districts)
+                );
+                if (scope.association) {
+                    scopeConditions.push({ association: scope.association, region: null, district: null }); // Association events
+                }
             }
-            if (scope.region) eventWhere.region = scope.region;
-            if (scope.district) eventWhere.district = scope.district;
+            // 2. Logic for Regional View
+            else if (scope.region) {
+                scopeConditions.push(
+                    { region: scope.region }, // Events for this region - we include those with district set or null? 
+                    // Usually a Ranking for a Region should include Region-wide events.
+                    // If we want to sum ALL events in the region (including district specifics), we just filter by region.
+                    // BUT, if I am looking at Regional Ranking, I want to see how clubs compare on shared events?
+                    // Or total performance? "Ranking Geral" usually implies total performance.
+                    // If I include district-specific events, they apply to only some clubs.
+                    // Users want "Sum of all events registered".
+                    // Let's assume inclusive: All events in this region.
+                );
+
+                // If we want broad matching:
+                // match region=R OR (association=A and region=null)
+                if (scope.association) {
+                    scopeConditions.push({ association: scope.association, region: null });
+                }
+            }
+            // 3. Logic for Association View
+            else if (scope.association) {
+                scopeConditions.push({ association: scope.association });
+            }
+
+            // Apply the conditions
+            if (scopeConditions.length > 0) {
+                // If we are in the "else if(scope.region)" block above, we might just want simpler logic:
+                // If I filtered by scope.region, I should probably just trust `region: scope.region`.
+                // However, the issue described is missing events.
+                // Let's stick to the hierarchical OR for "Inherited" events which is the main missing piece.
+
+                // Refined Logic:
+                // If we have a district scope, we MUST look for events that cover that district.
+                // That means: (District == D) OR (Region == R AND District is NULL) OR (Assoc == A AND Region is NULL).
+
+                eventWhere.OR = scopeConditions;
+            } else {
+                // Fallback for simple property match if logic above didn't catch (e.g. only union provided?)
+                if (scope.union) eventWhere.union = scope.union;
+                if (scope.association) eventWhere.association = scope.association;
+                if (scope.region) eventWhere.region = scope.region;
+                if (scope.district) eventWhere.district = scope.district;
+            }
 
 
             const eventsInRange = await this.prisma.regionalEvent.findMany({
