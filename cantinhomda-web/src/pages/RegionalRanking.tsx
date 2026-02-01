@@ -19,7 +19,6 @@ import { useAuth } from '../contexts/AuthContext';
 export const RegionalRanking: React.FC = () => {
     const { user } = useAuth();
     const [selectedEventId, setSelectedEventId] = useState<string>('');
-    const [periodType, setPeriodType] = useState<'YEAR' | 'Q1' | 'Q2' | 'Q3' | 'Q4' | 'MONTH'>('YEAR'); // For UI simplification we can map Quarter directly or use logic
     // Actually simplicity: 'YEAR' | 'QUARTER' | 'MONTH'
     const [filterType, setFilterType] = useState<'YEAR' | 'QUARTER' | 'MONTH'>('YEAR');
     const [referenceDate, setReferenceDate] = useState<Date>(new Date());
@@ -71,55 +70,57 @@ export const RegionalRanking: React.FC = () => {
                         <Trophy className="text-amber-500 w-8 h-8" />
                         Ranking Regional
                     </h1>
-                    <div className="flex flex-wrap gap-2 mt-3">
-                        <div className="flex bg-slate-100 rounded-lg p-1">
-                            {['YEAR', 'QUARTER', 'MONTH'].map((type) => (
-                                <button
-                                    key={type}
-                                    onClick={() => { setFilterType(type as any); setSelectedEventId(''); }}
-                                    className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${filterType === type && !selectedEventId
-                                        ? 'bg-white text-indigo-600 shadow-sm'
-                                        : 'text-slate-500 hover:text-slate-700'
-                                        }`}
-                                >
-                                    {type === 'YEAR' ? 'ANUAL' : type === 'QUARTER' ? 'TRIMESTRE' : 'MÊS'}
-                                </button>
-                            ))}
-                        </div>
-
-                        {!selectedEventId && filterType !== 'YEAR' && (
-                            <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1 px-2">
-                                <button
-                                    onClick={() => {
-                                        const newDate = new Date(referenceDate);
-                                        if (filterType === 'MONTH') newDate.setMonth(newDate.getMonth() - 1);
-                                        if (filterType === 'QUARTER') newDate.setMonth(newDate.getMonth() - 3);
-                                        setReferenceDate(newDate);
-                                    }}
-                                    className="p-1 hover:bg-white rounded-full text-slate-500"
-                                >
-                                    &lt;
-                                </button>
-                                <span className="text-xs font-semibold text-slate-700 min-w-[80px] text-center">
-                                    {filterType === 'MONTH'
-                                        ? referenceDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()
-                                        : `${Math.floor(referenceDate.getMonth() / 3) + 1}º TRIMESTRE/${referenceDate.getFullYear()}`
-                                    }
-                                </span>
-                                <button
-                                    onClick={() => {
-                                        const newDate = new Date(referenceDate);
-                                        if (filterType === 'MONTH') newDate.setMonth(newDate.getMonth() + 1);
-                                        if (filterType === 'QUARTER') newDate.setMonth(newDate.getMonth() + 3);
-                                        setReferenceDate(newDate);
-                                    }}
-                                    className="p-1 hover:bg-white rounded-full text-slate-500"
-                                >
-                                    &gt;
-                                </button>
+                    {['COORDINATOR_REGIONAL', 'COORDINATOR_DISTRICT'].includes(user?.role || '') && (
+                        <div className="flex flex-wrap gap-2 mt-3">
+                            <div className="flex bg-slate-100 rounded-lg p-1">
+                                {['YEAR', 'QUARTER', 'MONTH'].map((type) => (
+                                    <button
+                                        key={type}
+                                        onClick={() => { setFilterType(type as any); setSelectedEventId(''); }}
+                                        className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${filterType === type && !selectedEventId
+                                            ? 'bg-white text-indigo-600 shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-700'
+                                            }`}
+                                    >
+                                        {type === 'YEAR' ? 'ANUAL' : type === 'QUARTER' ? 'TRIMESTRE' : 'MÊS'}
+                                    </button>
+                                ))}
                             </div>
-                        )}
-                    </div>
+
+                            {!selectedEventId && filterType !== 'YEAR' && (
+                                <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-1 px-2">
+                                    <button
+                                        onClick={() => {
+                                            const newDate = new Date(referenceDate);
+                                            if (filterType === 'MONTH') newDate.setMonth(newDate.getMonth() - 1);
+                                            if (filterType === 'QUARTER') newDate.setMonth(newDate.getMonth() - 3);
+                                            setReferenceDate(newDate);
+                                        }}
+                                        className="p-1 hover:bg-white rounded-full text-slate-500"
+                                    >
+                                        &lt;
+                                    </button>
+                                    <span className="text-xs font-semibold text-slate-700 min-w-[80px] text-center">
+                                        {filterType === 'MONTH'
+                                            ? referenceDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase()
+                                            : `${Math.floor(referenceDate.getMonth() / 3) + 1}º TRIMESTRE/${referenceDate.getFullYear()}`
+                                        }
+                                    </span>
+                                    <button
+                                        onClick={() => {
+                                            const newDate = new Date(referenceDate);
+                                            if (filterType === 'MONTH') newDate.setMonth(newDate.getMonth() + 1);
+                                            if (filterType === 'QUARTER') newDate.setMonth(newDate.getMonth() + 3);
+                                            setReferenceDate(newDate);
+                                        }}
+                                        className="p-1 hover:bg-white rounded-full text-slate-500"
+                                    >
+                                        &gt;
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2 bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
