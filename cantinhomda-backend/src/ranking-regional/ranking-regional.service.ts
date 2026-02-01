@@ -273,6 +273,17 @@ export class RankingRegionalService {
             scopeConditions.push({ association: scope.association });
         }
 
+        // 4. Always include Union events if union is in scope (for all views above)
+        if (scope.union) {
+            // Union events usually have null for lower levels
+            scopeConditions.push({
+                union: scope.union,
+                association: null,
+                region: null,
+                district: null
+            });
+        }
+
         if (scopeConditions.length > 0) {
             eventWhere.OR = scopeConditions;
         } else {
