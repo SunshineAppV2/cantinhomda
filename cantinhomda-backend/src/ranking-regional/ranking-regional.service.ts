@@ -36,6 +36,10 @@ export class RankingRegionalService {
         // Map to store points per club
         const clubPointsMap = new Map<string, { total: number, percentage: number, stars: number }>();
 
+        return this.calculateRanking(clubs, scope, clubPointsMap);
+    }
+
+    private async calculateRanking(clubs: any[], scope: any, clubPointsMap: Map<string, any>) {
         if (scope.regionalEventId) {
             // 1. Get Event Requirements
             const eventRequirements = await this.prisma.requirement.findMany({
@@ -74,113 +78,20 @@ export class RankingRegionalService {
                         ? (stats.total / totalPossiblePoints) * 100
                         : 0;
 
-                    let stars = 0;
-                    if (stats.total > 0) {
-                        if (percentage >= 90) stars = 5;
-                        else if (percentage >= 75) stars = 4;
-                        else if (percentage >= 50) stars = 3;
-                        else if (percentage >= 25) stars = 2;
-                        else stars = 1;
-                    }
-
                     stats.percentage = Math.round(percentage); // Round for display
-                    stats.stars = stars;
+                    stats.stars = this.calculateStars(percentage);
                     clubPointsMap.set(clubId, stats);
                 }
             }
         } else {
             // General Ranking (Sum of all events in the period)
             // 1. Determine Date Range
-            const referenceDate = scope.date ? new Date(scope.date) : new Date();
-            const year = referenceDate.getFullYear();
-
-            let startDate: Date;
-            let endDate: Date;
-
-            if (scope.period === 'MONTH') {
-                const month = referenceDate.getMonth();
-                startDate = new Date(year, month, 1);
-                endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
-            } else if (scope.period === 'QUARTER') {
-                const month = referenceDate.getMonth();
-                const quarterStartMonth = Math.floor(month / 3) * 3;
-                startDate = new Date(year, quarterStartMonth, 1);
-                endDate = new Date(year, quarterStartMonth + 3, 0, 23, 59, 59, 999);
-            } else {
-                // Default: YEAR
-                startDate = new Date(year, 0, 1);
-                endDate = new Date(year, 11, 31, 23, 59, 59, 999);
-            }
+            const { startDate, endDate } = this.getDateRange(scope);
 
             console.log(`[RankingService] General Ranking Period: ${scope.period || 'YEAR'} Range: ${startDate.toISOString()} - ${endDate.toISOString()}`);
 
             // 2. Find Events in Range & Scope
-            const eventWhere: any = {
-                startDate: {
-                    gte: startDate,
-                    lte: endDate
-                }
-            };
-
-            // Apply geographic scope to events with hierarchy support
-            // We want to include events that are specific to the scope OR apply to a broader scope (e.g. Regional Event applies to District)
-
-            const scopeConditions: any[] = [];
-
-            // 1. Logic for District View (Most specific)
-            if (scope.district && scope.region) {
-                scopeConditions.push(
-                    { district: scope.district }, // Events for this district
-                    { region: scope.region, district: null }, // Events for the region (all districts)
-                );
-                if (scope.association) {
-                    scopeConditions.push({ association: scope.association, region: null, district: null }); // Association events
-                }
-            }
-            // 2. Logic for Regional View
-            else if (scope.region) {
-                scopeConditions.push(
-                    { region: scope.region }, // Events for this region - we include those with district set or null? 
-                    // Usually a Ranking for a Region should include Region-wide events.
-                    // If we want to sum ALL events in the region (including district specifics), we just filter by region.
-                    // BUT, if I am looking at Regional Ranking, I want to see how clubs compare on shared events?
-                    // Or total performance? "Ranking Geral" usually implies total performance.
-                    // If I include district-specific events, they apply to only some clubs.
-                    // Users want "Sum of all events registered".
-                    // Let's assume inclusive: All events in this region.
-                );
-
-                // If we want broad matching:
-                // match region=R OR (association=A and region=null)
-                if (scope.association) {
-                    scopeConditions.push({ association: scope.association, region: null });
-                }
-            }
-            // 3. Logic for Association View
-            else if (scope.association) {
-                scopeConditions.push({ association: scope.association });
-            }
-
-            // Apply the conditions
-            if (scopeConditions.length > 0) {
-                // If we are in the "else if(scope.region)" block above, we might just want simpler logic:
-                // If I filtered by scope.region, I should probably just trust `region: scope.region`.
-                // However, the issue described is missing events.
-                // Let's stick to the hierarchical OR for "Inherited" events which is the main missing piece.
-
-                // Refined Logic:
-                // If we have a district scope, we MUST look for events that cover that district.
-                // That means: (District == D) OR (Region == R AND District is NULL) OR (Assoc == A AND Region is NULL).
-
-                eventWhere.OR = scopeConditions;
-            } else {
-                // Fallback for simple property match if logic above didn't catch (e.g. only union provided?)
-                if (scope.union) eventWhere.union = scope.union;
-                if (scope.association) eventWhere.association = scope.association;
-                if (scope.region) eventWhere.region = scope.region;
-                if (scope.district) eventWhere.district = scope.district;
-            }
-
+            const eventWhere = this.getEventScopeWhere(scope, startDate, endDate);
 
             const eventsInRange = await this.prisma.regionalEvent.findMany({
                 where: eventWhere,
@@ -225,17 +136,8 @@ export class RankingRegionalService {
                         ? (stats.total / totalPossiblePoints) * 100
                         : 0;
 
-                    let stars = 0;
-                    if (stats.total > 0) {
-                        if (percentage >= 90) stars = 5;
-                        else if (percentage >= 75) stars = 4;
-                        else if (percentage >= 50) stars = 3;
-                        else if (percentage >= 25) stars = 2;
-                        else stars = 1;
-                    }
-
                     stats.percentage = Math.round(percentage);
-                    stats.stars = stars;
+                    stats.stars = this.calculateStars(percentage);
                     clubPointsMap.set(clubId, stats);
                 }
             }
@@ -257,5 +159,128 @@ export class RankingRegionalService {
 
         // Sort by Points Descending
         return ranking.sort((a, b) => b.points - a.points);
+    }
+
+    async getClubRankingDetails(clubId: string, scope: any) {
+        // Similar logic to General Ranking but identifying specific responses
+        // 1. Determine events in scope
+        let eventsInRange: any[] = [];
+        let allReqIds: string[] = [];
+
+        if (scope.regionalEventId) {
+            const evt = await this.prisma.regionalEvent.findUnique({
+                where: { id: scope.regionalEventId },
+                include: { requirements: true }
+            });
+            if (evt) {
+                eventsInRange = [evt];
+                allReqIds = evt.requirements.map(r => r.id);
+            }
+        } else {
+            const { startDate, endDate } = this.getDateRange(scope);
+            const eventWhere = this.getEventScopeWhere(scope, startDate, endDate);
+            eventsInRange = await this.prisma.regionalEvent.findMany({
+                where: eventWhere,
+                include: { requirements: true }
+            });
+
+            for (const evt of eventsInRange) {
+                allReqIds.push(...evt.requirements.map(r => r.id));
+            }
+        }
+
+        if (allReqIds.length === 0) return [];
+
+        const responses = await this.prisma.eventResponse.findMany({
+            where: {
+                requirementId: { in: allReqIds },
+                status: 'APPROVED',
+                clubId: clubId
+            },
+            include: {
+                requirement: {
+                    include: { regionalEvent: true }
+                }
+            },
+            orderBy: { completedAt: 'desc' }
+        });
+
+        return responses.map(r => ({
+            id: r.id,
+            eventName: r.requirement.regionalEvent?.title || 'Evento Desconhecido',
+            requirementTitle: r.requirement.title,
+            points: r.requirement.points,
+            date: r.completedAt || r.createdAt
+        }));
+    }
+
+    private calculateStars(percentage: number): number {
+        if (percentage >= 90) return 5;
+        if (percentage >= 75) return 4;
+        if (percentage >= 50) return 3;
+        if (percentage >= 25) return 2;
+        return 1;
+    }
+
+    private getDateRange(scope: any) {
+        const referenceDate = scope.date ? new Date(scope.date) : new Date();
+        const year = referenceDate.getFullYear();
+        let startDate: Date;
+        let endDate: Date;
+
+        if (scope.period === 'MONTH') {
+            const month = referenceDate.getMonth();
+            startDate = new Date(year, month, 1);
+            endDate = new Date(year, month + 1, 0, 23, 59, 59, 999);
+        } else if (scope.period === 'QUARTER') {
+            const month = referenceDate.getMonth();
+            const quarterStartMonth = Math.floor(month / 3) * 3;
+            startDate = new Date(year, quarterStartMonth, 1);
+            endDate = new Date(year, quarterStartMonth + 3, 0, 23, 59, 59, 999);
+        } else {
+            startDate = new Date(year, 0, 1);
+            endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+        }
+        return { startDate, endDate };
+    }
+
+    private getEventScopeWhere(scope: any, startDate: Date, endDate: Date) {
+        const eventWhere: any = {
+            startDate: { gte: startDate, lte: endDate }
+        };
+
+        const scopeConditions: any[] = [];
+
+        // 1. Logic for District View
+        if (scope.district && scope.region) {
+            scopeConditions.push(
+                { district: scope.district },
+                { region: scope.region, district: null },
+            );
+            if (scope.association) {
+                scopeConditions.push({ association: scope.association, region: null, district: null });
+            }
+        }
+        // 2. Logic for Regional View
+        else if (scope.region) {
+            scopeConditions.push({ region: scope.region });
+            if (scope.association) {
+                scopeConditions.push({ association: scope.association, region: null });
+            }
+        }
+        // 3. Logic for Association View
+        else if (scope.association) {
+            scopeConditions.push({ association: scope.association });
+        }
+
+        if (scopeConditions.length > 0) {
+            eventWhere.OR = scopeConditions;
+        } else {
+            if (scope.union) eventWhere.union = scope.union;
+            if (scope.association) eventWhere.association = scope.association;
+            if (scope.region) eventWhere.region = scope.region;
+            if (scope.district) eventWhere.district = scope.district;
+        }
+        return eventWhere;
     }
 }

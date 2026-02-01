@@ -81,6 +81,45 @@ export class RankingRegionalController {
         return this.rankingService.getRegionalRanking(scope);
     }
 
+    @Get('details/:clubId')
+    @UseGuards(JwtAuthGuard)
+    async getRankingDetails(
+        @Req() req: any,
+        @Param('clubId') clubId: string,
+        @Query('district') district?: string,
+        @Query('region') region?: string,
+        @Query('association') association?: string,
+        @Query('eventId') eventId?: string,
+        @Query('period') period?: 'YEAR' | 'QUARTER' | 'MONTH',
+        @Query('date') date?: string
+    ) {
+        const user = req.user;
+        // Reuse scope logic to ensure consistency (or simpler scope just for filtering events)
+        // For details, validation of user permission to view THAT club is less strict (public ranking), 
+        // but we need the scope to know WHICH events to sum up (e.g. if I am viewing as District Coordinator, I want to see how that club did in My District's events + Regional events).
+
+        let scope: any = { district, region, association, regionalEventId: eventId, period, date };
+
+        // We can reuse the same role-based scope enrichment if needed, but for details of a specific club, 
+        // usually we just want to apply the PERIOD and EVENTID filters.
+        // However, the service logic `getClubRankingDetails` USES the scope to find events.
+        // So we should pass the scope that defines "Which events count".
+        // If the user selects a specific period, we pass that.
+
+        // If the user is a coordinator, existing logic enforced specific district/region params.
+        // Let's trust the frontend passed params or enforce based on token similar to getRanking.
+
+        if (user.role === 'COORDINATOR_DISTRICT') {
+            scope = { ...scope, region: user.region, district: user.district, association: user.association || user.mission };
+        } else if (user.role === 'COORDINATOR_REGIONAL') {
+            scope = { ...scope, region: user.region, association: user.association || user.mission };
+        } else if (user.role === 'COORDINATOR_AREA') {
+            scope = { ...scope, association: user.association || user.mission };
+        }
+
+        return this.rankingService.getClubRankingDetails(clubId, scope);
+    }
+
     @Get('debug/:term')
     async debugRanking(@Param('term') term: string) {
         // 1. Find Event

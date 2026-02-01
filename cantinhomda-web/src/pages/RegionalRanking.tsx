@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Trophy, Star, TrendingUp, Users, MapPin, Calendar } from 'lucide-react';
+import { ClubRankingDetailsModal } from '../components/ClubRankingDetailsModal';
 import { api } from '../lib/axios';
 
 interface RankingClub {
@@ -22,6 +23,9 @@ export const RegionalRanking: React.FC = () => {
     // Actually simplicity: 'YEAR' | 'QUARTER' | 'MONTH'
     const [filterType, setFilterType] = useState<'YEAR' | 'QUARTER' | 'MONTH'>('YEAR');
     const [referenceDate, setReferenceDate] = useState<Date>(new Date());
+
+    // State for Details Modal
+    const [selectedClubDetails, setSelectedClubDetails] = useState<{ id: string, name: string } | null>(null);
 
     // Fetch Events for Filter
     const { data: events = [] } = useQuery({
@@ -186,7 +190,12 @@ export const RegionalRanking: React.FC = () => {
                                                 </div>
                                             )}
                                             <div>
-                                                <div className="font-semibold text-slate-800">{club.name}</div>
+                                                <div
+                                                    className="font-semibold text-slate-800 hover:text-indigo-600 hover:underline cursor-pointer transition-colors"
+                                                    onClick={() => setSelectedClubDetails({ id: club.id, name: club.name })}
+                                                >
+                                                    {club.name}
+                                                </div>
                                                 <div className="text-xs text-slate-500 flex items-center gap-1">
                                                     <Users className="w-3 h-3" />
                                                     {club.memberCount} membros
@@ -227,6 +236,21 @@ export const RegionalRanking: React.FC = () => {
                     </table>
                 </div>
             </div>
+            {/* Modal de Detalhes */}
+            <ClubRankingDetailsModal
+                isOpen={!!selectedClubDetails}
+                onClose={() => setSelectedClubDetails(null)}
+                clubId={selectedClubDetails?.id || null}
+                clubName={selectedClubDetails?.name || ''}
+                filters={{
+                    period: filterType,
+                    date: referenceDate,
+                    eventId: selectedEventId,
+                    region: user?.region,
+                    district: user?.district,
+                    association: user?.association
+                }}
+            />
         </div>
     );
 };
