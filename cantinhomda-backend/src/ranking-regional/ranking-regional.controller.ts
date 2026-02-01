@@ -9,11 +9,19 @@ export class RankingRegionalController {
 
     @Get()
     @UseGuards(JwtAuthGuard)
-    async getRanking(@Req() req: any, @Query('district') district?: string, @Query('region') region?: string, @Query('association') association?: string, @Query('eventId') eventId?: string) {
+    async getRanking(
+        @Req() req: any,
+        @Query('district') district?: string,
+        @Query('region') region?: string,
+        @Query('association') association?: string,
+        @Query('eventId') eventId?: string,
+        @Query('period') period?: 'YEAR' | 'QUARTER' | 'MONTH',
+        @Query('date') date?: string
+    ) {
         const user = req.user;
-        console.log(`[RankingRegional] Request by User: ${user.email} (${user.role}) Scope Params:`, { district, region, association, eventId });
+        console.log(`[RankingRegional] Request by User: ${user.email} (${user.role}) Scope Params:`, { district, region, association, eventId, period, date });
 
-        let scope: any = { district, region, association, regionalEventId: eventId };
+        let scope: any = { district, region, association, regionalEventId: eventId, period, date };
 
         // Restrição para Diretores: Ver apenas o próprio clube
         if (user.role === 'DIRECTOR' || user.role === 'OWNER' || user.role === 'ADMIN') {

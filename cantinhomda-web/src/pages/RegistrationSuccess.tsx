@@ -15,7 +15,7 @@ export function RegistrationSuccess() {
 
     // Construct the WhatsApp message
     const message = isNewClub
-        ? `Olá Master!
+        ? `Olá ADMIN
 Acabei de cadastrar meu clube no Cantinho MDA e aguardo liberação.
 
 *Dados do Clube:*

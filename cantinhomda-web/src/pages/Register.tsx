@@ -709,9 +709,9 @@ export function Register() {
                                 {/* Price Calculator */}
                                 {clubSize && !isNaN(Number(clubSize)) && (
                                     <div className="mt-2 p-3 bg-green-50 border border-green-100 rounded-lg flex justify-between items-center animate-in fade-in slide-in-from-top-2">
-                                        <span className="text-sm text-green-800">Valor do Plano:</span>
+                                        <span className="text-base font-bold text-green-900">Valor do Plano:</span>
                                         <div className="text-right">
-                                            <span className="block text-lg font-bold text-green-700">
+                                            <span className="block text-2xl font-black text-green-700">
                                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                                                     Number(clubSize) * 2 * (
                                                         paymentPeriod === 'TRIMESTRAL' ? 3 :
@@ -719,13 +719,15 @@ export function Register() {
                                                     )
                                                 )}
                                             </span>
-                                            <span className="text-[10px] text-green-600 font-medium">
+                                            <span className="text-sm text-green-800 font-bold uppercase">
                                                 ({paymentPeriod === 'MENSAL' ? 'Mensal' : paymentPeriod === 'TRIMESTRAL' ? 'Trimestral' : 'Anual'})
                                             </span>
                                         </div>
                                     </div>
                                 )}
-                                <p className="text-xs text-slate-500 mt-1">Custo de <b>R$ 2,00</b> por membro/mês.</p>
+                                <p className="text-sm text-slate-700 font-bold mt-2 bg-slate-100 p-2 rounded-lg text-center border border-slate-200">
+                                    Custo de <span className="text-green-700">R$ 2,00</span> por membro/mês.
+                                </p>
                             </div>
                         </>
                     )}
