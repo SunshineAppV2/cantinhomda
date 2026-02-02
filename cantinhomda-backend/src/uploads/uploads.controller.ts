@@ -23,7 +23,11 @@ export class UploadsController {
         }
 
         try {
-            const bucket = firebaseAdmin.storage().bucket();
+            // Use configured bucket or fallback to the known correct one from FIREBASE_CONFIG
+            // Default behavior often tries project-id.appspot.com which might not exist
+            const bucketName = process.env.FIREBASE_STORAGE_BUCKET || 'cantinhodbv-dfdab.firebasestorage.app';
+            const bucket = firebaseAdmin.storage().bucket(bucketName);
+
             const filename = `${Date.now()}_${Math.round(Math.random() * 10000)}_${file.originalname}`;
             const fileUpload = bucket.file(`uploads/${filename}`);
 
@@ -33,9 +37,6 @@ export class UploadsController {
             });
 
             // Construct public URL
-            // If storageBucket is configured properly, we can use the default domain
-            // Otherwise, we construct it manually assuming standard pattern
-            const bucketName = bucket.name;
             const publicUrl = `https://storage.googleapis.com/${bucketName}/uploads/${filename}`;
 
             // Frontend expects { url: ... }
