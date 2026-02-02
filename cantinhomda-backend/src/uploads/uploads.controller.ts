@@ -53,6 +53,25 @@ export class UploadsController {
             };
         } catch (error) {
             console.error(`Upload Error (Bucket: ${bucketName}):`, error);
+
+            // Diagnostics: Check who we are and what we can see
+            try {
+                const projectId = process.env.FIREBASE_PROJECT_ID;
+                const email = process.env.FIREBASE_CLIENT_EMAIL;
+                console.log(`[Diagnostics] Project: ${projectId}, Email: ${email}`);
+
+                const [buckets] = await (firebaseAdmin.storage() as any).getBuckets();
+                const bucketNames = buckets.map(b => b.name);
+                console.log(`[Diagnostics] Available Buckets: ${bucketNames.join(', ')}`);
+
+                // If we found buckets, hint the user
+                if (bucketNames.length > 0 && !bucketNames.includes(bucketName)) {
+                    throw new BadRequestException(`Bucket não encontrado. Buckets disponíveis: ${bucketNames.join(', ')}`);
+                }
+            } catch (diagError) {
+                console.error('[Diagnostics] Failed to run diagnostics:', diagError);
+            }
+
             throw new BadRequestException(`Erro ao salvar arquivo no bucket '${bucketName}': ${error.message || error}`);
         }
     }
