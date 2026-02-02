@@ -44,7 +44,7 @@ export class UploadsController {
             };
         } catch (error) {
             console.error('Upload Error:', error);
-            throw new BadRequestException('Erro ao salvar arquivo no Storage.');
+            throw new BadRequestException(`Erro ao salvar arquivo no Storage: ${error.message || error}`);
         }
     }
 }
