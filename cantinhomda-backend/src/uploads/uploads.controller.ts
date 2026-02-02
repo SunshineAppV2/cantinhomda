@@ -22,10 +22,11 @@ export class UploadsController {
             throw new BadRequestException('Nenhum arquivo enviado ou erro no upload.');
         }
 
+        let bucketName = 'unknown';
         try {
             // Use configured bucket or fallback to the known correct one from FIREBASE_CONFIG
             // Default behavior often tries project-id.appspot.com which might not exist
-            const bucketName = process.env.FIREBASE_STORAGE_BUCKET || 'cantinhodbv-dfdab.firebasestorage.app';
+            bucketName = process.env.FIREBASE_STORAGE_BUCKET || 'cantinhodbv-dfdab.firebasestorage.app';
             const bucket = firebaseAdmin.storage().bucket(bucketName);
 
             const filename = `${Date.now()}_${Math.round(Math.random() * 10000)}_${file.originalname}`;
@@ -44,8 +45,8 @@ export class UploadsController {
                 url: publicUrl,
             };
         } catch (error) {
-            console.error('Upload Error:', error);
-            throw new BadRequestException(`Erro ao salvar arquivo no Storage: ${error.message || error}`);
+            console.error(`Upload Error (Bucket: ${bucketName}):`, error);
+            throw new BadRequestException(`Erro ao salvar arquivo no bucket '${bucketName}': ${error.message || error}`);
         }
     }
 }
