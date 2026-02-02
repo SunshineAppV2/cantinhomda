@@ -86,8 +86,14 @@ function AnswerModal({ requirement, onClose, eventId, existingResponse }: { requ
                     const uploadRes = await api.post('/uploads', formData);
                     fileUrl = uploadRes.data.url;
                 } catch (err: any) {
+
                     console.error("Upload failed in frontend:", err);
-                    throw new Error("Falha ao fazer upload do arquivo. Verifique o tamanho (max 2MB).");
+                    const backendMsg = err.response?.data?.message;
+                    // Format message if array (NestJS validation) or string
+                    const errorDetails = backendMsg
+                        ? (Array.isArray(backendMsg) ? backendMsg.join(', ') : backendMsg)
+                        : "Verifique o tamanho (max 2MB) e tipo (PDF/JPG).";
+                    throw new Error(`Falha no upload: ${errorDetails}`);
                 }
             }
 
