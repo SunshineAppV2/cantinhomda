@@ -9,7 +9,7 @@ import { firebaseAdmin } from '../firebase-admin';
 export class UploadsController {
     @Post()
     @UseInterceptors(FileInterceptor('file', {
-        limits: { fileSize: 1 * 1024 * 1024 }, // 1MB limit
+        limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
         fileFilter: (req, file, cb) => {
             if (!file.mimetype.match(/\/(jpg|jpeg|pdf)$/)) {
                 return cb(new BadRequestException('Apenas arquivos JPEG, JPG e PDF são permitidos'), false);

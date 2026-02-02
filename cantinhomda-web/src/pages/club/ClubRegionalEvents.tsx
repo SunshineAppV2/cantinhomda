@@ -87,7 +87,7 @@ function AnswerModal({ requirement, onClose, eventId, existingResponse }: { requ
                     fileUrl = uploadRes.data.url;
                 } catch (err: any) {
                     console.error("Upload failed in frontend:", err);
-                    throw new Error("Falha ao fazer upload do arquivo. Verifique o tamanho (max 5MB).");
+                    throw new Error("Falha ao fazer upload do arquivo. Verifique o tamanho (max 2MB).");
                 }
             }
 
@@ -186,7 +186,7 @@ function AnswerModal({ requirement, onClose, eventId, existingResponse }: { requ
                                 <p className="text-sm text-slate-600 font-medium">
                                     {file ? file.name : (initialFileName ? `Arquivo Atual: ${initialFileName} (Arraste outro para trocar)` : 'Clique ou Arraste o arquivo aqui')}
                                 </p>
-                                <p className="text-xs text-slate-400 mt-1">Máx: 5MB</p>
+                                <p className="text-xs text-slate-400 mt-1">Máx: 2MB</p>
                             </div>
                         </div>
                     </div>
