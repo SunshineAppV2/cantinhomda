@@ -27,6 +27,13 @@ export class UploadsController {
             // Use configured bucket or fallback to the known correct one from FIREBASE_CONFIG
             // Default behavior often tries project-id.appspot.com which might not exist
             bucketName = process.env.FIREBASE_STORAGE_BUCKET || 'cantinhodbv-dfdab.firebasestorage.app';
+
+            // Fix: Render/Env might have the wrong default 'appspot.com' which doesn't exist for this project
+            if (bucketName.includes('appspot.com')) {
+                console.warn(`[Uploads] Detected likely incorrect bucket '${bucketName}'. Switching to 'firebasestorage.app'.`);
+                bucketName = bucketName.replace('.appspot.com', '.firebasestorage.app');
+            }
+
             const bucket = firebaseAdmin.storage().bucket(bucketName);
 
             const filename = `${Date.now()}_${Math.round(Math.random() * 10000)}_${file.originalname}`;
