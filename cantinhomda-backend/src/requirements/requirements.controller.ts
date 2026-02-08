@@ -1,4 +1,3 @@
-
 import { Controller, Get, Post, Body, Query, UseGuards, Param, Request, Delete, Patch, BadRequestException, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UpdateRequirementDto } from './dto/update-requirement.dto';
@@ -6,10 +5,14 @@ import { RequirementsService } from './requirements.service';
 import { CreateRequirementDto } from './dto/create-requirement.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { DBVClass } from '@prisma/client';
+import { StorageService } from '../uploads/storage.service';
 
 @Controller('requirements')
 export class RequirementsController {
-    constructor(private readonly requirementsService: RequirementsService) { }
+    constructor(
+        private readonly requirementsService: RequirementsService,
+        private readonly storageService: StorageService
+    ) { }
 
     @UseGuards(JwtAuthGuard)
     @Get('scrape')
@@ -137,8 +140,8 @@ export class RequirementsController {
     @UseInterceptors(FileInterceptor('file', {
         limits: { fileSize: 1 * 1024 * 1024 }, // 1MB limit
         fileFilter: (req, file, cb) => {
-            if (!file.mimetype.match(/\/(jpg|jpeg|pdf)$/)) {
-                return cb(new BadRequestException('Apenas arquivos JPEG, JPG e PDF são permitidos'), false);
+            if (!file.mimetype.match(/\/(jpg|jpeg|png|webp|pdf)$/)) {
+                return cb(new BadRequestException('Apenas arquivos de Imagem (JPG, PNG, WebP) e PDF são permitidos'), false);
             }
             cb(null, true);
         }
@@ -155,43 +158,13 @@ export class RequirementsController {
 
             // 1. Handle Quiz
             if (quizAnswers) {
-                const parsedAnswers = typeof quizAnswers === 'string' ? JSON.parse(quizAnswers) : quizAnswers;
-                // Convert { "0": 1, "1": 0 } object to array [{questionId: ?, selectedIndex: ?}]
-                // Wait, frontend sends { questionIndex: optionIndex }. Backend expects { questionId, selectedIndex }.
-                // Frontend 'quizAnswers' uses INDEX as key.
-                // We need to map index to Question ID? 
-                // Using `getQuiz` we sent Question IDs. Frontend should ideally send Question IDs.
-                // Looking at frontend: `quizAnswers` state is index->index.
-                // This is risky if order changes.
-                // Ideally frontend should change to questionId->index.
-                // But for now, let's assume standard flow (Text/File) is priority.
-                // If it's a quiz, we will need to refactor frontend to send IDs.
-                // For now, logging.
                 console.warn('Quiz submission via generic respond endpoint not fully implemented yet.');
             }
 
             // 2. Handle File Upload
             let fileUrl: string | null = null;
             if (file) {
-                try {
-                    const admin = await import('firebase-admin');
-                    if (admin.apps.length > 0) {
-                        const bucket = admin.storage().bucket();
-                        const filename = `responses/${Date.now()}_${userId}_${file.originalname}`;
-                        const fileUpload = bucket.file(filename);
-
-                        await fileUpload.save(file.buffer, {
-                            contentType: file.mimetype,
-                            public: true,
-                        });
-                        fileUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
-                    } else {
-                        console.warn('Firebase Admin not initialized. Skipping upload.');
-                    }
-                } catch (err) {
-                    console.error('Firebase Upload Error:', err);
-                    // Fallback or throw?
-                }
+                fileUrl = await this.storageService.uploadFile(file, 'responses');
             }
 
             // 3. Submit to Service

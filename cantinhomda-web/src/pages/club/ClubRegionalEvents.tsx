@@ -92,7 +92,7 @@ function AnswerModal({ requirement, onClose, eventId, existingResponse }: { requ
                     // Format message if array (NestJS validation) or string
                     const errorDetails = backendMsg
                         ? (Array.isArray(backendMsg) ? backendMsg.join(', ') : backendMsg)
-                        : "Verifique o tamanho (max 2MB) e tipo (PDF/JPG).";
+                        : "Verifique o tamanho (max 1MB) e tipo (PDF/JPG).";
                     throw new Error(`Falha no upload: ${errorDetails}`);
                 }
             }
@@ -136,7 +136,12 @@ function AnswerModal({ requirement, onClose, eventId, existingResponse }: { requ
         e.stopPropagation();
         setDragActive(false);
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            setFile(e.dataTransfer.files[0]);
+            const f = e.dataTransfer.files[0];
+            if (f.size > 1 * 1024 * 1024) {
+                toast.error('O arquivo deve ter no máximo 1MB.');
+                return;
+            }
+            setFile(f);
         }
     };
 
@@ -183,7 +188,18 @@ function AnswerModal({ requirement, onClose, eventId, existingResponse }: { requ
                         >
                             <input
                                 type="file"
-                                onChange={e => setFile(e.target.files?.[0] || null)}
+                                onChange={e => {
+                                    const f = e.target.files?.[0];
+                                    if (f) {
+                                        if (f.size > 1 * 1024 * 1024) {
+                                            toast.error('O arquivo deve ter no máximo 1MB.');
+                                            return;
+                                        }
+                                        setFile(f);
+                                    } else {
+                                        setFile(null);
+                                    }
+                                }}
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 required={requirement.type === 'FILE' && !existingResponse?.answerFileUrl && !textResponse} // Require if new
                             />
@@ -192,7 +208,7 @@ function AnswerModal({ requirement, onClose, eventId, existingResponse }: { requ
                                 <p className="text-sm text-slate-600 font-medium">
                                     {file ? file.name : (initialFileName ? `Arquivo Atual: ${initialFileName} (Arraste outro para trocar)` : 'Clique ou Arraste o arquivo aqui')}
                                 </p>
-                                <p className="text-xs text-slate-400 mt-1">Máx: 2MB</p>
+                                <p className="text-xs text-slate-400 mt-1">Máx: 1MB</p>
                             </div>
                         </div>
                     </div>

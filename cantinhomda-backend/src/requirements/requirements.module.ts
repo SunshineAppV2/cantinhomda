@@ -3,9 +3,10 @@ import { RequirementsService } from './requirements.service';
 import { RequirementsController } from './requirements.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ClubsModule } from '../clubs/clubs.module';
+import { UploadsModule } from '../uploads/uploads.module';
 
 @Module({
-    imports: [PrismaModule, ClubsModule],
+    imports: [PrismaModule, ClubsModule, UploadsModule],
     controllers: [RequirementsController],
     providers: [RequirementsService],
     exports: [RequirementsService]

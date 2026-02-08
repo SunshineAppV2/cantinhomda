@@ -209,10 +209,23 @@ export function FinancialDashboard() {
                             type="file"
                             required
                             accept=".pdf,image/*"
-                            onChange={e => setProofFile(e.target.files?.[0] || null)}
+                            onChange={e => {
+                                const f = e.target.files?.[0];
+                                if (f) {
+                                    if (f.size > 1 * 1024 * 1024) {
+                                        toast.error('O arquivo deve ter no máximo 1MB.');
+                                        e.target.value = ''; // Reset input
+                                        setProofFile(null);
+                                        return;
+                                    }
+                                    setProofFile(f);
+                                } else {
+                                    setProofFile(null);
+                                }
+                            }}
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                         />
-                        <p className="text-xs text-slate-500 mt-1">Anexe o comprovante da transferência.</p>
+                        <p className="text-xs text-slate-500 mt-1">Anexe o comprovante da transferência (Max: 1MB).</p>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4">

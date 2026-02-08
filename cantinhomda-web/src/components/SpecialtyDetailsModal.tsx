@@ -227,9 +227,25 @@ export function SpecialtyDetailsModal({ isOpen, onClose, specialty, userSpecialt
                                                         <label className="flex-1 cursor-pointer bg-white border border-slate-200 rounded-lg p-2 flex items-center gap-2 hover:bg-slate-50 transition-colors">
                                                             <Upload className="w-4 h-4 text-slate-400" />
                                                             <span className="text-sm text-slate-600 truncate">
-                                                                {files[req.id]?.name || 'Escolher arquivo...'}
+                                                                {files[req.id]?.name || 'Escolher arquivo (Max: 1MB)...'}
                                                             </span>
-                                                            <input type="file" className="hidden" onChange={e => setFiles(prev => ({ ...prev, [req.id]: e.target.files?.[0] || null }))} />
+                                                            <input
+                                                                type="file"
+                                                                className="hidden"
+                                                                accept=".pdf,image/*"
+                                                                onChange={e => {
+                                                                    const f = e.target.files?.[0];
+                                                                    if (f) {
+                                                                        if (f.size > 1 * 1024 * 1024) {
+                                                                            alert('O arquivo deve ter no máximo 1MB.');
+                                                                            return;
+                                                                        }
+                                                                        setFiles(prev => ({ ...prev, [req.id]: f }));
+                                                                    } else {
+                                                                        setFiles(prev => ({ ...prev, [req.id]: null }));
+                                                                    }
+                                                                }}
+                                                            />
                                                         </label>
                                                     </div>
                                                 )}

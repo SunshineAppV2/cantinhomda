@@ -5,21 +5,16 @@ import { UpdateTransactionDto } from './dto/update-transaction.dto';
 import { SettleTransactionDto } from './dto/settle-transaction.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import * as fs from 'fs';
-
+import { StorageService } from '../uploads/storage.service';
 import { ClubAccessGuard } from '../auth/club-access.guard';
 
 @Controller('treasury')
 @UseGuards(JwtAuthGuard, ClubAccessGuard)
 export class TreasuryController {
-    constructor(private readonly treasuryService: TreasuryService) {
-        // Ensure uploads directory exists
-        if (!fs.existsSync('./uploads')) {
-            fs.mkdirSync('./uploads');
-        }
-    }
+    constructor(
+        private readonly treasuryService: TreasuryService,
+        private readonly storageService: StorageService
+    ) { }
 
     @Post()
     create(@Body() createTransactionDto: CreateTransactionDto) {
@@ -76,23 +71,19 @@ export class TreasuryController {
     @Post(':id/pay')
     @UseInterceptors(FileInterceptor('file', {
         limits: { fileSize: 1 * 1024 * 1024 }, // 1MB limit
-        storage: diskStorage({
-            destination: './uploads',
-            filename: (req, file, cb) => {
-                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-                const ext = extname(file.originalname);
-                cb(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-            }
-        }),
         fileFilter: (req, file, cb) => {
-            if (!file.mimetype.match(/\/(jpg|jpeg|pdf)$/)) {
-                return cb(new BadRequestException('Apenas arquivos JPEG, JPG e PDF são permitidos'), false);
+            if (!file.mimetype.match(/\/(jpg|jpeg|png|webp|pdf)$/)) {
+                return cb(new BadRequestException('Apenas arquivos de Imagem (JPG, PNG, WebP) e PDF são permitidos'), false);
             }
             cb(null, true);
         }
     }))
-    pay(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @Body('proofUrl') proofUrl?: string) {
-        const finalUrl = file ? `/uploads/${file.filename}` : proofUrl;
+    async pay(@Param('id') id: string, @UploadedFile() file: Express.Multer.File, @Body('proofUrl') proofUrl?: string) {
+        let finalUrl = proofUrl;
+
+        if (file) {
+            finalUrl = await this.storageService.uploadFile(file, 'treasury');
+        }
 
         if (!finalUrl) {
             throw new BadRequestException('É necessário enviar um arquivo ou link de comprovante.');

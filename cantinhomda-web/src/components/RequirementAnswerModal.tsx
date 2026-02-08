@@ -165,11 +165,26 @@ export function RequirementAnswerModal({ isOpen, onClose, requirement }: Require
                                 ) : (
                                     <>
                                         <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                        <p className="text-xs text-slate-500">Clique para enviar arquivo</p>
+                                        <p className="text-xs text-slate-500">Clique para enviar arquivo (Max: 1MB)</p>
                                     </>
                                 )}
                             </div>
-                            <input type="file" className="hidden" onChange={e => setSelectedFile(e.target.files?.[0] || null)} />
+                            <input
+                                type="file"
+                                className="hidden"
+                                onChange={e => {
+                                    const f = e.target.files?.[0];
+                                    if (f) {
+                                        if (f.size > 1 * 1024 * 1024) {
+                                            alert('O arquivo deve ter no máximo 1MB.');
+                                            return;
+                                        }
+                                        setSelectedFile(f);
+                                    } else {
+                                        setSelectedFile(null);
+                                    }
+                                }}
+                            />
                         </label>
                     </div>
                 )}

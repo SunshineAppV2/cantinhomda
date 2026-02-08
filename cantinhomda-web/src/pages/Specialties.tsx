@@ -248,6 +248,10 @@ export function Specialties() {
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            if (file.size > 1 * 1024 * 1024) {
+                alert('A imagem deve ter no máximo 1MB.');
+                return;
+            }
             setIsUploading(true);
             const formData = new FormData();
             formData.append('file', file);
@@ -474,7 +478,7 @@ export function Specialties() {
                                         </div>
                                         <div>
                                             <span className="text-sm font-medium text-slate-700">Clique para enviar</span>
-                                            <p className="text-xs text-slate-500 mt-1">PNG, JPG ou WEBP</p>
+                                            <p className="text-xs text-slate-500 mt-1">PNG, JPG ou WEBP (Max: 1MB)</p>
                                         </div>
                                     </>
                                 )}
