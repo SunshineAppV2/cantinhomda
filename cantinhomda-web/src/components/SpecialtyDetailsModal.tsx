@@ -226,8 +226,12 @@ export function SpecialtyDetailsModal({ isOpen, onClose, specialty, userSpecialt
                                                     <div className="flex items-center gap-3">
                                                         <label className="flex-1 cursor-pointer bg-white border border-slate-200 rounded-lg p-2 flex items-center gap-2 hover:bg-slate-50 transition-colors">
                                                             <Upload className="w-4 h-4 text-slate-400" />
-                                                            <span className="text-sm text-slate-600 truncate">
-                                                                {files[req.id]?.name || 'Escolher arquivo (Max: 1MB)...'}
+                                                            <span className="text-sm text-slate-600 truncate flex-1 block">
+                                                                {files[req.id]?.name || (
+                                                                    <>
+                                                                        Escolher arquivo <span className="text-xs text-slate-400 ml-1">(Max 1MB)</span>
+                                                                    </>
+                                                                )}
                                                             </span>
                                                             <input
                                                                 type="file"

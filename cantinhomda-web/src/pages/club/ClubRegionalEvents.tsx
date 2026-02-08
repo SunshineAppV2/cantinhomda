@@ -178,7 +178,17 @@ function AnswerModal({ requirement, onClose, eventId, existingResponse }: { requ
 
                 {(requirement.type === 'FILE' || requirement.type === 'BOTH') && (
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Anexar Comprovante (PDF/Imagem/Vídeo)</label>
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-sm text-blue-800 mb-3">
+                            <p className="font-bold flex items-center gap-2 mb-1">
+                                <AlertCircle className="w-4 h-4" /> Diretrizes de Envio
+                            </p>
+                            <ul className="list-disc pl-5 space-y-1 text-xs">
+                                <li>Tamanho máximo: <strong className="text-red-600">1MB</strong> (Arquivos maiores serão rejeitados)</li>
+                                <li>Formatos permitidos: PDF, JPG, PNG, WebP</li>
+                            </ul>
+                        </div>
+
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Anexar Comprovante</label>
                         <div
                             className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer relative ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-slate-300 hover:bg-slate-50'}`}
                             onDragEnter={handleDrag}
@@ -208,7 +218,7 @@ function AnswerModal({ requirement, onClose, eventId, existingResponse }: { requ
                                 <p className="text-sm text-slate-600 font-medium">
                                     {file ? file.name : (initialFileName ? `Arquivo Atual: ${initialFileName} (Arraste outro para trocar)` : 'Clique ou Arraste o arquivo aqui')}
                                 </p>
-                                <p className="text-xs text-slate-400 mt-1">Máx: 1MB</p>
+                                <p className="text-xs font-bold text-slate-400 mt-1">Máx: <span className="text-red-500">1MB</span></p>
                             </div>
                         </div>
                     </div>

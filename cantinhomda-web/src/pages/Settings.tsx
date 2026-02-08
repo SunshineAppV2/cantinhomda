@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/axios';
-import { Download, Shield, Database, Save, Server, CreditCard, Activity, Users } from 'lucide-react';
+import { Download, Shield, Database, Save, Server, CreditCard, Activity, Users, Upload, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { AccessControlEditor } from '../components/AccessControlEditor';
@@ -11,6 +11,7 @@ export function Settings() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
     const [downloading, setDownloading] = useState(false);
+    const [uploadingLogo, setUploadingLogo] = useState(false);
 
     // Club Edit State
     const [clubName, setClubName] = useState('');
@@ -201,14 +202,75 @@ export function Settings() {
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-1">URL do Logo</label>
-                                <input
-                                    type="text"
-                                    value={logoUrl}
-                                    onChange={(e) => setLogoUrl(e.target.value)}
-                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-                                    placeholder="https://..."
-                                />
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Logo do Clube</label>
+                                <div className="flex flex-col md:flex-row items-start gap-4">
+                                    {logoUrl && (
+                                        <div className="relative w-32 h-32 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 shrink-0 group">
+                                            <img src={logoUrl} alt="Logo Atual" className="w-full h-full object-contain" />
+                                            <button
+                                                type="button"
+                                                onClick={() => setLogoUrl('')}
+                                                className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full text-slate-500 hover:text-red-500 transition-colors shadow-sm opacity-0 group-hover:opacity-100"
+                                                title="Remover Logo"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    <label className={`flex-1 w-full border-2 border-dashed border-slate-300 rounded-lg p-6 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors bg-white ${uploadingLogo ? 'opacity-50 pointer-events-none' : ''}`}>
+                                        <div className="bg-blue-50 p-3 rounded-full mb-3">
+                                            {uploadingLogo ? (
+                                                <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                                <Upload className="w-6 h-6 text-blue-600" />
+                                            )}
+                                        </div>
+                                        <p className="text-sm font-bold text-slate-700">
+                                            {uploadingLogo ? 'Enviando imagem...' : 'Clique para selecionar o logo'}
+                                        </p>
+                                        <p className="text-xs text-slate-500 mt-1 mb-2">
+                                            Formatos: PNG, JPG ou WebP
+                                        </p>
+                                        <div className="px-3 py-1 rounded-full bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200">
+                                            Máximo: 1MB
+                                        </div>
+                                        <input
+                                            type="file"
+                                            className="hidden"
+                                            accept="image/png, image/jpeg, image/webp"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (!file) return;
+
+                                                if (file.size > 1024 * 1024) {
+                                                    toast.error('A imagem deve ter no máximo 1MB.');
+                                                    return;
+                                                }
+
+                                                if (!file.type.startsWith('image/')) {
+                                                    toast.error('Apenas arquivos de imagem são permitidos.');
+                                                    return;
+                                                }
+
+                                                try {
+                                                    setUploadingLogo(true);
+                                                    const formData = new FormData();
+                                                    formData.append('file', file);
+
+                                                    const res = await api.post('/uploads', formData);
+                                                    setLogoUrl(res.data.url);
+                                                    toast.success('Logo enviado com sucesso!');
+                                                } catch (error) {
+                                                    console.error(error);
+                                                    toast.error('Erro ao enviar o logo. Tente novamente.');
+                                                } finally {
+                                                    setUploadingLogo(false);
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                </div>
                             </div>
                             <button
                                 type="submit"

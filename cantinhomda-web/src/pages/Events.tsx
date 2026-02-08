@@ -568,8 +568,46 @@ export function Events() {
             </Modal>
 
             {/* Import Modals reused... */}
-            <Modal isOpen={isImportEventsOpen} onClose={() => setIsImportEventsOpen(false)} title="Importar Eventos"><div className="space-y-4"><input type="file" onChange={(e) => e.target.files?.[0] && importEventsMutation.mutate(e.target.files[0])} /></div></Modal>
-            <Modal isOpen={isImportRegistrationsOpen} onClose={() => setIsImportRegistrationsOpen(false)} title="Importar Inscrições"><div className="space-y-4"><input type="file" onChange={(e) => e.target.files?.[0] && importRegistrationsMutation.mutate(e.target.files[0])} /></div></Modal>
+            <Modal isOpen={isImportEventsOpen} onClose={() => setIsImportEventsOpen(false)} title="Importar Eventos">
+                <div className="space-y-4">
+                    <div className="border border-blue-100 bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
+                        <p className="font-bold mb-1">Instruções:</p>
+                        <ul className="list-disc pl-4 space-y-1">
+                            <li>Envie um arquivo <strong>.xlsx</strong> com os dados dos eventos.</li>
+                            <li>Tamanho máx: <strong>2MB</strong></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Arquivo Excel</label>
+                        <input
+                            type="file"
+                            accept=".xlsx"
+                            onChange={(e) => e.target.files?.[0] && importEventsMutation.mutate(e.target.files[0])}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+                        />
+                    </div>
+                </div>
+            </Modal>
+            <Modal isOpen={isImportRegistrationsOpen} onClose={() => setIsImportRegistrationsOpen(false)} title="Importar Inscrições">
+                <div className="space-y-4">
+                    <div className="border border-blue-100 bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
+                        <p className="font-bold mb-1">Instruções:</p>
+                        <ul className="list-disc pl-4 space-y-1">
+                            <li>Envie um arquivo <strong>.xlsx</strong> com as inscrições.</li>
+                            <li>Certifique-se que o CPF dos membros está correto.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Arquivo Excel</label>
+                        <input
+                            type="file"
+                            accept=".xlsx"
+                            onChange={(e) => e.target.files?.[0] && importRegistrationsMutation.mutate(e.target.files[0])}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+                        />
+                    </div>
+                </div>
+            </Modal>
 
             {/* Day Events Modal reused... */}
             <Modal isOpen={isDayEventsModalOpen} onClose={() => setIsDayEventsModalOpen(false)} title={`Eventos em ${selectedDayEvents.date.toLocaleDateString()}`}>

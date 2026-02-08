@@ -478,7 +478,7 @@ export function Specialties() {
                                         </div>
                                         <div>
                                             <span className="text-sm font-medium text-slate-700">Clique para enviar</span>
-                                            <p className="text-xs text-slate-500 mt-1">PNG, JPG ou WEBP (Max: 1MB)</p>
+                                            <p className="text-xs text-slate-500 mt-1">PNG, JPG ou WEBP (Max: <span className="text-red-500 font-bold">1MB</span>)</p>
                                         </div>
                                     </>
                                 )}

@@ -1049,26 +1049,29 @@ export function Meetings() {
                 title="Importar Reuniões (Excel)"
             >
                 <div className="space-y-4">
-                    <p className="text-sm text-slate-500">
-                        O arquivo deve conter as colunas: <strong>Titulo</strong>, <strong>Data</strong> (DD/MM/AAAA), <strong>Tipo</strong>, <strong>Pontos</strong>.
-                    </p>
-                    <input
-                        type="file"
-                        accept=".xlsx, .xls"
-                        onChange={(e) => {
-                            if (e.target.files?.[0]) {
-                                if (window.confirm('Confirmar importação deste arquivo?')) {
-                                    importMeetingsMutation.mutate(e.target.files[0]);
+                    <div className="border border-blue-100 bg-blue-50 p-4 rounded-lg text-sm text-blue-800">
+                        <p className="font-bold mb-1">Instruções:</p>
+                        <ul className="list-disc pl-4 space-y-1">
+                            <li>O arquivo deve conter as colunas: <strong>Titulo</strong>, <strong>Data</strong>, <strong>Tipo</strong>, <strong>Pontos</strong>.</li>
+                            <li>Formatos aceitos: <strong>.xlsx, .xls</strong></li>
+                            <li>Tamanho máx: <strong>2MB</strong></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Arquivo Excel</label>
+                        <input
+                            type="file"
+                            accept=".xlsx, .xls"
+                            onChange={(e) => {
+                                if (e.target.files?.[0]) {
+                                    if (window.confirm('Confirmar importação deste arquivo?')) {
+                                        importMeetingsMutation.mutate(e.target.files[0]);
+                                    }
                                 }
-                            }
-                        }}
-                        className="block w-full text-sm text-slate-500
-                            file:mr-4 file:py-2 file:px-4
-                            file:rounded-full file:border-0
-                            file:text-sm file:font-semibold
-                            file:bg-emerald-50 file:text-emerald-700
-                            hover:file:bg-emerald-100"
-                    />
+                            }}
+                            className="w-full px-4 py-2 border border-slate-300 rounded-lg"
+                        />
+                    </div>
                     {importMeetingsMutation.isPending && (
                         <p className="text-center text-emerald-600 font-medium">Processando planilha...</p>
                     )}

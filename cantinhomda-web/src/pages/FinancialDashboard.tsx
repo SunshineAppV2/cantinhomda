@@ -203,8 +203,15 @@ export function FinancialDashboard() {
                         <p className="text-xs text-blue-500 mt-2">Faça a transferência e anexe o comprovante abaixo.</p>
                     </div>
 
+                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-600 mb-3">
+                        <ul className="list-disc pl-4 space-y-1">
+                            <li><strong>Limite de 1MB</strong> por arquivo.</li>
+                            <li>Preferência por <strong>PDF</strong> ou <strong>Imagem</strong> legível.</li>
+                        </ul>
+                    </div>
+
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">Comprovante (PDF ou Imagem)</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Comprovante</label>
                         <input
                             type="file"
                             required
@@ -225,7 +232,7 @@ export function FinancialDashboard() {
                             }}
                             className="w-full px-4 py-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                         />
-                        <p className="text-xs text-slate-500 mt-1">Anexe o comprovante da transferência (Max: 1MB).</p>
+                        <p className="text-xs text-slate-500 mt-1">Anexe o comprovante (Max: <span className="text-red-600 font-bold">1MB</span>).</p>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4">

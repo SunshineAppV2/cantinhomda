@@ -154,7 +154,16 @@ export function RequirementAnswerModal({ isOpen, onClose, requirement }: Require
 
                 {showFile && (
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Anexo (Foto/Documento)</label>
+                        <div className="bg-blue-50 p-3 rounded-lg border border-blue-100 text-sm text-blue-800 mb-3">
+                            <p className="font-bold flex items-center gap-2 mb-1">
+                                <Upload className="w-4 h-4" /> Diretrizes de Envio
+                            </p>
+                            <ul className="list-disc pl-5 space-y-1 text-xs">
+                                <li>Tamanho: <strong>Max 1MB</strong></li>
+                                <li>Formatos: Imagem ou PDF</li>
+                            </ul>
+                        </div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Anexo</label>
                         <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                 {selectedFile ? (
@@ -165,7 +174,8 @@ export function RequirementAnswerModal({ isOpen, onClose, requirement }: Require
                                 ) : (
                                     <>
                                         <Upload className="w-8 h-8 text-slate-400 mb-2" />
-                                        <p className="text-xs text-slate-500">Clique para enviar arquivo (Max: 1MB)</p>
+                                        <p className="text-xs font-bold text-slate-500">Clique para enviar arquivo (Max: <span className="text-red-500">1MB</span>)</p>
+                                        <p className="text-[10px] text-slate-400 mt-1">PDF, JPG, PNG, WebP</p>
                                     </>
                                 )}
                             </div>
