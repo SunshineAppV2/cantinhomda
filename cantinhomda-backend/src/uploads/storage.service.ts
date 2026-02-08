@@ -27,13 +27,10 @@ export class StorageService {
             throw new BadRequestException('Arquivo excede o tamanho máximo de 1MB.');
         }
 
-        let bucketName = process.env.FIREBASE_STORAGE_BUCKET || 'cantinhodbv-dfdab.firebasestorage.app';
+        // PRIORITY: Use environment variable, then fallback to hardcoded default
+        const bucketName = process.env.FIREBASE_STORAGE_BUCKET || 'cantinhodbv-dfdab.firebasestorage.app';
 
-        // Fix common misconfiguration where 'appspot.com' is used instead of 'firebasestorage.app' for storage
-        if (bucketName.includes('appspot.com')) {
-            // Check if we should warn, but proceed. Or auto-fix.
-            // Let's rely on what works.
-        }
+        this.logger.log(`[StorageService] Uploading to bucket: ${bucketName}`);
 
         try {
             const bucket = firebaseAdmin.storage().bucket(bucketName);
@@ -45,19 +42,19 @@ export class StorageService {
 
             await fileUpload.save(file.buffer, {
                 contentType: file.mimetype,
-                public: true, // Make public
+                public: true,
             });
 
             // Construct public URL
             // Format: https://storage.googleapis.com/<bucket>/<path>
             const publicUrl = `https://storage.googleapis.com/${bucketName}/${filename}`;
 
-            this.logger.log(`File uploaded successfully: ${publicUrl}`);
+            this.logger.log(`[StorageService] File uploaded successfully used public URL: ${publicUrl}`);
             return publicUrl;
 
         } catch (error) {
-            this.logger.error(`Error uploading to bucket ${bucketName}: ${error.message}`, error.stack);
-            throw new BadRequestException('Erro ao fazer upload do arquivo.');
+            this.logger.error(`[StorageService] Error uploading to bucket ${bucketName}: ${error.message}`, error.stack);
+            throw new BadRequestException(`Erro ao fazer upload do arquivo: ${error.message}`);
         }
     }
 }
